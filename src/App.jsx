@@ -75,16 +75,39 @@ const InfoBox = ({ label, value, small, numeric }) => (
   </div>
 );
 
-const MetricCard = ({ icon, label, value, sub, unit, alert }) => (
-  <div className={`bg-slate-900/50 rounded-xl border p-6 ${alert ? 'border-red-500/50' : 'border-slate-800'}`}>
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center">{icon}</div>
-      <div className="text-sm text-slate-400 uppercase tracking-wider font-medium">{label}</div>
+const MetricCard = ({ icon, label, value, sub, unit, alert, info }) => {
+  const [showInfo, setShowInfo] = useState(false);
+
+  return (
+    <div className={`bg-slate-900/50 rounded-xl border p-6 ${alert ? 'border-red-500/50' : 'border-slate-800'} relative`}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center">{icon}</div>
+        <div className="text-sm text-slate-400 uppercase tracking-wider font-medium flex-1">{label}</div>
+        {info && (
+          <div className="relative">
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            >
+              <Info className="w-3 h-3" />
+            </button>
+            {showInfo && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowInfo(false)} />
+                <div className="absolute right-0 top-7 z-50 w-72 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 text-xs text-slate-300">
+                  <div className="font-semibold text-white mb-2 text-sm">{label}</div>
+                  {info}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="text-2xl font-bold text-white font-mono">{value} {unit && <span className="text-lg text-slate-400">{unit}</span>}</div>
+      {sub && <div className="text-sm text-slate-400 mt-2 font-mono">{sub}</div>}
     </div>
-    <div className="text-2xl font-bold text-white font-mono">{value} {unit && <span className="text-lg text-slate-400">{unit}</span>}</div>
-    {sub && <div className="text-sm text-slate-400 mt-2 font-mono">{sub}</div>}
-  </div>
-);
+  );
+};
 
 const ChartCard = ({ title, icon, children, onClick }) => (
   <div
@@ -1533,7 +1556,7 @@ const PlotAnalyzer = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Plot Analyzer</span>
-              <span className="text-[10px] text-slate-600">v1.0.0</span>
+              <span className="text-[10px] text-slate-600">v1.0.1</span>
             </div>
           </div>
           {fileName && (
@@ -1649,7 +1672,34 @@ const PlotAnalyzer = () => {
                 label="Health Score"
                 value={summaryStats.health?.overallHealth || 0} unit="%"
                 sub="System health indicator"
-                alert={summaryStats.health?.overallHealth < 70} />
+                alert={summaryStats.health?.overallHealth < 70}
+                info={
+                  <div className="space-y-2">
+                    <p>Starts at <span className="text-white font-semibold">100%</span> and deducts points based on:</p>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-red-400">Critical faults:</span>
+                        <span className="text-white">-20 pts each</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-orange-400">Warning faults:</span>
+                        <span className="text-white">-5 pts each</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-400">High temp time:</span>
+                        <span className="text-white">up to -20 pts</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-600 pt-2 mt-2">
+                      <div className="text-[10px] uppercase text-slate-500 mb-1">Score Ranges</div>
+                      <div className="flex gap-2 text-[10px]">
+                        <span className="text-emerald-400">&gt;85% Good</span>
+                        <span className="text-orange-400">70-85% Warning</span>
+                        <span className="text-red-400">&lt;70% Critical</span>
+                      </div>
+                    </div>
+                  </div>
+                } />
             </div>
 
             {/* Histogram Summary Cards */}
