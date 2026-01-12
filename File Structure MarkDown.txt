@@ -1,0 +1,282 @@
+Incluce the data points below in the Overview section.  Remove the quotes if there are quotes
+
+Engine P/N
+Engine S/N
+
+The Speed/Load Histogram and other histograms are not formatting correctly.   The explination on how the histograms work is below and also shown on the new file in the project File Training Guide.pdf  I have also included a JSON file in the project you can use for guidance. 
+
+Below is a **clear, implementation focused Markdown guidance document** you can give directly to Claude Code. It translates the training material into **explicit software requirements, parsing rules, validation logic, and GUI expectations** for an ECM file evaluation application.
+
+All technical interpretations are derived from the provided training guide .
+
+---
+
+# ECM File Evaluation and Visualization Guidance
+
+## Purpose
+
+This document defines how an application shall parse, evaluate, and present ECM download files into a structured and intuitive GUI. The intent is to support diagnostic review, usage analysis, and fault interpretation without requiring manual text inspection.
+
+The ECM file is a semi structured text export containing metadata, operating histograms, adaptive learning data, and diagnostic fault snapshots.
+
+---
+
+## High Level Application Objectives
+
+1. Reliably parse raw ECM text files into structured data objects
+2. Validate internal consistency such as checksums and version alignment
+3. Convert numeric tables into meaningful visualizations
+4. Highlight abnormal or high risk conditions automatically
+5. Present technical data in a way that matches how engineers reason about engines
+
+---
+
+## ECM File Structure Overview
+
+The application shall treat the ECM file as **five logical sections**, even if the raw file is continuous text.
+
+### Section 1 ECM Identification and Metadata
+
+Key fields include
+
+* Download date and time
+* ECM hardware part number and serial number
+* Software revision and SVN details
+* Calibration part numbers and dates
+* Engine part number and serial number
+* Hour meter and cumulative starts
+* Calibration checksums
+
+#### Parsing Guidance
+
+* Each field is key value based
+* Quoted values shall retain quotation removal
+* Dates shall normalize to ISO format internally
+* Numeric values shall be stored with original precision
+
+#### Validation Logic
+
+* Current software revision shall match the reported software version
+* Current calibration checksum shall match the total calibration checksum
+* Hour meter must be greater than or equal to zero
+* Cumulative starts must be integer
+
+#### GUI Expectations
+
+* Display as a summary card titled ECM Overview
+* Highlight mismatched checksum fields in amber
+* Display hour meter prominently since usage is hour based for industrial engines
+
+---
+
+### Section 2 Operating Histograms
+
+Includes
+
+* Speed vs Load histogram
+* Knock histogram
+* Engine coolant temperature histogram
+
+#### Speed vs Load Histogram
+
+Definition
+
+* Y axis Engine speed in RPM
+* X axis Manifold pressure in PSIA
+* Cell values Time in hours spent at each operating point
+
+#### Parsing Guidance
+
+* First row after header defines load bins
+* First column defines RPM bins
+* Remaining cells are float values in hours
+
+#### Derived Metrics
+
+* Primary operating zone defined as top 10 percent of cumulative hours
+* Idle operation defined as RPM below 900
+* Sustained high load defined as MAP above 24 PSIA
+
+#### GUI Expectations
+
+* Render as heatmap
+* Color intensity proportional to time accumulation
+* Tooltip shall show RPM MAP hours
+* Provide toggle to display percentage of total runtime
+
+---
+
+### Knock Histogram
+
+Definition
+
+* Cumulative time in seconds where knock thresholds were exceeded
+
+#### Parsing Guidance
+
+* Same matrix structure as speed load
+* Values are seconds not hours
+
+#### Evaluation Logic
+
+* Any non zero value shall be flagged
+* Convert seconds to hours for comparison context
+* Correlate knock locations with speed load histogram
+
+#### GUI Expectations
+
+* Overlay knock locations on speed load heatmap
+* Provide summary banner if total knock time exceeds configurable threshold
+
+---
+
+### Engine Coolant Temperature Histogram
+
+Definition
+
+* Runtime accumulation by ECT bins in degrees Fahrenheit
+
+#### Parsing Guidance
+
+* Single column histogram
+* Values in hours
+
+#### Evaluation Logic
+
+* Flag time above 220 F
+* Flag cold operation below 130 F
+* Calculate percentage of runtime outside normal band
+
+#### GUI Expectations
+
+* Bar chart with normal band highlighted
+* Tooltip with hours and percentage
+
+---
+
+### Section 3 Distributor Alignment and Adaptive Learning
+
+#### Distributor Alignment
+
+Applies only to distributor based engines
+
+Definition
+
+* Crank angle degrees actual vs desired
+
+#### Evaluation Logic
+
+* Non zero delta shall be flagged
+* Severity scaled by absolute deviation
+
+#### GUI Expectations
+
+* Simple numeric display with pass fail indicator
+
+---
+
+#### Adaptive Learn Tables
+
+Includes
+
+* LPG adaptive table
+* NG adaptive table
+
+Definition
+
+* Long term fuel trim by RPM and load
+* Values are percent from minus 35 to plus 35
+
+#### Parsing Guidance
+
+* Treat tables identically to speed load histogram
+* Store as percent
+
+#### Evaluation Logic
+
+* Absolute value above 20 percent flagged
+* Pattern based analysis
+
+  * High positive trims suggest fuel starvation
+  * High negative trims suggest over fueling
+
+#### GUI Expectations
+
+* Heatmap with diverging color scale
+* Zero centered
+* Toggle between fuel types
+
+---
+
+### Section 4 Fault Snapshot Data
+
+Each fault includes
+
+* DTC code and description
+* Occurrence count
+* First and last occurrence hours
+* Snapshot of operating parameters at fault time
+
+#### Parsing Guidance
+
+* Treat each DTC as an object
+* Snapshot fields are flat key value pairs
+* Units inferred by parameter name
+
+#### Evaluation Logic
+
+* Identify whether fault caused shutdown
+* Identify whether fault occurred under load or idle
+* Correlate MAP RPM and fuel pressure at fault time
+* Fuel type mapping
+
+  * 0 gasoline
+  * 1 propane
+  * 2 natural gas
+
+#### GUI Expectations
+
+* Fault list with expandable detail
+* Timeline visualization using engine hours
+* Snapshot values grouped by category
+
+  * Electrical
+  * Fuel
+  * Air
+  * Thermal
+
+---
+
+## Cross Section Correlation Features
+
+The application shall support correlation across sections.
+
+Examples
+
+* Clicking a DTC highlights its operating region on histograms
+* Selecting a high adaptive learn cell highlights usage frequency
+* Overlay knock and adaptive learn simultaneously
+
+---
+
+## Data Integrity and Error Handling
+
+* Missing sections shall be reported clearly
+* Partial tables shall still render with warnings
+* Units shall always be displayed explicitly
+* Raw file view shall be available for audit purposes
+
+---
+
+## Export and Reporting
+
+* Allow export of parsed data as JSON
+* Allow export of visuals as PNG
+* Provide summary diagnostic report including
+
+  * Primary operating conditions
+  * Abnormal usage patterns
+  * Fault trends
+  * Calibration integrity status
+
+

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://psi.example/schemas/ecm-eval.schema.json",
+  "title": "ECM Download Parsed Data",
+  "type": "object",
+  "required": ["source", "metadata", "histograms"],
+  "additionalProperties": false,
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": ["original_filename", "ingested_at_utc", "parser_version"],
+      "additionalProperties": false,
+      "properties": {
+        "original_filename": { "type": "string", "minLength": 1 },
+        "ingested_at_utc": { "type": "string", "format": "date-time" },
+        "parser_version": { "type": "string", "minLength": 1 },
+        "raw_text_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      }
+    },
+
+    "metadata": {
+      "type": "object",
+      "required": ["download", "ecm", "software", "calibration", "engine"],
+      "additionalProperties": false,
+      "properties": {
+        "download": {
+          "type": "object",
+          "required": ["date", "time"],
+          "additionalProperties": false,
+          "properties": {
+            "date": { "type": "string", "format": "date" },
+            "time": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$" }
+          }
+        },
+
+        "ecm": {
+          "type": "object",
+          "required": ["hw_part_number", "hw_serial_number", "manufacture_date"],
+          "additionalProperties": false,
+          "properties": {
+            "hw_part_number": { "type": "string", "minLength": 1 },
+            "hw_serial_number": { "type": "string", "minLength": 1 },
+            "manufacture_date": { "type": "string", "format": "date" },
+
+            "psi_unprogrammed_ecm_part_number": { "type": "string" },
+            "customer_hw_part_number": { "type": "string" }
+          }
+        },
+
+        "software": {
+          "type": "object",
+          "required": ["sw_part_number", "mot_xls_rev", "current_version"],
+          "additionalProperties": false,
+          "properties": {
+            "sw_part_number": { "type": "string", "minLength": 1 },
+            "mot_xls_rev": { "type": "integer" },
+
+            "current_version": { "type": "integer" },
+            "version_history": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["slot", "version"],
+                "additionalProperties": false,
+                "properties": {
+                  "slot": { "type": "integer", "minimum": 1 },
+                  "version": { "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+
+            "svn": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "revision": { "type": "integer" },
+                "compile_status": { "type": "integer" },
+                "compile_date": { "type": "string" },
+                "compile_time": { "type": "string" }
+              }
+            }

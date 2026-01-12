@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Engine ECM Analysis - Binned Heatmap</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#197fe6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111921",
+                        "surface-dark": "#1a2632",
+                        "border-dark": "#344d65",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .mono-data {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+        /* Custom scrollbar for data density */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111921;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #344d65;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #197fe6;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark px-10 py-3 bg-background-light dark:bg-background-dark">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight">Engine Dynamics ECM</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="flex items-center gap-9">
+<a class="text-white text-sm font-medium hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-medium border-b-2 border-primary pb-1" href="#">Heatmap Analysis</a>
+<a class="text-white text-sm font-medium hover:text-primary transition-colors" href="#">Diagnostic Logs</a>
+<a class="text-white text-sm font-medium hover:text-primary transition-colors" href="#">Maintenance</a>
+</div>
+<div class="flex gap-2">
+<button class="flex min-w-[100px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/80 transition-all">
+<span class="truncate">Export Report</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-surface-dark border border-border-dark text-white hover:bg-border-dark transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-border-dark" data-alt="User profile avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAA91c9YVwBDruvi7DD60neyAz_EJ-ujEVd7Hvf_ZKSzjB9bOU3_3b_7bSqakSL-9q18sTzn7PmId_-iey9aW46XIHJFuywTrUnGntYrBJjDhA4O_rzYFfd6HMYxUVBbJPKLUSDQl6C8aY2wDBxrNoY3gqx1AQEY-k3DgFie5dvw07EJTkSMWklNq4bT4h5vG81VtG9fyUaifgMtUvVwXeV2i461GDfu7pICaZ08Sk7nRbp2RqVfbvmGZmCHsUTGKHsmjkut4JGJD_I");'></div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto px-10 py-6">
+<div class="max-w-[1400px] mx-auto space-y-6">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-end gap-3">
+<div class="flex flex-col gap-1">
+<h1 class="text-white text-4xl font-black leading-tight tracking-tight">Engine Speed vs Load Distribution</h1>
+<p class="text-[#93adc8] text-base font-normal">Dataset Period: Q3 2023 Update | Unit ID: ECM-TRQ-4492-X</p>
+</div>
+<div class="flex gap-3 pb-1">
+<button class="flex items-center gap-2 rounded-lg h-10 px-4 bg-surface-dark border border-border-dark text-white text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span>Global Scaling</span>
+</button>
+<button class="flex items-center gap-2 rounded-lg h-10 px-4 bg-surface-dark border border-border-dark text-white text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">percent</span>
+<span>Toggle Labels</span>
+</button>
+</div>
+</div>
+<!-- Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-border-dark bg-surface-dark/40">
+<p class="text-[#93adc8] text-sm font-medium uppercase tracking-wider">Total Runtime</p>
+<div class="flex items-baseline gap-2">
+<p class="text-white text-3xl font-bold mono-data">2,841.2h</p>
+<p class="text-[#0bda5b] text-sm font-medium">+1.8%</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-border-dark bg-surface-dark/40">
+<p class="text-[#93adc8] text-sm font-medium uppercase tracking-wider">Average Load</p>
+<p class="text-white text-3xl font-bold mono-data">64.5%</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-border-dark bg-surface-dark/40">
+<p class="text-[#93adc8] text-sm font-medium uppercase tracking-wider">Peak Operating Point</p>
+<p class="text-white text-3xl font-bold mono-data">2,100 RPM / 85%</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-border-dark bg-primary/10 border-primary/30">
+<p class="text-primary text-sm font-medium uppercase tracking-wider">Efficiency Rating</p>
+<p class="text-white text-3xl font-bold mono-data">A- (Optimal)</p>
+</div>
+</div>
+<!-- Heatmap Section -->
+<div class="rounded-xl border border-border-dark bg-background-dark overflow-hidden">
+<div class="bg-surface-dark px-6 py-3 border-b border-border-dark flex justify-between items-center">
+<h3 class="text-white font-bold text-sm tracking-wide">DISTRIBUTION MATRIX (Hours / %)</h3>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-[#93adc8]">MIN (0%)</span>
+<div class="w-32 h-2 rounded-full bg-gradient-to-r from-surface-dark via-primary/50 to-primary"></div>
+<span class="text-[10px] text-[#93adc8]">MAX (20%+)</span>
+</div>
+</div>
+</div>
+<div class="p-4 overflow-x-auto">
+<table class="w-full border-separate border-spacing-1">
+<thead>
+<tr>
+<th class="w-20 p-2 text-left text-[10px] font-bold text-[#93adc8] uppercase tracking-tighter">Load \ RPM</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">800</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">1200</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">1600</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">2000</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">2400</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">2800</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-[#93adc8]">3200</th>
+<th class="w-24 p-2 text-center text-xs font-bold text-primary border-l border-border-dark/50">Row Total</th>
+</tr>
+</thead>
+<tbody>
+<!-- 90-100% Load -->
+<tr>
+<td class="p-2 text-right text-xs font-bold text-white border-r border-border-dark/50 pr-4">90-100%</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">
+<div class="text-[11px] font-bold text-white mono-data">1.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.1%</div>
+</td>
+<td class="p-2 rounded bg-primary/20 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">12.5h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.1%</div>
+</td>
+<td class="p-2 rounded bg-primary/40 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">45.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">4.2%</div>
+</td>
+<td class="p-2 rounded bg-primary/60 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">88.1h</div>
+<div class="text-[10px] text-white/80 mono-data">8.1%</div>
+</td>
+<td class="p-2 rounded bg-primary/30 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">15.0h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.4%</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">
+<div class="text-[11px] font-bold text-white mono-data">--</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">
+<div class="text-[11px] font-bold text-white mono-data">--</div>
+</td>
+<td class="p-2 text-center text-xs font-bold text-white border-l border-border-dark/50 mono-data">14.9%</td>
+</tr>
+<!-- 70-90% Load -->
+<tr>
+<td class="p-2 text-right text-xs font-bold text-white border-r border-border-dark/50 pr-4">70-90%</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-primary/30 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">32.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">2.8%</div>
+</td>
+<td class="p-2 rounded bg-primary/70 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">156.4h</div>
+<div class="text-[10px] text-white/90 mono-data">12.2%</div>
+</td>
+<td class="p-2 rounded bg-primary border border-white/5 text-center hover:border-white transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">321.0h</div>
+<div class="text-[10px] text-white mono-data">21.4%</div>
+</td>
+<td class="p-2 rounded bg-primary/80 border border-white/5 text-center hover:border-white transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">204.5h</div>
+<div class="text-[10px] text-white mono-data">16.8%</div>
+</td>
+<td class="p-2 rounded bg-primary/20 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">12.1h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.1%</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 text-center text-xs font-bold text-white border-l border-border-dark/50 mono-data">54.3%</td>
+</tr>
+<!-- 40-70% Load -->
+<tr>
+<td class="p-2 text-right text-xs font-bold text-white border-r border-border-dark/50 pr-4">40-70%</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">5.1h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.4%</div>
+</td>
+<td class="p-2 rounded bg-primary/20 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">18.4h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.5%</div>
+</td>
+<td class="p-2 rounded bg-primary/30 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">42.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">3.8%</div>
+</td>
+<td class="p-2 rounded bg-primary/40 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">68.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">6.2%</div>
+</td>
+<td class="p-2 rounded bg-primary/30 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">41.1h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">3.6%</div>
+</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center">
+<div class="text-[11px] font-bold text-white mono-data">4.4h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.3%</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 text-center text-xs font-bold text-white border-l border-border-dark/50 mono-data">15.8%</td>
+</tr>
+<!-- 10-40% Load -->
+<tr>
+<td class="p-2 text-right text-xs font-bold text-white border-r border-border-dark/50 pr-4">10-40%</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">4.0h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.3%</div>
+</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">6.5h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.6%</div>
+</td>
+<td class="p-2 rounded bg-primary/20 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">14.1h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.3%</div>
+</td>
+<td class="p-2 rounded bg-primary/20 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">12.5h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">1.1%</div>
+</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">8.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.7%</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 text-center text-xs font-bold text-white border-l border-border-dark/50 mono-data">4.0%</td>
+</tr>
+<!-- 0-10% Load (Idle) -->
+<tr>
+<td class="p-2 text-right text-xs font-bold text-white border-r border-border-dark/50 pr-4">0-10%</td>
+<td class="p-2 rounded bg-primary/40 border border-white/5 text-center hover:border-primary transition-all cursor-pointer">
+<div class="text-[11px] font-bold text-white mono-data">84.5h</div>
+<div class="text-[10px] text-white/80 mono-data">7.8%</div>
+</td>
+<td class="p-2 rounded bg-primary/10 border border-white/5 text-center">
+<div class="text-[11px] font-bold text-white mono-data">10.2h</div>
+<div class="text-[10px] text-[#93adc8] mono-data">0.9%</div>
+</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 rounded bg-surface-dark border border-white/5 text-center">--</td>
+<td class="p-2 text-center text-xs font-bold text-white border-l border-border-dark/50 mono-data">8.7%</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td class="p-2 text-right text-[10px] font-bold text-primary uppercase pr-4 border-t border-border-dark/50">Col Total</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">8.6%</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">6.9%</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">21.5%</td>
+<td class="p-2 text-center text-xs font-bold text-white border-t border-border-dark/50 mono-data font-bold">36.8%</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">23.3%</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">1.4%</td>
+<td class="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-border-dark/50 mono-data">0.0%</td>
+<td class="p-2 text-center text-xs font-bold text-white border-t border-l border-border-dark/50 mono-data">100%</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- Secondary Data Visualization / Controls -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 rounded-xl border border-border-dark bg-surface-dark/20 p-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white font-bold text-lg">Detailed Bin Diagnostics</h3>
+<p class="text-xs text-[#93adc8]">Select a cell in the heatmap above to view metrics</p>
+</div>
+<div class="flex flex-col items-center justify-center py-12 text-border-dark gap-2">
+<span class="material-symbols-outlined text-4xl">ads_click</span>
+<p class="text-sm">No bin selected for localized analysis.</p>
+</div>
+</div>
+<div class="rounded-xl border border-border-dark bg-surface-dark/20 p-6 flex flex-col gap-4">
+<h3 class="text-white font-bold text-lg">Visualization Controls</h3>
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold text-[#93adc8] uppercase tracking-wider">Normalization Method</label>
+<select class="w-full bg-background-dark border border-border-dark rounded-lg text-sm text-white px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none">
+<option>Global Dataset Maximum</option>
+<option>Row-Relative Weighting</option>
+<option>Standard Distribution Curve</option>
+</select>
+</div>
+<div class="flex flex-col gap-2 pt-2">
+<label class="text-xs font-bold text-[#93adc8] uppercase tracking-wider">Color Intensity Scale</label>
+<input class="w-full h-1.5 bg-border-dark rounded-lg appearance-none cursor-pointer accent-primary" type="range"/>
+<div class="flex justify-between text-[10px] text-[#93adc8]">
+<span>Linear</span>
+<span>Logarithmic</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4">
+<span class="text-sm font-medium text-white">Show Absolute Hours</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-11 h-6 bg-primary rounded-full"></div>
+<div class="absolute left-6 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-white">Highlight Outliers</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-11 h-6 bg-border-dark rounded-full"></div>
+<div class="absolute left-1 top-1 bg-[#93adc8] w-4 h-4 rounded-full transition"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Status Bar -->
+<footer class="h-8 border-t border-border-dark bg-surface-dark px-10 flex items-center justify-between text-[10px] font-medium text-[#93adc8] uppercase tracking-widest">
+<div class="flex gap-6 items-center">
+<span class="flex items-center gap-1"><span class="size-1.5 bg-[#0bda5b] rounded-full"></span> ECM Connection Stable</span>
+<span>Latency: 12ms</span>
+</div>
+<div class="flex gap-6 items-center">
+<span>Last Updated: 14:22:10 UTC</span>
+<span class="text-primary cursor-pointer hover:underline">Re-sync Live Data</span>
+</div>
+</footer>
+</div>
+</body></html>
