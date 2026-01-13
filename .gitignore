@@ -25,3 +25,11 @@ Thumbs.db
 
 # Server uploads
 server/uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated output
+*.png
