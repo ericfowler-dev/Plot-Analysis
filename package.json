@@ -3,13 +3,15 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
-  "homepage": "https://ericfowler-dev.github.io/snapshot",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
     "dev:server": "node server/index.js",
     "build": "vite build",
-    "start": "cross-env NODE_ENV=production node server/index.js",
+    "start": "NODE_ENV=production node server/index.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
