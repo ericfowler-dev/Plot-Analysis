@@ -3,10 +3,14 @@ services:
     name: plot-analyzer
     runtime: node
     plan: starter
-    buildCommand: pip install -r requirements.txt && npm install && npm run build
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: PYTHONUSERBASE
+        value: /opt/render/project/src/.python
+      - key: PATH
+        value: /opt/render/project/src/.python/bin:$PATH
