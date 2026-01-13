@@ -1,0 +1,66 @@
+{
+  "profileId": "doosan-11l-base",
+  "name": "Doosan 11L Base",
+  "description": "Base profile for Doosan 11L engine family. Larger displacement engine with different operating characteristics.",
+  "parent": "global-defaults",
+  "engineFamily": "Doosan 11L",
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "rpm": {
+      "enabled": true,
+      "warning": {
+        "max": 2200
+      },
+      "critical": {
+        "max": 2400
+      },
+      "overspeed": 2600
+    },
+    "oilPressure": {
+      "enabled": true,
+      "critical": {
+        "min": 15
+      },
+      "warning": {
+        "min": 22
+      },
+      "rpmThreshold": 550
+    },
+    "coolantTemp": {
+      "enabled": true,
+      "critical": {
+        "max": 228
+      },
+      "warning": {
+        "max": 212
+      }
+    },
+    "oilTemp": {
+      "enabled": true,
+      "warning": {
+        "max": 245
+      },
+      "critical": {
+        "max": 265
+      }
+    }
+  },
+
+  "anomalyRules": [],
+
+  "engineSpecs": {
+    "displacement": "11.0L",
+    "cylinders": 6,
+    "configuration": "Inline",
+    "manufacturer": "Doosan",
+    "ratedPower": "200-400 HP",
+    "ratedSpeed": "1500-2200 RPM"
+  }
+}

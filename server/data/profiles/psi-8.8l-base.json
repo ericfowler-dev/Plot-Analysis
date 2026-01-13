@@ -1,0 +1,57 @@
+{
+  "profileId": "psi-8.8l-base",
+  "name": "PSI 8.8L Base",
+  "description": "Base profile for PSI 8.8L engine family. Fuel-specific variants inherit from this profile.",
+  "parent": "global-defaults",
+  "engineFamily": "PSI 8.8L",
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "rpm": {
+      "enabled": true,
+      "warning": {
+        "max": 2800
+      },
+      "critical": {
+        "max": 3200
+      },
+      "overspeed": 3400
+    },
+    "oilPressure": {
+      "enabled": true,
+      "critical": {
+        "min": 12
+      },
+      "warning": {
+        "min": 18
+      },
+      "rpmThreshold": 600
+    },
+    "coolantTemp": {
+      "enabled": true,
+      "critical": {
+        "max": 230
+      },
+      "warning": {
+        "max": 215
+      }
+    }
+  },
+
+  "anomalyRules": [],
+
+  "engineSpecs": {
+    "displacement": "8.8L",
+    "cylinders": 6,
+    "configuration": "Inline",
+    "manufacturer": "PSI",
+    "ratedPower": "175-300 HP",
+    "ratedSpeed": "1800-2800 RPM"
+  }
+}

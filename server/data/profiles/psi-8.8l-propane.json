@@ -1,0 +1,100 @@
+{
+  "profileId": "psi-8.8l-propane",
+  "name": "PSI 8.8L Propane/LPG",
+  "description": "PSI 8.8L engine configured for propane/LPG fuel. Includes propane-specific fuel trim ranges and vaporizer considerations.",
+  "parent": "psi-8.8l-base",
+  "engineFamily": "PSI 8.8L",
+  "fuelType": "propane",
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "fuelTrim": {
+      "enabled": true,
+      "description": "Propane fuel trim ranges - slightly wider than NG",
+      "closedLoop": {
+        "warning": {
+          "min": -22,
+          "max": 22
+        },
+        "critical": {
+          "min": -32,
+          "max": 32
+        }
+      },
+      "adaptive": {
+        "warning": {
+          "min": -18,
+          "max": 18
+        },
+        "critical": {
+          "min": -28,
+          "max": 28
+        }
+      }
+    },
+    "coolantTemp": {
+      "enabled": true,
+      "warning": {
+        "max": 212
+      },
+      "critical": {
+        "max": 228
+      },
+      "gracePeriod": 75
+    },
+    "knock": {
+      "enabled": true,
+      "description": "Propane knock thresholds",
+      "maxRetard": {
+        "warning": 9,
+        "critical": 14
+      },
+      "percentageThreshold": {
+        "warning": 4,
+        "critical": 8
+      }
+    }
+  },
+
+  "anomalyRules": [
+    {
+      "id": "propane-vaporizer-issue",
+      "name": "Potential Vaporizer Issue",
+      "description": "Fuel delivery issues that may indicate vaporizer problems",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "CL_BM1",
+          "operator": ">",
+          "value": 18
+        },
+        {
+          "param": "ECT",
+          "operator": "<",
+          "value": 140
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 50
+        }
+      ],
+      "logic": "AND",
+      "duration": 30,
+      "severity": "warning",
+      "category": "fuel"
+    }
+  ],
+
+  "fuelSpecs": {
+    "fuelType": "Propane/LPG",
+    "fuelCode": 1,
+    "btuRange": "91,500 BTU/gallon",
+    "pressureRange": "Varies with temperature (vapor pressure)"
+  }
+}

@@ -1,0 +1,258 @@
+{
+  "profileId": "global-defaults",
+  "name": "Global Defaults",
+  "description": "Base threshold values applicable to all engine types. Child profiles inherit these values and can override specific thresholds.",
+  "parent": null,
+  "engineFamily": null,
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "battery": {
+      "enabled": true,
+      "description": "Battery/system voltage monitoring",
+      "unit": "V",
+      "critical": {
+        "min": 10.5,
+        "max": 32.0
+      },
+      "warning": {
+        "min": 11.5,
+        "max": 30.0
+      },
+      "hysteresis": {
+        "lowClear": 12.0,
+        "highClear": 29.0
+      }
+    },
+    "coolantTemp": {
+      "enabled": true,
+      "description": "Engine coolant temperature monitoring",
+      "unit": "°F",
+      "critical": {
+        "max": 235
+      },
+      "warning": {
+        "max": 220
+      },
+      "gracePeriod": 60,
+      "gracePeriodDescription": "Ignore during warmup (seconds)"
+    },
+    "oilPressure": {
+      "enabled": true,
+      "description": "Engine oil pressure monitoring",
+      "unit": "psi",
+      "critical": {
+        "min": 10
+      },
+      "warning": {
+        "min": 20
+      },
+      "rpmDependent": true,
+      "rpmThreshold": 500,
+      "rpmThresholdDescription": "Only check when RPM above this value"
+    },
+    "manifoldPressure": {
+      "enabled": true,
+      "description": "Intake manifold absolute pressure",
+      "unit": "psia",
+      "critical": {
+        "min": 0.5,
+        "max": 40.0
+      },
+      "warning": {
+        "min": 2.0,
+        "max": 35.0
+      }
+    },
+    "rpm": {
+      "enabled": true,
+      "description": "Engine speed monitoring",
+      "unit": "RPM",
+      "warning": {
+        "max": 3200
+      },
+      "critical": {
+        "max": 3500
+      },
+      "overspeed": 3800
+    },
+    "fuelTrim": {
+      "enabled": true,
+      "description": "Fuel trim / mixture control monitoring",
+      "unit": "%",
+      "closedLoop": {
+        "warning": {
+          "min": -25,
+          "max": 25
+        },
+        "critical": {
+          "min": -35,
+          "max": 35
+        }
+      },
+      "adaptive": {
+        "warning": {
+          "min": -20,
+          "max": 20
+        },
+        "critical": {
+          "min": -30,
+          "max": 30
+        }
+      }
+    },
+    "knock": {
+      "enabled": true,
+      "description": "Engine knock/detonation detection",
+      "maxRetard": {
+        "warning": 10,
+        "critical": 15
+      },
+      "percentageThreshold": {
+        "warning": 5,
+        "critical": 10
+      },
+      "percentageDescription": "Percentage of run time with knock activity"
+    },
+    "oilTemp": {
+      "enabled": true,
+      "description": "Engine oil temperature monitoring",
+      "unit": "°F",
+      "warning": {
+        "max": 250
+      },
+      "critical": {
+        "max": 270
+      }
+    },
+    "intakeAirTemp": {
+      "enabled": true,
+      "description": "Intake air temperature monitoring",
+      "unit": "°F",
+      "warning": {
+        "max": 140
+      },
+      "critical": {
+        "max": 160
+      }
+    },
+    "exhaustGasTemp": {
+      "enabled": false,
+      "description": "Exhaust gas temperature (when equipped)",
+      "unit": "°F",
+      "warning": {
+        "max": 1400
+      },
+      "critical": {
+        "max": 1600
+      }
+    }
+  },
+
+  "anomalyRules": [
+    {
+      "id": "dtc-active",
+      "name": "Active Diagnostic Trouble Code",
+      "description": "Malfunction indicator lamp is active",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MILout_mirror",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "logic": "AND",
+      "duration": 0,
+      "severity": "warning",
+      "category": "fault"
+    },
+    {
+      "id": "high-load-high-temp",
+      "name": "High Load with Elevated Temperature",
+      "description": "Engine running at high load with elevated coolant temperature",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 80
+        },
+        {
+          "param": "ECT",
+          "operator": ">",
+          "value": 210
+        }
+      ],
+      "logic": "AND",
+      "duration": 30,
+      "severity": "warning",
+      "category": "thermal"
+    },
+    {
+      "id": "lean-running",
+      "name": "Lean Running Condition",
+      "description": "Fuel trim indicating lean mixture under load",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "CL_BM1",
+          "operator": ">",
+          "value": 20
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 50
+        }
+      ],
+      "logic": "AND",
+      "duration": 30,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "rich-running",
+      "name": "Rich Running Condition",
+      "description": "Fuel trim indicating rich mixture under load",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "CL_BM1",
+          "operator": "<",
+          "value": -20
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 50
+        }
+      ],
+      "logic": "AND",
+      "duration": 30,
+      "severity": "warning",
+      "category": "fuel"
+    }
+  ],
+
+  "metadata": {
+    "parameterMappings": {
+      "battery": ["Vbat", "battery_voltage", "VBAT"],
+      "coolantTemp": ["ECT", "coolant_temp", "engine_coolant_temp"],
+      "oilPressure": ["OILP_press", "oil_pressure", "OIL_PRESS"],
+      "manifoldPressure": ["MAP", "manifold_pressure", "MANIFOLD_ABS_PRESS"],
+      "rpm": ["rpm", "RPM", "engine_speed", "ENGINE_SPEED"],
+      "fuelTrimCL": ["CL_BM1", "closed_loop_fuel", "CL_FUEL_TRIM"],
+      "fuelTrimAdaptive": ["A_BM1", "adaptive_fuel", "ADAPTIVE_FUEL_TRIM"],
+      "knock": ["KNK_retard", "knock_retard", "KNOCK_RETARD"],
+      "oilTemp": ["OILT", "oil_temp", "OIL_TEMP"],
+      "intakeAirTemp": ["IAT", "intake_air_temp", "INTAKE_AIR_TEMP"]
+    }
+  }
+}

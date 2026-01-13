@@ -1,0 +1,129 @@
+{
+  "profileId": "psi-8.8l-ng",
+  "name": "PSI 8.8L Natural Gas",
+  "description": "PSI 8.8L engine configured for natural gas fuel. Includes NG-specific fuel trim ranges and thermal limits.",
+  "parent": "psi-8.8l-base",
+  "engineFamily": "PSI 8.8L",
+  "fuelType": "natural_gas",
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "fuelTrim": {
+      "enabled": true,
+      "description": "Tighter fuel trim limits for natural gas operation",
+      "closedLoop": {
+        "warning": {
+          "min": -20,
+          "max": 20
+        },
+        "critical": {
+          "min": -30,
+          "max": 30
+        }
+      },
+      "adaptive": {
+        "warning": {
+          "min": -15,
+          "max": 15
+        },
+        "critical": {
+          "min": -25,
+          "max": 25
+        }
+      }
+    },
+    "coolantTemp": {
+      "enabled": true,
+      "warning": {
+        "max": 210
+      },
+      "critical": {
+        "max": 225
+      },
+      "gracePeriod": 90
+    },
+    "knock": {
+      "enabled": true,
+      "description": "NG engines more sensitive to knock",
+      "maxRetard": {
+        "warning": 8,
+        "critical": 12
+      },
+      "percentageThreshold": {
+        "warning": 3,
+        "critical": 7
+      }
+    },
+    "manifoldPressure": {
+      "enabled": true,
+      "description": "Natural gas MAP ranges",
+      "warning": {
+        "min": 3.0,
+        "max": 32.0
+      },
+      "critical": {
+        "min": 1.0,
+        "max": 38.0
+      }
+    }
+  },
+
+  "anomalyRules": [
+    {
+      "id": "ng-lean-condition",
+      "name": "Natural Gas Lean Condition",
+      "description": "NG-specific lean detection with lower threshold",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "CL_BM1",
+          "operator": ">",
+          "value": 15
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 40
+        }
+      ],
+      "logic": "AND",
+      "duration": 20,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "ng-fuel-pressure-low",
+      "name": "Natural Gas Supply Pressure Low",
+      "description": "Gas supply pressure below optimal range",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "FPin",
+          "operator": "<",
+          "value": 40
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 30
+        }
+      ],
+      "logic": "AND",
+      "duration": 10,
+      "severity": "warning",
+      "category": "fuel"
+    }
+  ],
+
+  "fuelSpecs": {
+    "fuelType": "Natural Gas",
+    "fuelCode": 2,
+    "btuRange": "950-1050 BTU/scf",
+    "pressureRange": "0.25-2.0 psi (low pressure), 60-100 psi (high pressure)"
+  }
+}

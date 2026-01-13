@@ -1,0 +1,79 @@
+{
+  "version": "1.0.0",
+  "description": "Index of all available threshold profiles",
+  "lastUpdated": "2026-01-13T00:00:00Z",
+
+  "engineFamilies": [
+    {
+      "id": "psi-8.8l",
+      "name": "PSI 8.8L",
+      "description": "Power Solutions International 8.8L engine family",
+      "baseProfile": "psi-8.8l-base"
+    },
+    {
+      "id": "doosan-11l",
+      "name": "Doosan 11L",
+      "description": "Doosan 11L industrial engine family",
+      "baseProfile": "doosan-11l-base"
+    }
+  ],
+
+  "fuelTypes": [
+    {
+      "id": "natural_gas",
+      "name": "Natural Gas",
+      "code": 2,
+      "description": "Pipeline natural gas or CNG"
+    },
+    {
+      "id": "propane",
+      "name": "Propane/LPG",
+      "code": 1,
+      "description": "Liquefied petroleum gas"
+    },
+    {
+      "id": "gasoline",
+      "name": "Gasoline",
+      "code": 0,
+      "description": "Unleaded gasoline"
+    },
+    {
+      "id": "diesel",
+      "name": "Diesel",
+      "code": 3,
+      "description": "Diesel fuel"
+    }
+  ],
+
+  "applications": [
+    {
+      "id": "generator",
+      "name": "Generator",
+      "description": "Power generation applications"
+    },
+    {
+      "id": "compressor",
+      "name": "Compressor",
+      "description": "Gas compression applications"
+    },
+    {
+      "id": "pump",
+      "name": "Pump",
+      "description": "Pump drive applications"
+    },
+    {
+      "id": "vehicle",
+      "name": "Vehicle",
+      "description": "Vehicular applications"
+    }
+  ],
+
+  "profiles": [
+    "global-defaults",
+    "psi-8.8l-base",
+    "psi-8.8l-ng",
+    "psi-8.8l-propane",
+    "doosan-11l-base",
+    "doosan-11l-ng"
+  ]
+}

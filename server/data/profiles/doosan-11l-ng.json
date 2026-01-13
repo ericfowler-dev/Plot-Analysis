@@ -1,0 +1,58 @@
+{
+  "profileId": "doosan-11l-ng",
+  "name": "Doosan 11L Natural Gas",
+  "description": "Doosan 11L engine configured for natural gas fuel operation.",
+  "parent": "doosan-11l-base",
+  "engineFamily": "Doosan 11L",
+  "fuelType": "natural_gas",
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {
+    "fuelTrim": {
+      "enabled": true,
+      "closedLoop": {
+        "warning": {
+          "min": -18,
+          "max": 18
+        },
+        "critical": {
+          "min": -28,
+          "max": 28
+        }
+      },
+      "adaptive": {
+        "warning": {
+          "min": -15,
+          "max": 15
+        },
+        "critical": {
+          "min": -22,
+          "max": 22
+        }
+      }
+    },
+    "knock": {
+      "enabled": true,
+      "maxRetard": {
+        "warning": 7,
+        "critical": 11
+      },
+      "percentageThreshold": {
+        "warning": 3,
+        "critical": 6
+      }
+    }
+  },
+
+  "anomalyRules": [],
+
+  "fuelSpecs": {
+    "fuelType": "Natural Gas",
+    "fuelCode": 2
+  }
+}
