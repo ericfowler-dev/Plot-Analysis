@@ -1,12 +1,12 @@
 services:
   - type: web
     name: plot-analyzer
-    env: node
-    plan: free
-    buildCommand: npm install && npm run build
+    runtime: node
+    plan: starter
+    buildCommand: pip install -r requirements.txt && npm install && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        value: 10000
