@@ -27,6 +27,18 @@ import {
   VARIABLE_DEFINITIONS, VARIABLE_CATEGORIES, getVariableInfo, formatVariableValue, groupSnapshotByCategory
 } from './lib/variableDefinitions';
 
+// Import B-Plot modules
+import { parseBPlotData } from './lib/bplotParsers';
+import { processBPlotData } from './lib/bplotProcessData';
+import BPlotAnalysis from './components/BPlotAnalysis';
+
+// File type constants
+const FILE_TYPES = {
+  ECM: 'ecm',
+  BPLOT: 'bplot',
+  UNKNOWN: 'unknown'
+};
+
 // =============================================================================
 // DEBUG FLAG - Set to true to enable console logging
 // =============================================================================
@@ -1224,9 +1236,14 @@ class ErrorBoundary extends Component {
 }
 
 // =============================================================================
-// STATE MANAGEMENT - useReducer for ECM analysis state
+// STATE MANAGEMENT - useReducer for ECM/B-Plot analysis state
 // =============================================================================
 const analysisInitialState = {
+  // Common
+  fileType: null,
+  fileName: '',
+  parsed: false,
+  // ECM specific
   ecmInfo: {},
   histograms: {},
   faults: [],
@@ -1235,8 +1252,9 @@ const analysisInitialState = {
   summaryStats: {},
   processedHistograms: {},
   selectedHistogram: 'speedLoad',
-  fileName: '',
-  parsed: false
+  // B-Plot specific
+  bplotData: null,
+  bplotProcessed: null
 };
 
 function analysisReducer(state, action) {
@@ -1249,6 +1267,7 @@ function analysisReducer(state, action) {
 
       return {
         ...state,
+        fileType: FILE_TYPES.ECM,
         ecmInfo: action.payload.ecmInfo,
         histograms: action.payload.histograms,
         faults: processedFaults,
@@ -1256,6 +1275,15 @@ function analysisReducer(state, action) {
         analysis,
         summaryStats,
         processedHistograms,
+        fileName: action.payload.fileName,
+        parsed: true
+      };
+    case 'BPLOT_FILE_LOADED':
+      return {
+        ...state,
+        fileType: FILE_TYPES.BPLOT,
+        bplotData: action.payload.data,
+        bplotProcessed: action.payload.processed,
         fileName: action.payload.fileName,
         parsed: true
       };
@@ -1272,11 +1300,12 @@ function analysisReducer(state, action) {
 // MAIN COMPONENT - PLOT ANALYZER
 // =============================================================================
 const PlotAnalyzer = () => {
-  // ECM Analysis state managed by reducer
+  // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
   const {
-    ecmInfo, histograms, faults, stats, analysis, summaryStats,
-    processedHistograms, selectedHistogram, fileName, parsed
+    fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
+    processedHistograms, selectedHistogram, fileName, parsed,
+    bplotData, bplotProcessed
   } = state;
 
   // UI state
@@ -1348,10 +1377,10 @@ const PlotAnalyzer = () => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer?.files?.[0];
-    if (file && (/\.xlsx?$/i.test(file.name) || /\.csv$/i.test(file.name))) {
+    if (file && (/\.xlsx?$/i.test(file.name) || /\.csv$/i.test(file.name) || /\.bplt$/i.test(file.name))) {
       processFile(file);
     } else if (file) {
-      setError('Please upload a CSV or Excel file (.csv, .xls, .xlsx)');
+      setError('Please upload a CSV, Excel, or BPLT file (.csv, .xls, .xlsx, .bplt)');
     }
   };
 
@@ -1364,6 +1393,36 @@ const PlotAnalyzer = () => {
     const file = e.target.files?.[0];
     if (file) processFile(file);
     if (e.target) e.target.value = '';
+  };
+
+  // Detect file type from content
+  const detectFileType = (text, fileName) => {
+    // Check for .bplt extension (binary file - should be handled by backend)
+    if (fileName.toLowerCase().endsWith('.bplt')) {
+      return FILE_TYPES.BPLOT;
+    }
+
+    // Check for ECM signature
+    if (text.includes('========== 4G ECM Information ==========') ||
+        text.includes('4G ECM Information') ||
+        text.includes('ECI H/W P/N')) {
+      return FILE_TYPES.ECM;
+    }
+
+    // Check for B-Plot CSV signature (time-series data)
+    const firstLine = text.split('\n')[0] || '';
+    const headers = firstLine.split(',').map(h => h.trim());
+    if (headers[0] === 'Time' && headers.length > 30) {
+      const bplotColumns = ['rpm', 'MAP', 'ECT', 'IAT', 'Vbat', 'TPS_pct'];
+      const hasCommonColumns = bplotColumns.some(col =>
+        headers.some(h => h.toLowerCase() === col.toLowerCase())
+      );
+      if (hasCommonColumns) {
+        return FILE_TYPES.BPLOT;
+      }
+    }
+
+    return FILE_TYPES.UNKNOWN;
   };
 
   const processFile = async (file) => {
@@ -1383,7 +1442,40 @@ const PlotAnalyzer = () => {
     setError(null);
 
     try {
-      // Read file as text (ECM files are CSV/text format)
+      // Handle .bplt files via backend API
+      if (file.name.toLowerCase().endsWith('.bplt')) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to process BPLT file');
+        }
+
+        const result = await response.json();
+        const text = result.content;
+
+        // Parse as B-Plot CSV
+        const bplotParsed = parseBPlotData(text);
+        const bplotProcessedData = processBPlotData(bplotParsed);
+
+        dispatch({
+          type: 'BPLOT_FILE_LOADED',
+          payload: {
+            data: bplotParsed,
+            processed: bplotProcessedData,
+            fileName: file.name
+          }
+        });
+        return;
+      }
+
+      // Read file as text for CSV files
       const text = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
@@ -1391,31 +1483,52 @@ const PlotAnalyzer = () => {
         reader.readAsText(file);
       });
 
-      // Store raw file content for Raw tab
-      setRawFileContent(text);
+      // Detect file type
+      const detectedType = detectFileType(text, file.name);
+      console.log('Detected file type:', detectedType);
 
-      // Parse ECM data
-      console.log('Starting ECM data parsing...');
-      const parsedData = parseECMData(text);
-      console.log('Parsed data:', parsedData);
+      if (detectedType === FILE_TYPES.BPLOT) {
+        // Process as B-Plot time-series data
+        const bplotParsed = parseBPlotData(text);
+        const bplotProcessedData = processBPlotData(bplotParsed);
 
-      if (!parsedData.parsed) {
-        throw new Error(parsedData.error || 'Failed to parse ECM data');
-      }
+        dispatch({
+          type: 'BPLOT_FILE_LOADED',
+          payload: {
+            data: bplotParsed,
+            processed: bplotProcessedData,
+            fileName: file.name
+          }
+        });
+      } else if (detectedType === FILE_TYPES.ECM) {
+        // Store raw file content for Raw tab
+        setRawFileContent(text);
 
-      // Extract statistics
-      const stats = extractECMStats(parsedData);
-      console.log('Extracted stats:', stats);
+        // Parse ECM data
+        console.log('Starting ECM data parsing...');
+        const parsedData = parseECMData(text);
+        console.log('Parsed data:', parsedData);
 
-      // Dispatch to state management
-      dispatch({
-        type: 'ECM_FILE_LOADED',
-        payload: {
-          ...parsedData,
-          stats,
-          fileName: file.name
+        if (!parsedData.parsed) {
+          throw new Error(parsedData.error || 'Failed to parse ECM data');
         }
-      });
+
+        // Extract statistics
+        const stats = extractECMStats(parsedData);
+        console.log('Extracted stats:', stats);
+
+        // Dispatch to state management
+        dispatch({
+          type: 'ECM_FILE_LOADED',
+          payload: {
+            ...parsedData,
+            stats,
+            fileName: file.name
+          }
+        });
+      } else {
+        throw new Error('Unknown file format. Please upload an ECM download CSV or a B-Plot CSV file.');
+      }
 
     } catch (error) {
       console.error('File processing error:', error);
@@ -1511,7 +1624,7 @@ const PlotAnalyzer = () => {
           onDragOver={handleDragOver}
           onDragEnter={handleDragOver}
         >
-          <input id="fileIn" type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} className="hidden" />
+          <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" onChange={handleFileUpload} className="hidden" />
 
           {isLoading ? (
             <div className="flex flex-col items-center">
@@ -1525,10 +1638,11 @@ const PlotAnalyzer = () => {
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-white mb-3">Plot Data Analyzer</h1>
-              <p className="text-slate-400 mb-6">Drop your Excel file or click to browse</p>
+              <h1 className="text-2xl font-bold text-white mb-3">ECM & B-Plot Analyzer</h1>
+              <p className="text-slate-400 mb-6">Drop your ECM CSV or B-Plot file to analyze</p>
               <div className="text-xs text-slate-500 mb-6">
-                Max file size: {MAX_FILE_SIZE_MB} MB. Files over {WARN_FILE_SIZE_MB} MB show a performance warning.
+                Supports: ECM download CSV, B-Plot CSV, BPLT binary files<br/>
+                Max file size: {MAX_FILE_SIZE_MB} MB
               </div>
               <div className="flex justify-center gap-6 text-sm text-slate-500">
                 <span className="flex items-center gap-1"><Activity className="w-4 h-4 text-cyan-400" /> Data Analysis</span>
@@ -1543,7 +1657,21 @@ const PlotAnalyzer = () => {
   }
 
   // ----------------------------------------------------------------------------
-  // RENDER: MAIN DASHBOARD
+  // RENDER: B-PLOT TIME-SERIES ANALYSIS
+  // ---------------------------------------------------------------------------
+  if (fileType === FILE_TYPES.BPLOT && bplotProcessed) {
+    return (
+      <BPlotAnalysis
+        data={bplotData}
+        processedData={bplotProcessed}
+        fileName={fileName}
+        onReset={reset}
+      />
+    );
+  }
+
+  // ----------------------------------------------------------------------------
+  // RENDER: ECM MAIN DASHBOARD
   // ---------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-slate-950 text-white">
