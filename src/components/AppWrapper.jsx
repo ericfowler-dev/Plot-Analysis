@@ -94,7 +94,7 @@ function AdminFloatingButton({ onClick }) {
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full shadow-lg transition-all"
+    className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full shadow-lg transition-all opacity-0"
       title="Threshold Settings"
     >
       <Settings className="w-5 h-5 text-slate-400" />

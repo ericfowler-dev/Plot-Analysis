@@ -140,10 +140,19 @@ export function processBPlotData(parsedData) {
 
   // Normalize time to start from 0 for charting
   const startTime = timeInfo ? timeInfo.startTime : 0;
-  const normalizedData = data.map(row => ({
-    ...row,
-    Time: row.Time - startTime  // Normalize to start from 0
-  }));
+  const normalizedData = data.map(row => {
+    const rpmValue = row.rpm ?? row.RPM;
+    const normalizedRow = {
+      ...row,
+      Time: row.Time - startTime  // Normalize to start from 0
+    };
+
+    if (rpmValue !== undefined && normalizedRow.rpm === undefined) {
+      normalizedRow.rpm = rpmValue;
+    }
+
+    return normalizedRow;
+  });
 
   // Calculate stats for ALL channels (not just key channels)
   const channelStats = {};
@@ -166,7 +175,9 @@ export function processBPlotData(parsedData) {
   const engineEvents = extractEngineEvents(normalizedData);
 
   // Group channels by category
-  const channelsByCategory = getChannelsByCategory(channels);
+  const channelsByCategory = getChannelsByCategory(channels, (name, fallbackCategory) => {
+    return BPLOT_PARAMETERS[name]?.category || fallbackCategory || 'other';
+  });
 
   // Calculate operating statistics
   const operatingStats = calculateOperatingStats(data, channelStats);
@@ -200,8 +211,8 @@ export function processBPlotData(parsedData) {
 /**
  * Calculate operating statistics from the data
  * Per rules:
- * - Runtime only when RPM > 500
- * - Average Load calculated only when RPM > 900, displayed as MAP value
+ * - Runtime only when RPM > 550 (engine considered running)
+ * - Average Load calculated based on MAP value
  * Uses dt-based time accumulation for accuracy
  */
 function calculateOperatingStats(data, channelStats) {
@@ -213,7 +224,7 @@ function calculateOperatingStats(data, channelStats) {
     avgRPM: 0,
     maxLoad: 0,
     avgLoad: 0,
-    avgMAP: 0  // Average MAP when RPM > 900
+    avgMAP: 0  // Average MAP when engine running
   };
 
   if (!data || data.length < 2) return stats;
@@ -221,13 +232,13 @@ function calculateOperatingStats(data, channelStats) {
   let rpmSum = 0;
   let mapSum = 0;
   let rpmSampleCount = 0;
-  let loadedSampleCount = 0;  // Samples with RPM > 900 for MAP average
+  let mapSampleCount = 0;  // Samples for MAP average
 
   // Use dt-based time accumulation
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const prevRow = data[i - 1];
-    const rpm = row.rpm || 0;
+    const rpm = row.rpm ?? row.RPM ?? 0;
     const vsw = row.Vsw || 0;
     const map = row.MAP || 0;
     const load = row.eng_load || 0;
@@ -236,8 +247,8 @@ function calculateOperatingStats(data, channelStats) {
     const dt = row.Time - prevRow.Time;
     if (dt <= 0 || dt > 10) continue;  // Skip invalid or stale samples
 
-    // Engine running: RPM > 500 (per spec)
-    if (rpm > 500) {
+    // Engine running: RPM > 550 (per spec)
+    if (rpm > 550) {
       stats.totalRuntime += dt;
       rpmSum += rpm;
       rpmSampleCount++;
@@ -245,14 +256,18 @@ function calculateOperatingStats(data, channelStats) {
       if (rpm > stats.maxRPM) stats.maxRPM = rpm;
       if (load > stats.maxLoad) stats.maxLoad = load;
 
-      // Idle: RPM between 500 and 900
+      // Accumulate MAP for average load calculation
+      if (map > 0) {
+        mapSum += map;
+        mapSampleCount++;
+      }
+
+      // Idle: RPM between 550 and 900
       if (rpm <= 900) {
         stats.idleTime += dt;
       } else {
-        // RPM > 900: loaded time and MAP average
+        // RPM > 900: loaded time
         stats.loadedTime += dt;
-        mapSum += map;
-        loadedSampleCount++;
       }
     }
   }
@@ -261,10 +276,10 @@ function calculateOperatingStats(data, channelStats) {
     stats.avgRPM = rpmSum / rpmSampleCount;
   }
 
-  // Calculate average MAP only when RPM > 900 (per rules)
-  if (loadedSampleCount > 0) {
-    stats.avgMAP = mapSum / loadedSampleCount;
-    stats.avgLoad = stats.avgMAP;  // Display as MAP value, not percentage
+  // Calculate average MAP when engine running (per rules: Average Load = MAP value)
+  if (mapSampleCount > 0) {
+    stats.avgMAP = mapSum / mapSampleCount;
+    stats.avgLoad = stats.avgMAP;  // Display as MAP value
   }
 
   return stats;
@@ -311,7 +326,7 @@ function getValidDataWindow(data) {
   let startTime = null;
 
   for (let i = 0; i < data.length; i++) {
-    const rpm = data[i].rpm || 0;
+    const rpm = data[i].rpm ?? data[i].RPM ?? 0;
     const vsw = data[i].Vsw || 0;
     const time = data[i].Time;
 
@@ -481,7 +496,7 @@ function detectAlerts(data, channelStats) {
 
   // Check oil pressure - after grace period when engine is running
   const oilpValues = dataAfterGrace
-    .filter(row => (row.rpm || 0) > 500)
+    .filter(row => ((row.rpm ?? row.RPM ?? 0)) > 500)
     .map(row => row.OILP_press || 0)
     .filter(v => v > 0);
 
@@ -521,7 +536,7 @@ function detectAlerts(data, channelStats) {
   }
 
   // Check RPM exceeded limits - after grace period
-  const rpmValues = dataAfterGrace.map(row => row.rpm || 0);
+  const rpmValues = dataAfterGrace.map(row => row.rpm ?? row.RPM ?? 0);
   if (rpmValues.length > 0) {
     const maxRPM = Math.max(...rpmValues);
     if (maxRPM > BPLOT_THRESHOLDS.rpm.warning_high) {

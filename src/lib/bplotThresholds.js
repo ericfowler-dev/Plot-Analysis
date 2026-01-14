@@ -84,7 +84,13 @@ export const BPLOT_PARAMETERS = {
     name: 'RPM',
     unit: 'RPM',
     description: 'Engine crankshaft rotational speed',
-    category: 'engine'
+    category: 'speed_control'
+  },
+  RPM: {
+    name: 'RPM',
+    unit: 'RPM',
+    description: 'Engine crankshaft rotational speed',
+    category: 'speed_control'
   },
   fuel_type: {
     name: 'Fuel Type',
@@ -94,6 +100,13 @@ export const BPLOT_PARAMETERS = {
     hideAverage: true
   },
   HM_RAM_seconds: {
+    name: 'Hour Meter',
+    unit: 'hrs',
+    description: 'Engine hours from RAM',
+    category: 'engine',
+    hideAverage: true
+  },
+  HM_RAM: {
     name: 'Hour Meter',
     unit: 'hrs',
     description: 'Engine hours from RAM',
@@ -138,15 +151,15 @@ export const BPLOT_PARAMETERS = {
     category: 'speed_control'
   },
   RMT_speed: {
-    name: 'Remote Speed',
+    name: 'Remote Speed TSC1',
     unit: 'RPM',
-    description: 'Remote speed sensor reading',
+    description: 'Remote speed command via TSC1',
     category: 'speed_control'
   },
   RMT_speed_SA: {
-    name: 'RMT Speed SA',
-    unit: 'RPM',
-    description: 'Remote speed source address',
+    name: 'RMT_speed_SA',
+    unit: '',
+    description: 'TSC1 speed source address',
     category: 'speed_control'
   },
   gov1_rpm: {
@@ -164,6 +177,27 @@ export const BPLOT_PARAMETERS = {
     showMinOnly: true
   },
   gov3_rpm: {
+    name: 'Gov3 RPM',
+    unit: 'RPM',
+    description: 'Governor position 3 RPM setting',
+    category: 'speed_control',
+    showMinOnly: true
+  },
+  Gov1_rpm: {
+    name: 'Gov1 RPM',
+    unit: 'RPM',
+    description: 'Governor position 1 RPM setting',
+    category: 'speed_control',
+    showMinOnly: true
+  },
+  Gov2_rpm: {
+    name: 'Gov2 RPM',
+    unit: 'RPM',
+    description: 'Governor position 2 RPM setting',
+    category: 'speed_control',
+    showMinOnly: true
+  },
+  Gov3_rpm: {
     name: 'Gov3 RPM',
     unit: 'RPM',
     description: 'Governor position 3 RPM setting',
@@ -267,7 +301,7 @@ export const BPLOT_PARAMETERS = {
     category: 'fuel'
   },
   fuel_shutoff_chk: {
-    name: 'Fuel Shutoff Check',
+    name: 'Fuel Shutoff Status',
     unit: '',
     description: '0=Off (fuel enabled); 1=On (fuel disabled)',
     category: 'fuel',
@@ -300,7 +334,7 @@ export const BPLOT_PARAMETERS = {
   },
   // MFG Fuel-related items
   MFG_DPPress: {
-    name: 'MFG Delta Pressure',
+    name: 'MFG Delta Press - DP',
     unit: 'psi',
     description: 'Manufacturing differential pressure (Flag if < 0.5 during run)',
     category: 'fuel',
@@ -340,7 +374,7 @@ export const BPLOT_PARAMETERS = {
     name: 'Fuel Temperature',
     unit: 'F',
     description: 'Fuel temperature',
-    category: 'fuel'
+    category: 'temperature'
   },
 
   // =============================================================================
@@ -350,19 +384,19 @@ export const BPLOT_PARAMETERS = {
     name: 'Spark Advance',
     unit: 'deg',
     description: 'Ignition timing advance',
-    category: 'ignition_electrical'
+    category: 'ignition'
   },
   KNK_retard: {
     name: 'Knock Retard',
     unit: 'deg',
     description: 'Timing retard due to knock detection',
-    category: 'ignition_electrical'
+    category: 'ignition'
   },
   spark_shutoff_chk: {
-    name: 'Spark Shutoff Check',
+    name: 'Spark Shutoff',
     unit: '',
     description: '0=Off (spark enabled); 1=On (spark disabled)',
-    category: 'ignition_electrical',
+    category: 'ignition',
     hideAverage: true,
     showTimeInState: true
   },
@@ -374,37 +408,37 @@ export const BPLOT_PARAMETERS = {
     name: 'Gov1 Voltage',
     unit: 'V',
     description: 'Governor position 1 voltage input',
-    category: 'ignition_electrical'
+    category: 'engine'
   },
   gov2_volt: {
     name: 'Gov2 Voltage',
     unit: 'V',
     description: 'Governor position 2 voltage input',
-    category: 'ignition_electrical'
+    category: 'engine'
   },
   Vbat: {
     name: 'Battery Voltage',
     unit: 'V',
     description: 'System battery voltage',
-    category: 'ignition_electrical'
+    category: 'electrical'
   },
   Vsw: {
-    name: 'Key Switch Voltage (VSW)',
+    name: 'VSW',
     unit: 'V',
-    description: 'Ignition key switch voltage',
-    category: 'ignition_electrical'
+    description: 'Switched Voltage (VSW)',
+    category: 'electrical'
   },
   EGO1_volts: {
-    name: 'Pre-Catalyst O2 Sensor',
+    name: 'O2 Sensor Pre-Cat',
     unit: 'V',
     description: 'Pre-catalyst oxygen sensor voltage',
-    category: 'ignition_electrical'
+    category: 'fuel'
   },
   EGO2_volts: {
-    name: 'O2 Sensor 2 Voltage',
+    name: 'O2 Sensor Post-Cat',
     unit: 'V',
-    description: 'Bank 2 oxygen sensor voltage',
-    category: 'ignition_electrical'
+    description: 'Post-catalyst oxygen sensor voltage',
+    category: 'fuel'
   },
 
   // =============================================================================
@@ -587,9 +621,11 @@ export const CATEGORY_ORDER = [
   'engine',
   'speed_control',
   'fuel',
-  'ignition_electrical',
-  'pressure',
+  'ignition',
+  'electrical',
   'temperature',
+  'pressure',
+  'ignition_electrical',
   'system',
   'auxiliary'
 ];
@@ -598,6 +634,8 @@ export const CATEGORY_LABELS = {
   engine: 'Engine',
   speed_control: 'Speed Control',
   fuel: 'Fuel',
+  ignition: 'Ignition',
+  electrical: 'Electrical',
   ignition_electrical: 'Ignition / Electrical',
   pressure: 'Pressure',
   temperature: 'Temperature',
@@ -620,28 +658,33 @@ export const VALUE_MAPPINGS = {
     3: 'CL + Adaptive'
   },
   MILout_mirror: {
-    0: 'DTC Not Active',
-    1: 'DTC Active'
+    0: 'Not Active',
+    1: 'Active'
   },
   gov_sw_state: {
-    0: 'Off',
-    1: 'Position 1',
-    2: 'Position 2',
-    3: 'Position 3'
+    0: 'None',
+    1: 'GOV1',
+    2: 'GOV2',
+    3: 'GOV3'
   },
   gov_type: {
-    0: 'Droop',
-    1: 'Isochronous',
-    2: 'Speed Table',
-    3: 'Remote'
+    1: 'GOV1',
+    2: 'GOV2',
+    3: 'GOV3',
+    4: 'Min',
+    5: 'Max'
   },
   fuel_shutoff_chk: {
     0: 'Off (fuel enabled)',
     1: 'On (fuel disabled)'
   },
+  OILP_state: {
+    0: 'OK',
+    2: 'LOW'
+  },
   spark_shutoff_chk: {
     0: 'Off (spark enabled)',
-    1: 'On (spark disabled)'
+    1: 'On (Spark Disabled)'
   }
 };
 
@@ -651,8 +694,8 @@ export const VALUE_MAPPINGS = {
 export function getSyncStateDisplay(value) {
   if (value > 0) return 'presync';
   if (value === 0) return 'stopped';
-  if (value === -1) return "crank sync'd";
-  if (value === -2) return "Crank and Cam Sync'd";
+  if (value === -1) return 'crank';
+  if (value === -2) return 'Crank and Cam Syncd';
   return String(value);
 }
 
@@ -683,7 +726,8 @@ export const TIME_IN_STATE_CHANNELS = [
   'gov_type',
   'sync_state',
   'fuel_shutoff_chk',
-  'spark_shutoff_chk'
+  'spark_shutoff_chk',
+  'OILP_state'
 ];
 
 /**
@@ -692,12 +736,16 @@ export const TIME_IN_STATE_CHANNELS = [
 export const CHANNEL_UNIT_TYPES = {
   // RPM channels - 0 decimals
   rpm: 'rpm',
+  RPM: 'rpm',
   rpmd_gov: 'rpm',
   TSC1_rpmcmd: 'rpm',
   RMT_speed: 'rpm',
   gov1_rpm: 'rpm',
   gov2_rpm: 'rpm',
   gov3_rpm: 'rpm',
+  Gov1_rpm: 'rpm',
+  Gov2_rpm: 'rpm',
+  Gov3_rpm: 'rpm',
   min_gov_rpm: 'rpm',
   max_gov_rpm: 'rpm',
   gov_min_abslimit: 'rpm',
@@ -813,6 +861,8 @@ export const CATEGORY_COLORS = {
   engine: '#3b82f6',
   speed_control: '#06b6d4',
   fuel: '#22c55e',
+  ignition: '#f97316',
+  electrical: '#eab308',
   ignition_electrical: '#f59e0b',
   pressure: '#8b5cf6',
   temperature: '#ef4444',

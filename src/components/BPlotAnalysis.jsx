@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line, AreaChart, Area
+  ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine
 } from 'recharts';
 import {
   Activity, AlertCircle, AlertTriangle, Clock, Zap,
   ThermometerSun, Battery, Gauge, TrendingUp, Play,
-  ChevronDown, ChevronRight, Droplets, Settings
+  ChevronDown, ChevronRight, Droplets, Settings, FileText, Eye, EyeOff, Upload
 } from 'lucide-react';
-import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId } from '../lib/bplotThresholds';
-import { getChartData, getParameterInfo, calculateHealthScore, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
+import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
+import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
+import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
+import AppHeader from './AppHeader';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 8;
@@ -84,10 +86,26 @@ const AlertCard = ({ alert }) => {
 // MAIN B-PLOT ANALYSIS COMPONENT
 // =============================================================================
 
-const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+const BPlotAnalysis = ({
+  data,
+  processedData,
+  fileName,
+  onReset,
+  ecmFaults = [],           // ECM faults for overlay
+  fileBoundaries = [],      // File boundaries for multi-file view
+  bplotFiles = [],          // Array of loaded B-Plot files
+  onAddEcmFile,             // Callback to add ECM file for overlay
+  externalActiveTab,        // External tab control (for combined view)
+  hideHeader = false        // Hide header when embedded in combined view
+}) => {
+  const [internalActiveTab, setInternalActiveTab] = useState('overview');
+  // Use external tab if provided, otherwise use internal state
+  const activeTab = externalActiveTab || internalActiveTab;
+  const setActiveTab = externalActiveTab ? () => {} : setInternalActiveTab;
   const [selectedChannels, setSelectedChannels] = useState(['rpm', 'MAP']);
-  const [expandedCategories, setExpandedCategories] = useState({ engine: true, speed_control: true });
+  const [expandedCategories, setExpandedCategories] = useState({ engine: true });
+  const [showFaultOverlays, setShowFaultOverlays] = useState(true);
+  const [showFileBoundaries, setShowFileBoundaries] = useState(true);
 
   const {
     timeInfo,
@@ -101,11 +119,6 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
     chartData,
     rawData
   } = processedData;
-
-  const healthScore = useMemo(() =>
-    calculateHealthScore(alerts, operatingStats),
-    [alerts, operatingStats]
-  );
 
   // Calculate MIL status - check if any data point has MILout_mirror = 1
   const milStatus = useMemo(() => {
@@ -184,6 +197,17 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
     }, {}) };
   }, [selectedChannels]);
 
+  // Compute fault overlay reference lines based on selected channels
+  const faultOverlayLines = useMemo(() => {
+    if (!showFaultOverlays || !ecmFaults.length) return [];
+    return getAllFaultOverlayLines(ecmFaults, selectedChannels);
+  }, [ecmFaults, selectedChannels, showFaultOverlays]);
+
+  // Get channels that have fault data available
+  const channelsWithFaultData = useMemo(() => {
+    return getChannelsWithFaultData(ecmFaults);
+  }, [ecmFaults]);
+
   const toggleChannel = (channel) => {
     setSelectedChannels(prev => {
       if (prev.includes(channel)) {
@@ -205,55 +229,103 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
   // RENDER
   // =============================================================================
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Activity className="w-8 h-8 text-cyan-400" />
-            <div>
-              <h1 className="text-xl font-bold">B-Plot Time Series Analysis</h1>
-              <p className="text-sm text-slate-400">{fileName}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {/* MIL Status Indicator */}
-            <MILStatusIndicator isActive={milStatus.isActive} />
-            <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-              healthScore >= 80 ? 'bg-green-500/20 text-green-400' :
-              healthScore >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-red-500/20 text-red-400'
-            }`}>
-              Health: {healthScore}%
-            </div>
-            <button
-              onClick={onReset}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium transition-colors"
-            >
-              New File
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className={hideHeader ? '' : 'min-h-screen bg-[#020617]'} style={{ color: 'white' }}>
+      {!hideHeader && (
+        <>
+          <AppHeader
+            hasEcm={false}
+            hasBplt={true}
+            ecmFileName=""
+            bpltFileName={fileName}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onImport={onReset}
+            eventCount={processedData?.events?.length || 0}
+          />
 
-      {/* Navigation Tabs */}
-      <nav className="border-b border-slate-800 bg-slate-900/30 px-6">
-        <div className="max-w-7xl mx-auto flex gap-6">
-          {['overview', 'charts', 'channels', 'events'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-4 px-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-cyan-400 text-cyan-400'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+          {/* Secondary Controls Bar */}
+          <div className="border-b border-cyan-500/20 bg-slate-900/30 px-6 py-2">
+            <div className="max-w-[1920px] mx-auto flex items-center justify-between">
+              {/* Status Indicators */}
+              <div className="flex items-center gap-4">
+                <MILStatusIndicator isActive={milStatus.isActive} />
+              </div>
+
+              {/* Overlay Controls */}
+              <div className="flex items-center gap-3">
+                {ecmFaults.length > 0 && (
+                  <button
+                    onClick={() => setShowFaultOverlays(!showFaultOverlays)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                      showFaultOverlays
+                        ? 'bg-red-500/15 border border-red-500/40 text-red-400'
+                        : 'bg-slate-800/50 border border-slate-700 text-slate-400'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                    title={showFaultOverlays ? 'Hide fault overlays' : 'Show fault overlays'}
+                  >
+                    {showFaultOverlays ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    DTC ({ecmFaults.length})
+                  </button>
+                )}
+                {fileBoundaries.length > 1 && (
+                  <button
+                    onClick={() => setShowFileBoundaries(!showFileBoundaries)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                      showFileBoundaries
+                        ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-400'
+                        : 'bg-slate-800/50 border border-slate-700 text-slate-400'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                    title={showFileBoundaries ? 'Hide file boundaries' : 'Show file boundaries'}
+                  >
+                    <FileText className="w-3 h-3" />
+                    Files ({fileBoundaries.length})
+                  </button>
+                )}
+                {ecmFaults.length === 0 && onAddEcmFile && (
+                  <button
+                    onClick={onAddEcmFile}
+                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-white hover:border-orange-500/40 transition-colors"
+                    style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                    title="Add ECM file to overlay fault snapshot data on charts"
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    Add ECM Data
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Secondary Controls Bar for embedded mode */}
+      {hideHeader && (
+        <div className="border-b border-cyan-500/20 bg-slate-900/30 px-6 py-2">
+          <div className="max-w-[1920px] mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <MILStatusIndicator isActive={milStatus.isActive} />
+            </div>
+            <div className="flex items-center gap-3">
+              {ecmFaults.length > 0 && (
+                <button
+                  onClick={() => setShowFaultOverlays(!showFaultOverlays)}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                    showFaultOverlays
+                      ? 'bg-red-500/15 border border-red-500/40 text-red-400'
+                      : 'bg-slate-800/50 border border-slate-700 text-slate-400'
+                  }`}
+                  style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                >
+                  {showFaultOverlays ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  DTC ({ecmFaults.length})
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-      </nav>
+      )}
 
       {/* Main Content - Full width for charts, constrained for other tabs */}
       <main className={`${activeTab === 'charts' ? 'px-6' : 'max-w-7xl mx-auto'} p-6`}>
@@ -372,6 +444,12 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}
                       labelFormatter={(v) => `Time: ${formatDuration(v)}`}
+                      formatter={(value, name) => {
+                        if (typeof value === 'number') {
+                          return [value.toFixed(1), name];
+                        }
+                        return [value, name];
+                      }}
                     />
                     <Legend />
                     <Line
@@ -497,11 +575,26 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
                     ))}
                     <Tooltip
                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px' }}
-                      labelFormatter={(v) => `Time: ${formatDuration(v)}`}
-                      formatter={(value, name) => {
-                        const param = BPLOT_PARAMETERS[name];
-                        const decimals = getDecimalPlaces(name);
-                        return [typeof value === 'number' ? value.toFixed(decimals) : value, param ? `${param.name} (${param.unit})` : name];
+                      labelFormatter={(v, payload) => {
+                        const sourceFile = payload?.[0]?.payload?._sourceFile;
+                        if (sourceFile && fileBoundaries.length > 1) {
+                          return `Time: ${formatDuration(v)} | File: ${sourceFile}`;
+                        }
+                        return `Time: ${formatDuration(v)}`;
+                      }}
+                      formatter={(value, name, entry) => {
+                        const channelName = entry?.dataKey || name;
+                        const param = BPLOT_PARAMETERS[channelName];
+                        const decimals = getDecimalPlaces(channelName);
+                        const isCategorical = VALUE_MAPPINGS[channelName] || channelName === 'sync_state';
+                        if (isCategorical) {
+                          const displayText = getDisplayValue(channelName, Math.round(value));
+                          return [displayText, param ? `${param.name}` : channelName];
+                        }
+                        return [
+                          typeof value === 'number' ? value.toFixed(decimals) : value,
+                          param ? `${param.name} (${param.unit})` : channelName
+                        ];
                       }}
                     />
                     <Legend />
@@ -515,6 +608,42 @@ const BPlotAnalysis = ({ data, processedData, fileName, onReset }) => {
                         dot={false}
                         strokeWidth={2}
                         name={BPLOT_PARAMETERS[channel]?.name || channel}
+                      />
+                    ))}
+                    {/* File boundary markers for multi-file view */}
+                    {showFileBoundaries && fileBoundaries.length > 1 && fileBoundaries.map((boundary, idx) => (
+                      idx > 0 && (
+                        <ReferenceLine
+                          key={`file-boundary-${boundary.fileId}`}
+                          x={boundary.startTime}
+                          stroke="#06b6d4"
+                          strokeDasharray="5 5"
+                          strokeWidth={2}
+                          label={{
+                            value: boundary.fileName.replace(/\.[^.]+$/, ''),
+                            position: 'top',
+                            fill: '#06b6d4',
+                            fontSize: 10
+                          }}
+                        />
+                      )
+                    ))}
+                    {/* ECM fault snapshot overlay lines */}
+                    {showFaultOverlays && faultOverlayLines.map((line, idx) => (
+                      <ReferenceLine
+                        key={`fault-${line.faultCode}-${line.channel}-${idx}`}
+                        y={line.value}
+                        yAxisId={chartAxes.channelToAxis[line.channel]}
+                        stroke={line.color}
+                        strokeDasharray="8 4"
+                        strokeWidth={2}
+                        label={{
+                          value: line.shortLabel,
+                          position: 'right',
+                          fill: line.color,
+                          fontSize: 9,
+                          fontWeight: 'bold'
+                        }}
                       />
                     ))}
                   </LineChart>

@@ -30,7 +30,9 @@ import {
 // Import B-Plot modules
 import { parseBPlotData } from './lib/bplotParsers';
 import { processBPlotData } from './lib/bplotProcessData';
+import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
+import AppHeader from './components/AppHeader';
 
 // File type constants
 const FILE_TYPES = {
@@ -63,8 +65,33 @@ const formatNumber = (value, decimals = null) => {
 };
 
 const stripQuotes = (value) => {
-  if (!value) return '—';
+  if (!value) return '-';
   return String(value).replace(/"/g, '');
+};
+
+const SNAPSHOT_HOUR_KEYS = [
+  'hm_hours',
+  'hm_ram_seconds',
+  'hm_ram',
+  'hour_meter',
+  'hour meter',
+  'hourmeter'
+];
+
+const normalizeSnapshotKey = (key) => key
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '_')
+  .replace(/^_+|_+$/g, '');
+
+const getSnapshotHoursValue = (snapshot) => {
+  if (!snapshot) return null;
+  for (const [key, rawValue] of Object.entries(snapshot)) {
+    const normalizedKey = normalizeSnapshotKey(key);
+    if (!SNAPSHOT_HOUR_KEYS.includes(normalizedKey)) continue;
+    const numericValue = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
+    if (!isNaN(numericValue)) return numericValue;
+  }
+  return null;
 };
 
 // Threshold constants per requirements
@@ -121,9 +148,9 @@ const MetricCard = ({ icon, label, value, sub, unit, alert, info }) => {
   );
 };
 
-const ChartCard = ({ title, icon, children, onClick }) => (
+const ChartCard = ({ title, icon, children, onClick, className = '' }) => (
   <div
-    className={`bg-slate-900/50 rounded-xl border border-slate-800 p-6 ${onClick ? 'cursor-pointer hover:border-slate-600 transition-colors' : ''}`}
+    className={`bg-slate-900/50 rounded-xl border border-slate-800 p-6 ${onClick ? 'cursor-pointer hover:border-slate-600 transition-colors' : ''} ${className}`}
     onClick={onClick}
   >
     <div className="flex items-center gap-2 mb-4 text-base font-semibold text-slate-300">
@@ -251,9 +278,15 @@ const KnockSummaryCard = ({ histogram, onClick }) => {
 
   const totalMinutes = totalSeconds / 60;
   const totalHours = totalSeconds / 3600;
+  const shouldFlash = totalHours > 2;
 
   return (
-    <ChartCard title="Knock Detection" icon={<Zap className="w-4 h-4 text-yellow-400" />} onClick={onClick}>
+    <ChartCard
+      title="Knock Detection"
+      icon={<Zap className="w-4 h-4 text-yellow-400" />}
+      onClick={onClick}
+      className={shouldFlash ? 'card-flash-yellow' : ''}
+    >
       <div className="space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Total Knock Time</span>
@@ -395,8 +428,15 @@ const BackfireSummaryCard = ({ histogram, title, onClick }) => {
     }
   }
 
+  const shouldFlash = totalEvents > 10;
+
   return (
-    <ChartCard title={title} icon={<AlertTriangle className="w-4 h-4 text-red-400" />} onClick={onClick}>
+    <ChartCard
+      title={title}
+      icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
+      onClick={onClick}
+      className={shouldFlash ? 'card-flash-red' : ''}
+    >
       <div className="space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Total Events</span>
@@ -883,8 +923,9 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
                 </span>
                 <div className="flex items-center gap-1">
                   {fault.causedShutdown && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-500/30 text-red-400 font-medium">
-                      SHUTDOWN
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-500/30 text-red-400 font-medium flex items-center gap-1 shutdown-glow">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span className="shutdown-text-glow">SHUTDOWN</span>
                     </span>
                   )}
                   {fault.occurredThisCycle && (
@@ -932,6 +973,7 @@ const FaultSnapshotDetailInline = ({ fault }) => {
   if (!fault) return null;
 
   const snapshot = fault.snapshot || {};
+  const snapshotHours = getSnapshotHoursValue(snapshot);
   const groupedSnapshot = groupSnapshotByCategory(snapshot);
 
   // Category display names
@@ -959,8 +1001,9 @@ const FaultSnapshotDetailInline = ({ fault }) => {
           </div>
           <div className="flex gap-2">
             {fault.causedShutdown && (
-              <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-400 font-medium">
-                Caused Shutdown
+              <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-400 font-medium flex items-center gap-1 shutdown-glow">
+                <AlertTriangle className="w-3 h-3" />
+                <span className="shutdown-text-glow">Caused Shutdown</span>
               </span>
             )}
             {fault.occurredThisCycle && (
@@ -990,6 +1033,12 @@ const FaultSnapshotDetailInline = ({ fault }) => {
             <div className="text-white font-mono font-bold">{formatNumber(fault.lastOccurrence, 4)}</div>
           </div>
         </div>
+
+        {snapshotHours !== null && (
+          <div className="mt-3 text-red-400 font-bold text-lg tracking-wide">
+            Snapshot data Hours: {formatNumber(snapshotHours, 2)}
+          </div>
+        )}
       </div>
 
       {/* Snapshot Variables by Category */}
@@ -1239,10 +1288,17 @@ class ErrorBoundary extends Component {
 // STATE MANAGEMENT - useReducer for ECM/B-Plot analysis state
 // =============================================================================
 const analysisInitialState = {
-  // Common
+  // File loading flags (independent tracking)
+  hasEcm: false,
+  hasBplt: false,
+  ecmFileName: '',
+  bpltFileName: '',
+  // Legacy fileType for backward compatibility
   fileType: null,
   fileName: '',
   parsed: false,
+  // Active view tab
+  activeTab: 'overview',
   // ECM specific
   ecmInfo: {},
   histograms: {},
@@ -1252,9 +1308,16 @@ const analysisInitialState = {
   summaryStats: {},
   processedHistograms: {},
   selectedHistogram: 'speedLoad',
-  // B-Plot specific
+  // B-Plot specific - single file (backward compatible)
   bplotData: null,
-  bplotProcessed: null
+  bplotProcessed: null,
+  // B-Plot multi-file support
+  bplotFiles: [],              // Array of { id, fileName, data, processed, timeOffset }
+  combinedBplotData: null,     // Merged timeline data for unified view
+  combinedBplotProcessed: null,// Combined processed results
+  fileBoundaries: [],          // Array of { fileId, fileName, startTime, endTime }
+  // ECM fault overlay for B-Plot charts
+  ecmFaultsForOverlay: []      // ECM faults to overlay on B-Plot charts
 };
 
 function analysisReducer(state, action) {
@@ -1267,7 +1330,9 @@ function analysisReducer(state, action) {
 
       return {
         ...state,
-        fileType: FILE_TYPES.ECM,
+        hasEcm: true,
+        ecmFileName: action.payload.fileName,
+        fileType: state.hasBplt ? 'both' : FILE_TYPES.ECM,
         ecmInfo: action.payload.ecmInfo,
         histograms: action.payload.histograms,
         faults: processedFaults,
@@ -1276,19 +1341,97 @@ function analysisReducer(state, action) {
         summaryStats,
         processedHistograms,
         fileName: action.payload.fileName,
-        parsed: true
+        parsed: true,
+        activeTab: state.hasBplt ? 'overview-ecm' : 'overview'
       };
     case 'BPLOT_FILE_LOADED':
       return {
         ...state,
-        fileType: FILE_TYPES.BPLOT,
+        hasBplt: true,
+        bpltFileName: action.payload.fileName,
+        fileType: state.hasEcm ? 'both' : FILE_TYPES.BPLOT,
         bplotData: action.payload.data,
         bplotProcessed: action.payload.processed,
         fileName: action.payload.fileName,
-        parsed: true
+        parsed: true,
+        activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
+      };
+    case 'BPLOT_FILES_LOADED':
+      // Multi-file B-Plot load with combined timeline
+      return {
+        ...state,
+        hasBplt: true,
+        bpltFileName: action.payload.files.map(f => f.fileName).join(', '),
+        fileType: state.hasEcm ? 'both' : FILE_TYPES.BPLOT,
+        bplotFiles: action.payload.files,
+        combinedBplotData: action.payload.combinedData,
+        combinedBplotProcessed: action.payload.combinedProcessed,
+        fileBoundaries: action.payload.fileBoundaries || [],
+        // Set primary data to combined for display
+        bplotData: action.payload.combinedData,
+        bplotProcessed: action.payload.combinedProcessed,
+        fileName: action.payload.files.map(f => f.fileName).join(', '),
+        parsed: true,
+        activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
+      };
+    case 'ADD_BPLOT_FILE':
+      // Add a single file to existing multi-file set
+      const newFiles = [...state.bplotFiles, action.payload.file];
+      return {
+        ...state,
+        bplotFiles: newFiles,
+        combinedBplotData: action.payload.combinedData,
+        combinedBplotProcessed: action.payload.combinedProcessed,
+        fileBoundaries: action.payload.fileBoundaries || [],
+        bplotData: action.payload.combinedData,
+        bplotProcessed: action.payload.combinedProcessed,
+        fileName: newFiles.map(f => f.fileName).join(', ')
+      };
+    case 'BOTH_FILES_LOADED':
+      // Load both ECM and BPLT files at once
+      const bothProcessedFaults = processFaultData(action.payload.ecmData.faults);
+      const bothProcessedHistograms = processAllHistograms(action.payload.ecmData.histograms, ECM_HISTOGRAM_CONFIG);
+      const bothAnalysis = analyzeECMData(action.payload.ecmData.ecmInfo, bothProcessedHistograms, bothProcessedFaults, action.payload.ecmData.stats);
+      const bothSummaryStats = generateSummaryStats(action.payload.ecmData.ecmInfo, bothProcessedHistograms, bothProcessedFaults, action.payload.ecmData.stats);
+
+      return {
+        ...state,
+        // ECM data
+        hasEcm: true,
+        ecmFileName: action.payload.ecmData.fileName,
+        ecmInfo: action.payload.ecmData.ecmInfo,
+        histograms: action.payload.ecmData.histograms,
+        faults: bothProcessedFaults,
+        stats: action.payload.ecmData.stats,
+        analysis: bothAnalysis,
+        summaryStats: bothSummaryStats,
+        processedHistograms: bothProcessedHistograms,
+        // BPLT data
+        hasBplt: true,
+        bpltFileName: action.payload.bplotFiles.map(f => f.fileName).join(', '),
+        bplotFiles: action.payload.bplotFiles,
+        combinedBplotData: action.payload.combinedData,
+        combinedBplotProcessed: action.payload.combinedProcessed,
+        fileBoundaries: action.payload.fileBoundaries || [],
+        bplotData: action.payload.combinedData,
+        bplotProcessed: action.payload.combinedProcessed,
+        // Combined
+        fileType: 'both',
+        fileName: action.payload.ecmData.fileName,
+        parsed: true,
+        activeTab: 'overview-ecm',
+        ecmFaultsForOverlay: bothProcessedFaults
+      };
+    case 'SET_ECM_FAULTS_FOR_OVERLAY':
+      // Set ECM faults for overlay on B-Plot charts
+      return {
+        ...state,
+        ecmFaultsForOverlay: action.payload
       };
     case 'SET_SELECTED_HISTOGRAM':
       return { ...state, selectedHistogram: action.payload };
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.payload };
     case 'RESET':
       return analysisInitialState;
     default:
@@ -1303,17 +1446,24 @@ const PlotAnalyzer = () => {
   // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
   const {
+    hasEcm, hasBplt, ecmFileName, bpltFileName, activeTab,
     fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
     processedHistograms, selectedHistogram, fileName, parsed,
-    bplotData, bplotProcessed
+    bplotData, bplotProcessed,
+    bplotFiles, combinedBplotData, combinedBplotProcessed, fileBoundaries,
+    ecmFaultsForOverlay
   } = state;
+
+  // Tab change handler
+  const handleTabChange = (tabId) => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tabId });
+  };
 
   // UI state
   const [rawSheets, setRawSheets] = useState({});
   const [rawSheetNames, setRawSheetNames] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
   const [expandedSheets, setExpandedSheets] = useState({});
   const [showAllRows, setShowAllRows] = useState({});
   const [rawFileContent, setRawFileContent] = useState('');
@@ -1376,11 +1526,20 @@ const PlotAnalyzer = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const file = e.dataTransfer?.files?.[0];
-    if (file && (/\.xlsx?$/i.test(file.name) || /\.csv$/i.test(file.name) || /\.bplt$/i.test(file.name))) {
-      processFile(file);
-    } else if (file) {
-      setError('Please upload a CSV, Excel, or BPLT file (.csv, .xls, .xlsx, .bplt)');
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      // Filter valid files
+      const validFiles = Array.from(files).filter(file =>
+        /\.xlsx?$/i.test(file.name) || /\.csv$/i.test(file.name) || /\.bplt$/i.test(file.name)
+      );
+
+      if (validFiles.length === 0) {
+        setError('Please upload CSV, Excel, or BPLT files (.csv, .xls, .xlsx, .bplt)');
+      } else if (validFiles.length === 1) {
+        processFile(validFiles[0]);
+      } else {
+        processFiles(validFiles);
+      }
     }
   };
 
@@ -1390,8 +1549,14 @@ const PlotAnalyzer = () => {
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      if (files.length === 1) {
+        processFile(files[0]);
+      } else {
+        processFiles(Array.from(files));
+      }
+    }
     if (e.target) e.target.value = '';
   };
 
@@ -1538,6 +1703,201 @@ const PlotAnalyzer = () => {
     }
   };
 
+  // Process multiple files - combines B-Plot files into unified timeline
+  const processFiles = async (files) => {
+    // Check total size
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > MAX_FILE_SIZE_MB * MB_BYTES * files.length) {
+      setError(`Total file size too large. Maximum ${MAX_FILE_SIZE_MB} MB per file.`);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const bplotFilesData = [];
+      let ecmData = null;
+
+      // Process each file
+      for (const file of files) {
+        // Handle .bplt files via backend API
+        if (file.name.toLowerCase().endsWith('.bplt')) {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to process ${file.name}: ${error.error}`);
+          }
+
+          const result = await response.json();
+          const text = result.content;
+
+          const bplotParsed = parseBPlotData(text);
+          const bplotProcessedData = processBPlotData(bplotParsed);
+
+          bplotFilesData.push({
+            id: generateFileId(),
+            fileName: file.name,
+            data: bplotParsed,
+            processed: bplotProcessedData
+          });
+          continue;
+        }
+
+        // Read file as text for CSV files
+        const text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+          reader.readAsText(file);
+        });
+
+        const detectedType = detectFileType(text, file.name);
+
+        if (detectedType === FILE_TYPES.BPLOT) {
+          const bplotParsed = parseBPlotData(text);
+          const bplotProcessedData = processBPlotData(bplotParsed);
+
+          bplotFilesData.push({
+            id: generateFileId(),
+            fileName: file.name,
+            data: bplotParsed,
+            processed: bplotProcessedData
+          });
+        } else if (detectedType === FILE_TYPES.ECM) {
+          // Parse full ECM data (not just faults)
+          const parsedData = parseECMData(text);
+          if (parsedData.parsed) {
+            const stats = {
+              totalFaults: parsedData.faults.length,
+              histogramCount: Object.keys(parsedData.histograms).length,
+              engineHours: parseFloat(parsedData.ecmInfo['Hour meter']) || 0,
+              engineStarts: parseInt(parsedData.ecmInfo['Cumulative Starts']) || 0,
+              histogramStats: {}
+            };
+            Object.entries(parsedData.histograms).forEach(([key, histogram]) => {
+              const total = histogram.data.flat().reduce((sum, val) => sum + (val || 0), 0);
+              stats.histogramStats[key] = { totalHours: total, dataPoints: histogram.data.length * (histogram.xLabels?.length || 0) };
+            });
+
+            ecmData = {
+              ecmInfo: parsedData.ecmInfo,
+              histograms: parsedData.histograms,
+              faults: parsedData.faults,
+              stats,
+              fileName: file.name
+            };
+          }
+        }
+      }
+
+      // Dispatch based on what was loaded
+      const hasBplt = bplotFilesData.length > 0;
+      const hasEcm = ecmData !== null;
+
+      if (hasBplt && hasEcm) {
+        // BOTH files loaded - use single combined action
+        const combined = combineTimelineData(bplotFilesData);
+        dispatch({
+          type: 'BOTH_FILES_LOADED',
+          payload: {
+            ecmData,
+            bplotFiles: bplotFilesData,
+            combinedData: combined.data,
+            combinedProcessed: combined.processed,
+            fileBoundaries: combined.fileBoundaries
+          }
+        });
+      } else if (hasBplt) {
+        // Only BPLT files
+        const combined = combineTimelineData(bplotFilesData);
+        dispatch({
+          type: 'BPLOT_FILES_LOADED',
+          payload: {
+            files: bplotFilesData,
+            combinedData: combined.data,
+            combinedProcessed: combined.processed,
+            fileBoundaries: combined.fileBoundaries
+          }
+        });
+      } else if (hasEcm) {
+        // Only ECM file
+        dispatch({
+          type: 'ECM_FILE_LOADED',
+          payload: ecmData
+        });
+      } else if (files.length === 1) {
+        // Single file - use original handler
+        await processFile(files[0]);
+      } else {
+        throw new Error('No valid files found. Upload ECM CSV or B-Plot files.');
+      }
+
+    } catch (error) {
+      console.error('Multi-file processing error:', error);
+      setError(`Failed to process files: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle adding ECM file for overlay on B-Plot charts
+  const handleAddEcmFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsText(file);
+        });
+
+        const detectedType = detectFileType(text, file.name);
+
+        if (detectedType !== FILE_TYPES.ECM) {
+          throw new Error('Please select an ECM download CSV file containing fault data.');
+        }
+
+        const parsedData = parseECMData(text);
+        if (!parsedData.parsed) {
+          throw new Error(parsedData.error || 'Failed to parse ECM data');
+        }
+
+        if (parsedData.faults.length === 0) {
+          throw new Error('No fault data found in ECM file.');
+        }
+
+        const processedFaults = processFaultData(parsedData.faults);
+        dispatch({
+          type: 'SET_ECM_FAULTS_FOR_OVERLAY',
+          payload: processedFaults
+        });
+      } catch (error) {
+        console.error('ECM overlay file error:', error);
+        setError(`Failed to load ECM data: ${error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    input.click();
+  };
+
   // ----------------------------------------------------------------------------
   // ECM CHART DATA - Prepare histogram data for visualization
   // ----------------------------------------------------------------------------
@@ -1608,7 +1968,7 @@ const PlotAnalyzer = () => {
     setRawFileContent('');
     setSelectedFaultIndex(null);
     setShowFaultOverlays(true);
-    setActiveTab('overview');
+    handleTabChange('overview');
   };
 
   // ----------------------------------------------------------------------------
@@ -1616,48 +1976,75 @@ const PlotAnalyzer = () => {
   // ----------------------------------------------------------------------------
   if (!parsed) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
-        <div
-          className="w-full max-w-2xl border-2 border-dashed border-slate-700 rounded-3xl p-16 text-center hover:border-emerald-500/50 transition-all cursor-pointer"
-          onClick={() => document.getElementById('fileIn').click()}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragOver}
-        >
-          <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" onChange={handleFileUpload} className="hidden" />
+      <div className="min-h-screen bg-[#020617] flex flex-col">
+        <AppHeader
+          hasEcm={false}
+          hasBplt={false}
+          ecmFileName=""
+          bpltFileName=""
+          activeTab="overview"
+          onTabChange={handleTabChange}
+          onImport={() => document.getElementById('fileIn').click()}
+        />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div
+            className="w-full max-w-2xl border-2 border-dashed border-cyan-500/30 rounded-lg p-16 text-center hover:border-cyan-500/60 transition-all cursor-pointer bg-slate-900/30"
+            onClick={() => document.getElementById('fileIn').click()}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            style={{
+              clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)'
+            }}
+          >
+            <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
 
-          {isLoading ? (
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-white text-lg">Analyzing plot data...</p>
-            </div>
-          ) : error ? (
-            <div className="text-red-400">
-              <AlertCircle className="w-16 h-16 mx-auto mb-4" />
-              <p>{error}</p>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-white mb-3">ECM & B-Plot Analyzer</h1>
-              <p className="text-slate-400 mb-6">Drop your ECM CSV or B-Plot file to analyze</p>
-              <div className="text-xs text-slate-500 mb-6">
-                Supports: ECM download CSV, B-Plot CSV, BPLT binary files<br/>
-                Max file size: {MAX_FILE_SIZE_MB} MB
+            {isLoading ? (
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" style={{ boxShadow: '0 0 20px rgba(0,242,255,0.3)' }} />
+                <p className="text-cyan-400 text-lg" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(0,242,255,0.5)' }}>Analyzing plot data...</p>
               </div>
-              <div className="flex justify-center gap-6 text-sm text-slate-500">
-                <span className="flex items-center gap-1"><Activity className="w-4 h-4 text-cyan-400" /> Data Analysis</span>
-                <span className="flex items-center gap-1"><TrendingUp className="w-4 h-4 text-emerald-400" /> Trends</span>
-                <span className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-red-400" /> Anomalies</span>
+            ) : error ? (
+              <div className="text-red-400">
+                <AlertCircle className="w-16 h-16 mx-auto mb-4" />
+                <p style={{ fontFamily: 'Fira Code, monospace' }}>{error}</p>
               </div>
-            </>
-          )}
+            ) : (
+              <>
+                <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-slate-900 border border-cyan-500/40 rounded-lg" style={{ boxShadow: '0 0 20px rgba(0,242,255,0.2)' }}>
+                  <Upload className="w-10 h-10 text-cyan-400" style={{ filter: 'drop-shadow(0 0 8px rgba(0,242,255,0.6))' }} />
+                </div>
+                <h1 className="text-xl font-bold text-cyan-400 mb-3 tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(0,242,255,0.4)' }}>UPLOAD DATA FILES</h1>
+                <p className="text-slate-400 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>Drop your ECM CSV or B-Plot files to analyze</p>
+                <div className="text-xs text-slate-500 mb-6" style={{ fontFamily: 'Fira Code, monospace' }}>
+                  Supports: ECM download CSV, B-Plot CSV, BPLT binary files<br/>
+                  Upload multiple B-Plot files for unified timeline view<br/>
+                  Max file size: {MAX_FILE_SIZE_MB} MB per file
+                </div>
+                <div className="flex justify-center gap-8 text-sm text-slate-500">
+                  <span className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,242,255,0.6))' }} />
+                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>ANALYSIS</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-400" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
+                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>TRENDS</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,165,0,0.6))' }} />
+                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>ANOMALIES</span>
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   // ----------------------------------------------------------------------------
-  // RENDER: B-PLOT TIME-SERIES ANALYSIS
+  // RENDER: B-PLOT TIME-SERIES ANALYSIS (BPLT only)
   // ---------------------------------------------------------------------------
   if (fileType === FILE_TYPES.BPLOT && bplotProcessed) {
     return (
@@ -1666,7 +2053,55 @@ const PlotAnalyzer = () => {
         processedData={bplotProcessed}
         fileName={fileName}
         onReset={reset}
+        ecmFaults={ecmFaultsForOverlay}
+        fileBoundaries={fileBoundaries}
+        bplotFiles={bplotFiles}
+        onAddEcmFile={handleAddEcmFile}
       />
+    );
+  }
+
+  // ----------------------------------------------------------------------------
+  // RENDER: COMBINED ECM + BPLT VIEW (Both files loaded)
+  // ---------------------------------------------------------------------------
+  // Check if we're on a BPLT tab when both files are loaded
+  const isBpltTab = activeTab.includes('-bplt') || (activeTab === 'channels' || activeTab === 'events');
+  if (fileType === 'both' && bplotProcessed && isBpltTab) {
+    // Map combined tab IDs to BPlotAnalysis tab names
+    const bpltTabMap = {
+      'overview-bplt': 'overview',
+      'charts-bplt': 'charts',
+      'channels-bplt': 'channels',
+      'events-bplt': 'events'
+    };
+    const mappedTab = bpltTabMap[activeTab] || 'overview';
+
+    return (
+      <div className="min-h-screen bg-[#020617] text-white">
+        <AppHeader
+          hasEcm={hasEcm}
+          hasBplt={hasBplt}
+          ecmFileName={ecmFileName}
+          bpltFileName={bpltFileName}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onImport={() => document.getElementById('fileIn').click()}
+          eventCount={bplotProcessed?.events?.length || 0}
+        />
+        <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+        <BPlotAnalysis
+          data={bplotData}
+          processedData={bplotProcessed}
+          fileName={bpltFileName}
+          onReset={reset}
+          ecmFaults={ecmFaultsForOverlay}
+          fileBoundaries={fileBoundaries}
+          bplotFiles={bplotFiles}
+          onAddEcmFile={null}
+          externalActiveTab={mappedTab}
+          hideHeader={true}
+        />
+      </div>
     );
   }
 
@@ -1674,77 +2109,23 @@ const PlotAnalyzer = () => {
   // RENDER: ECM MAIN DASHBOARD
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Navigation Bar */}
-      <nav className="flex items-center justify-between mx-4 mt-4 mb-4 bg-[#0a0f1d] border border-slate-700 p-2 rounded-lg">
-        <div className="flex items-center gap-4 pl-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center">
-              <Activity className="w-6 h-6 text-cyan-400" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Plot Analyzer</span>
-              <span className="text-[10px] text-slate-600">v1.0.1</span>
-            </div>
-          </div>
-          {fileName && (
-            <>
-              <div className="h-8 w-px bg-slate-700" />
-              <span className="text-sm text-slate-400">{fileName}</span>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-2.5 rounded-full text-base font-medium transition-all duration-200 flex items-center gap-2 ${
-              activeTab === 'overview'
-                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            Overview
-          </button>
-
-          <button
-            onClick={() => setActiveTab('charts')}
-            className={`px-6 py-2.5 rounded-full text-base font-medium transition-all duration-200 flex items-center gap-2 ${
-              activeTab === 'charts'
-                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            Charts
-          </button>
-
-          <button
-            onClick={() => setActiveTab('raw')}
-            className={`px-6 py-2.5 rounded-full text-base font-medium transition-all duration-200 flex items-center gap-2 ${
-              activeTab === 'raw'
-                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            Raw
-          </button>
-
-          <div className="w-4" />
-
-          <button
-            onClick={reset}
-            className="px-6 py-2.5 rounded-full text-base font-bold bg-emerald-500 text-white hover:bg-green-500 transition-colors flex items-center gap-2"
-          >
-            <Upload className="w-5 h-5" />
-            Upload new Plot File
-          </button>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#020617] text-white">
+      <AppHeader
+        hasEcm={hasEcm}
+        hasBplt={hasBplt}
+        ecmFileName={ecmFileName || fileName}
+        bpltFileName={bpltFileName}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onImport={() => document.getElementById('fileIn').click()}
+        eventCount={faults?.length || 0}
+      />
+      <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
 
       <main className="w-full px-6 py-6 space-y-8 mx-auto" style={{ maxWidth: '98%' }}>
 
         {/* ==================== OVERVIEW ==================== */}
-        {activeTab === 'overview' && parsed && (
+        {(activeTab === 'overview' || activeTab === 'overview-ecm') && parsed && (
           <>
             {/* ECM Device Information */}
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
@@ -1778,7 +2159,7 @@ const PlotAnalyzer = () => {
                     <div className="font-semibold text-red-400">{analysis.alerts.length} System Alert{analysis.alerts.length > 1 ? 's' : ''}</div>
                     <div className="text-sm text-red-300/70">Issues detected requiring attention</div>
                   </div>
-                  <button onClick={() => setActiveTab('charts')} className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm">
+                  <button onClick={() => handleTabChange('charts')} className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm">
                     View Details
                   </button>
                 </div>
@@ -1791,8 +2172,6 @@ const PlotAnalyzer = () => {
                 value={Number(stats.engineHours || 0).toFixed(1)} unit="h" sub="Total runtime" />
               <MetricCard icon={<Activity className="text-cyan-400 w-5 h-5" />} label="Histograms"
                 value={stats.histogramCount || 0} sub="Data sets analyzed" />
-              <MetricCard icon={<TrendingUp className="text-violet-400 w-5 h-5" />} label="Total Operating Time"
-                value={Number(summaryStats.performance?.totalOperatingHours || 0).toFixed(1)} unit="h" sub="Across all conditions" />
               <MetricCard icon={<Wrench className="text-amber-400 w-5 h-5" />} label="Faults"
                 value={stats.totalFaults || 0} sub={`${faults.filter(f => f?.isCritical).length} critical`} />
               <MetricCard
@@ -1834,25 +2213,25 @@ const PlotAnalyzer = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <SpeedLoadSummaryCard
                 histogram={histograms.speedLoad}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'speedLoad' }); setActiveTab('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'speedLoad' }); handleTabChange('charts'); }}
               />
               <KnockSummaryCard
                 histogram={histograms.knock}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'knock' }); setActiveTab('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'knock' }); handleTabChange('charts'); }}
               />
               <ECTSummaryCard
                 histogram={histograms.ect}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'ect' }); setActiveTab('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'ect' }); handleTabChange('charts'); }}
               />
               <BackfireSummaryCard
                 histogram={histograms.backfireLifetime}
                 title="Backfire (Lifetime)"
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireLifetime' }); setActiveTab('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireLifetime' }); handleTabChange('charts'); }}
               />
               <BackfireSummaryCard
                 histogram={histograms.backfireRecent}
                 title="Backfire (Recent)"
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireRecent' }); setActiveTab('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireRecent' }); handleTabChange('charts'); }}
               />
             </div>
 
@@ -1885,7 +2264,7 @@ const PlotAnalyzer = () => {
         )}
 
         {/* ==================== CHARTS ==================== */}
-        {activeTab === 'charts' && (
+        {(activeTab === 'charts' || activeTab === 'charts-ecm') && (
           <div className="space-y-6">
             {/* Histogram Selector with Fault Overlay Toggle */}
             {histogramOptions.length > 0 && (
@@ -1957,9 +2336,12 @@ const PlotAnalyzer = () => {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[#197fe6] font-mono font-bold">DTC {fault.code}</span>
-                        {fault.causedShutdown && (
-                          <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">SHUTDOWN</span>
-                        )}
+                      {fault.causedShutdown && (
+                        <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded flex items-center gap-1 shutdown-glow">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span className="shutdown-text-glow">SHUTDOWN</span>
+                        </span>
+                      )}
                       </div>
                       <div className="text-sm text-white mb-2">{fault.description}</div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -2007,7 +2389,7 @@ const PlotAnalyzer = () => {
         )}
 
         {/* ==================== RAW DATA ==================== */}
-        {activeTab === 'raw' && (
+        {(activeTab === 'raw' || activeTab === 'raw-ecm') && (
           <div className="space-y-4">
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
