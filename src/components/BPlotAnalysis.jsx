@@ -496,9 +496,9 @@ const BPlotAnalysis = ({
         )}
 
         {activeTab === 'charts' && (
-          <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+          <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
             {/* Sidebar - Channel Selection */}
-            <aside className="w-64 bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
+            <aside className="w-full lg:w-64 max-h-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
               <div className="p-4 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-slate-300">
@@ -557,7 +557,7 @@ const BPlotAnalysis = ({
             </aside>
 
             {/* Main Chart Area */}
-            <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex flex-col">
+            <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
               <div className="flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
