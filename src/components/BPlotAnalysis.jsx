@@ -122,15 +122,48 @@ const BPlotAnalysis = ({
     rawData
   } = processedData;
 
-  // Calculate MIL status - check if any data point has MILout_mirror = 1 while engine running (RPM >= 500)
+  // Calculate MIL status - check if MILout_mirror = 1 while engine running (RPM >= 500) for minimum duration
   const milStatus = useMemo(() => {
-    if (!rawData || rawData.length === 0) return { isActive: false, percentage: 0 };
-    const engineRunningData = rawData.filter(row => (row.rpm ?? row.RPM ?? 0) >= 500);
-    if (engineRunningData.length === 0) return { isActive: false, percentage: 0 };
+    if (!rawData || rawData.length === 0) return { isActive: false, percentage: 0, duration: 0 };
+
+    const MIN_DURATION_SECONDS = 5; // Minimum duration to consider MIL active (filters out shutdown blips)
+
+    // Filter to engine running data and sort by time
+    const engineRunningData = rawData
+      .filter(row => (row.rpm ?? row.RPM ?? 0) >= 500)
+      .sort((a, b) => (a.Time ?? 0) - (b.Time ?? 0));
+
+    if (engineRunningData.length === 0) return { isActive: false, percentage: 0, duration: 0 };
+
+    // Calculate total duration where MIL = 1 while engine running
+    let totalMilDuration = 0;
+    let milStartTime = null;
+
+    for (let i = 0; i < engineRunningData.length; i++) {
+      const row = engineRunningData[i];
+      const isMilActive = row.MILout_mirror === 1;
+      const currentTime = row.Time ?? 0;
+
+      if (isMilActive && milStartTime === null) {
+        milStartTime = currentTime;
+      } else if (!isMilActive && milStartTime !== null) {
+        totalMilDuration += currentTime - milStartTime;
+        milStartTime = null;
+      }
+    }
+
+    // Handle case where MIL is still active at end of data
+    if (milStartTime !== null) {
+      const lastTime = engineRunningData[engineRunningData.length - 1].Time ?? 0;
+      totalMilDuration += lastTime - milStartTime;
+    }
+
     const activeCount = engineRunningData.filter(row => row.MILout_mirror === 1).length;
+
     return {
-      isActive: activeCount > 0,
-      percentage: ((activeCount / engineRunningData.length) * 100).toFixed(1)
+      isActive: totalMilDuration >= MIN_DURATION_SECONDS,
+      percentage: ((activeCount / engineRunningData.length) * 100).toFixed(1),
+      duration: totalMilDuration.toFixed(1)
     };
   }, [rawData]);
 

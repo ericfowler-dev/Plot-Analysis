@@ -186,7 +186,7 @@
         }
       ],
       "logic": "AND",
-      "duration": 0,
+      "duration": 5,
       "severity": "warning",
       "category": "fault"
     },
