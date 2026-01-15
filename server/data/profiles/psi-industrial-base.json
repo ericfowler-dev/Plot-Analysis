@@ -1,0 +1,18 @@
+{
+  "profileId": "psi-industrial-base",
+  "name": "PSI Industrial Base",
+  "description": "Base profile for PSI Industrial engine family.",
+  "parent": "global-defaults",
+  "engineFamily": "PSI Industrial",
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-13T00:00:00Z",
+  "modifiedBy": "system",
+
+  "thresholds": {},
+
+  "anomalyRules": []
+}

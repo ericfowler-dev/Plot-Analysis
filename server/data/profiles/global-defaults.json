@@ -9,25 +9,36 @@
   "version": "1.0.0",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-15T18:06:58.117Z",
   "modifiedBy": "system",
-
   "thresholds": {
     "battery": {
-      "enabled": true,
+      "enabled": false,
       "description": "Battery/system voltage monitoring",
       "unit": "V",
+      "ignoreWhen": [
+        {
+          "param": "Vsw",
+          "operator": "<",
+          "value": 8
+        },
+        {
+          "param": "rpm",
+          "operator": "<",
+          "value": 500
+        }
+      ],
       "critical": {
-        "min": 10.5,
-        "max": 32.0
+        "min": 9,
+        "max": 32
       },
       "warning": {
-        "min": 11.5,
-        "max": 30.0
+        "min": 9.5,
+        "max": 30
       },
       "hysteresis": {
-        "lowClear": 12.0,
-        "highClear": 29.0
+        "lowClear": 9,
+        "highClear": 29
       }
     },
     "coolantTemp": {
@@ -63,11 +74,11 @@
       "unit": "psia",
       "critical": {
         "min": 0.5,
-        "max": 40.0
+        "max": 40
       },
       "warning": {
-        "min": 2.0,
-        "max": 35.0
+        "min": 2,
+        "max": 35
       }
     },
     "rpm": {
@@ -154,7 +165,6 @@
       }
     }
   },
-
   "anomalyRules": [
     {
       "id": "dtc-active",
@@ -240,19 +250,59 @@
       "category": "fuel"
     }
   ],
-
   "metadata": {
     "parameterMappings": {
-      "battery": ["Vbat", "battery_voltage", "VBAT"],
-      "coolantTemp": ["ECT", "coolant_temp", "engine_coolant_temp"],
-      "oilPressure": ["OILP_press", "oil_pressure", "OIL_PRESS"],
-      "manifoldPressure": ["MAP", "manifold_pressure", "MANIFOLD_ABS_PRESS"],
-      "rpm": ["rpm", "RPM", "engine_speed", "ENGINE_SPEED"],
-      "fuelTrimCL": ["CL_BM1", "closed_loop_fuel", "CL_FUEL_TRIM"],
-      "fuelTrimAdaptive": ["A_BM1", "adaptive_fuel", "ADAPTIVE_FUEL_TRIM"],
-      "knock": ["KNK_retard", "knock_retard", "KNOCK_RETARD"],
-      "oilTemp": ["OILT", "oil_temp", "OIL_TEMP"],
-      "intakeAirTemp": ["IAT", "intake_air_temp", "INTAKE_AIR_TEMP"]
+      "battery": [
+        "Vbat",
+        "battery_voltage",
+        "VBAT"
+      ],
+      "coolantTemp": [
+        "ECT",
+        "coolant_temp",
+        "engine_coolant_temp"
+      ],
+      "oilPressure": [
+        "OILP_press",
+        "oil_pressure",
+        "OIL_PRESS"
+      ],
+      "manifoldPressure": [
+        "MAP",
+        "manifold_pressure",
+        "MANIFOLD_ABS_PRESS"
+      ],
+      "rpm": [
+        "rpm",
+        "RPM",
+        "engine_speed",
+        "ENGINE_SPEED"
+      ],
+      "fuelTrimCL": [
+        "CL_BM1",
+        "closed_loop_fuel",
+        "CL_FUEL_TRIM"
+      ],
+      "fuelTrimAdaptive": [
+        "A_BM1",
+        "adaptive_fuel",
+        "ADAPTIVE_FUEL_TRIM"
+      ],
+      "knock": [
+        "KNK_retard",
+        "knock_retard",
+        "KNOCK_RETARD"
+      ],
+      "oilTemp": [
+        "OILT",
+        "oil_temp",
+        "OIL_TEMP"
+      ],
+      "intakeAirTemp": [
+        "IAT",
+        "intake_air_temp",
+        "INTAKE_AIR_TEMP"
+      ]
     }
   }
 }

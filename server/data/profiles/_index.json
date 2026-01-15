@@ -5,16 +5,16 @@
 
   "engineFamilies": [
     {
-      "id": "psi-8.8l",
-      "name": "PSI 8.8L",
-      "description": "Power Solutions International 8.8L engine family",
-      "baseProfile": "psi-8.8l-base"
+      "id": "psi-hd",
+      "name": "PSI HD",
+      "description": "Power Solutions International heavy-duty engine family",
+      "baseProfile": "psi-hd-base"
     },
     {
-      "id": "doosan-11l",
-      "name": "Doosan 11L",
-      "description": "Doosan 11L industrial engine family",
-      "baseProfile": "doosan-11l-base"
+      "id": "psi-industrial",
+      "name": "PSI Industrial",
+      "description": "Power Solutions International industrial engine family",
+      "baseProfile": "psi-industrial-base"
     }
   ],
 
@@ -70,10 +70,7 @@
 
   "profiles": [
     "global-defaults",
-    "psi-8.8l-base",
-    "psi-8.8l-ng",
-    "psi-8.8l-propane",
-    "doosan-11l-base",
-    "doosan-11l-ng"
+    "psi-hd-base",
+    "psi-industrial-base"
   ]
 }

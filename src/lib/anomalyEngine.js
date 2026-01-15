@@ -34,6 +34,7 @@ const DEFAULT_PARAM_MAPPINGS = {
   oilPressure: ['OILP_press', 'oil_pressure', 'OIL_PRESS', 'oilp_press'],
   manifoldPressure: ['MAP', 'manifold_pressure', 'MANIFOLD_ABS_PRESS', 'map'],
   rpm: ['rpm', 'RPM', 'engine_speed', 'ENGINE_SPEED'],
+  vsw: ['Vsw', 'VSW', 'vsw'],
   fuelTrimCL: ['CL_BM1', 'closed_loop_fuel', 'CL_FUEL_TRIM', 'cl_bm1'],
   fuelTrimAdaptive: ['A_BM1', 'adaptive_fuel', 'ADAPTIVE_FUEL_TRIM', 'a_bm1'],
   knock: ['KNK_retard', 'knock_retard', 'KNOCK_RETARD', 'knk_retard'],
@@ -68,6 +69,37 @@ function getParamValue(row, paramKey, columnMap) {
   if (!column) return undefined;
   const value = row[column];
   return typeof value === 'number' ? value : parseFloat(value);
+}
+
+function evaluateCondition(condition, row, columnMap) {
+  const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
+  if (value === undefined) return false;
+
+  switch (condition.operator) {
+    case '>': return value > condition.value;
+    case '<': return value < condition.value;
+    case '>=': return value >= condition.value;
+    case '<=': return value <= condition.value;
+    case '==': return value == condition.value;
+    case '!=': return value != condition.value;
+    default: return false;
+  }
+}
+
+function shouldSkipThreshold(config, row, columnMap) {
+  if (!config) return false;
+
+  if (Array.isArray(config.ignoreWhen) && config.ignoreWhen.length > 0) {
+    const shouldIgnore = config.ignoreWhen.some(condition => evaluateCondition(condition, row, columnMap));
+    if (shouldIgnore) return true;
+  }
+
+  if (Array.isArray(config.requireWhen) && config.requireWhen.length > 0) {
+    const meetsRequirements = config.requireWhen.every(condition => evaluateCondition(condition, row, columnMap));
+    if (!meetsRequirements) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -274,6 +306,7 @@ export function detectAnomalies(data, thresholds, options = {}) {
  * Battery voltage threshold check
  */
 function checkBatteryVoltage(row, time, config, columnMap, hysteresis, alerts, startTimes, values) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const voltage = getParamValue(row, 'battery', columnMap);
   if (voltage === undefined || isNaN(voltage)) return;
 
@@ -327,6 +360,7 @@ function checkBatteryVoltage(row, time, config, columnMap, hysteresis, alerts, s
  * Coolant temperature threshold check
  */
 function checkCoolantTemp(row, time, config, columnMap, alerts, startTimes, values, sampleIdx, graceSamples, sampleRate) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const temp = getParamValue(row, 'coolantTemp', columnMap);
   if (temp === undefined || isNaN(temp)) return;
 
@@ -368,6 +402,7 @@ function checkCoolantTemp(row, time, config, columnMap, alerts, startTimes, valu
  * Oil pressure threshold check
  */
 function checkOilPressure(row, time, config, columnMap, alerts, startTimes, values) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const pressure = getParamValue(row, 'oilPressure', columnMap);
   const rpm = getParamValue(row, 'rpm', columnMap);
   if (pressure === undefined || isNaN(pressure)) return;
@@ -409,6 +444,7 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
  * RPM threshold check
  */
 function checkRPM(row, time, config, columnMap, alerts, startTimes, values) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const rpm = getParamValue(row, 'rpm', columnMap);
   if (rpm === undefined || isNaN(rpm)) return;
 
@@ -459,6 +495,7 @@ function checkRPM(row, time, config, columnMap, alerts, startTimes, values) {
  * Fuel trim threshold check
  */
 function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const clTrim = getParamValue(row, 'fuelTrimCL', columnMap);
   const adaptTrim = getParamValue(row, 'fuelTrimAdaptive', columnMap);
 
@@ -522,6 +559,7 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
  * Knock detection check
  */
 function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
+  if (shouldSkipThreshold(config, row, columnMap)) return;
   const knockRetard = getParamValue(row, 'knock', columnMap);
   if (knockRetard === undefined || isNaN(knockRetard)) return;
 

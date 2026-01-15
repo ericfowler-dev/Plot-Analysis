@@ -10,6 +10,7 @@ import {
   getChannelsByCategory
 } from './bplotParsers.js';
 import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS } from './bplotThresholds.js';
+import { detectAnomalies, formatAlert } from './anomalyEngine.js';
 
 /**
  * Format duration - show seconds if < 1 minute, otherwise minutes
@@ -132,7 +133,7 @@ export function calculateTimeInState(data, channelName) {
 /**
  * Process B-Plot data and generate comprehensive analysis
  */
-export function processBPlotData(parsedData) {
+export function processBPlotData(parsedData, thresholdProfile = null) {
   const { data, channels, headers } = parsedData;
 
   // Extract time information
@@ -183,7 +184,23 @@ export function processBPlotData(parsedData) {
   const operatingStats = calculateOperatingStats(data, channelStats);
 
   // Detect anomalies and warnings (pass raw data to check VSW)
-  const alerts = detectAlerts(data, channelStats);
+  let alerts = [];
+  if (thresholdProfile?.thresholds || thresholdProfile?.anomalyRules) {
+    const profileAlerts = detectAnomalies(data, thresholdProfile, {
+      sampleRate,
+      gracePeriod: 5,
+      minDuration: 0
+    });
+    alerts = profileAlerts.alerts.map(alert => ({
+      severity: alert.severity,
+      channel: alert.category || 'anomaly',
+      message: formatAlert(alert),
+      threshold: alert.threshold,
+      ruleId: alert.ruleId
+    }));
+  } else {
+    alerts = detectAlerts(data, channelStats);
+  }
 
   // Generate summary with proper time formatting
   const summary = generateSummary(timeInfo, engineEvents, operatingStats, alerts);
@@ -201,6 +218,7 @@ export function processBPlotData(parsedData) {
     operatingStats,
     alerts,
     summary,
+    thresholdProfileId: thresholdProfile?.profileId || null,
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,

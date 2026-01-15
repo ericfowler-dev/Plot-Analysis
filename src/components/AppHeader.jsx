@@ -78,7 +78,7 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
     <button
       onClick={() => onClick(tab.id)}
       className={`
-        relative flex items-center h-10 px-5 transition-all duration-300
+        relative flex items-center h-10 px-4 transition-all duration-300
         ${isActive
           ? 'text-green-400 border-green-500/60 bg-gradient-to-br from-green-500/20 via-green-500/5 to-transparent shadow-[0_0_25px_rgba(57,255,20,0.2),inset_0_0_30px_rgba(57,255,20,0.08)]'
           : 'text-slate-400 border-green-500/20 bg-gradient-to-br from-green-500/8 to-transparent hover:text-white hover:border-green-500/50 hover:bg-gradient-to-br hover:from-green-500/15 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)]'
@@ -167,7 +167,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                DATA ANALYSIS v1.2.2
+                DATA ANALYSIS v1.2.3
               </span>
             </div>
           </div>
@@ -197,7 +197,7 @@ const AppHeader = ({
         {/* Center: Navigation Tabs */}
         {tabs.length > 0 && (
           <nav className="flex items-center">
-            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+            <div className="flex items-center gap-1.5 flex-nowrap justify-center overflow-hidden">
               {tabs.map(tab => (
                 <NavTab
                   key={tab.id}
@@ -242,7 +242,7 @@ const AppHeader = ({
               className="text-[10px] font-bold uppercase"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              Import
+              Import New Files
             </span>
           </button>
         </div>

@@ -18,6 +18,7 @@ import {
   Copy
 } from 'lucide-react';
 import { getResolvedProfile, validateThresholds } from '../../lib/thresholdService';
+import { BPLOT_PARAMETERS } from '../../lib/bplotThresholds';
 
 // Threshold categories for organization
 const THRESHOLD_CATEGORIES = [
@@ -120,6 +121,17 @@ const THRESHOLD_CATEGORIES = [
     ]
   }
 ];
+
+const PARAMETER_OPTIONS = Object.entries(BPLOT_PARAMETERS).map(([key, info]) => ({
+  key,
+  label: info?.name || key,
+  unit: info?.unit || '',
+  description: info?.description || ''
+})).sort((a, b) => a.label.localeCompare(b.label));
+
+const PARAMETER_LOOKUP = new Map(PARAMETER_OPTIONS.map(option => [option.key, option]));
+
+const CONDITION_OPERATORS = ['>', '<', '>=', '<=', '==', '!='];
 
 export default function ThresholdEditor({ profile, index, onSave, onCancel, loading }) {
   // Edit state
@@ -502,6 +514,30 @@ export default function ThresholdEditor({ profile, index, onSave, onCancel, load
                       );
                     })}
                   </div>
+
+                  <ConditionListEditor
+                    title="Ignore When (skip checks)"
+                    conditions={getValueAtPath(editedProfile.thresholds || {}, `${category.id}.ignoreWhen`) || []}
+                    onChange={(updated) => {
+                      setEditedProfile(prev => ({
+                        ...prev,
+                        thresholds: setValueAtPath(prev.thresholds || {}, `${category.id}.ignoreWhen`, updated)
+                      }));
+                      setHasChanges(true);
+                    }}
+                  />
+
+                  <ConditionListEditor
+                    title="Require When (only check if true)"
+                    conditions={getValueAtPath(editedProfile.thresholds || {}, `${category.id}.requireWhen`) || []}
+                    onChange={(updated) => {
+                      setEditedProfile(prev => ({
+                        ...prev,
+                        thresholds: setValueAtPath(prev.thresholds || {}, `${category.id}.requireWhen`, updated)
+                      }));
+                      setHasChanges(true);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -688,17 +724,47 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
             <div className="space-y-2">
               {(rule.conditions || []).map((condition, condIdx) => (
                 <div key={condIdx} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={condition.param}
-                    onChange={(e) => {
-                      const newConditions = [...rule.conditions];
-                      newConditions[condIdx] = { ...condition, param: e.target.value };
-                      onUpdate({ ...rule, conditions: newConditions });
-                    }}
-                    placeholder="Parameter"
-                    className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
-                  />
+                  {(() => {
+                    const paramMeta = PARAMETER_LOOKUP.get(condition.param);
+                    const isCustom = !paramMeta;
+                    const selectValue = isCustom ? '__custom__' : condition.param;
+
+                    return (
+                      <div className="flex-1 flex items-center gap-2">
+                        <select
+                          value={selectValue}
+                          onChange={(e) => {
+                            const newConditions = [...rule.conditions];
+                            const nextParam = e.target.value === '__custom__' ? '' : e.target.value;
+                            newConditions[condIdx] = { ...condition, param: nextParam };
+                            onUpdate({ ...rule, conditions: newConditions });
+                          }}
+                          className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                          title={paramMeta?.description || 'Select a parameter'}
+                        >
+                          <option value="__custom__">Custom parameter...</option>
+                          {PARAMETER_OPTIONS.map(option => (
+                            <option key={option.key} value={option.key}>
+                              {option.label}{option.unit ? ` (${option.unit})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {isCustom && (
+                          <input
+                            type="text"
+                            value={condition.param}
+                            onChange={(e) => {
+                              const newConditions = [...rule.conditions];
+                              newConditions[condIdx] = { ...condition, param: e.target.value };
+                              onUpdate({ ...rule, conditions: newConditions });
+                            }}
+                            placeholder="Parameter"
+                            className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
                   <select
                     value={condition.operator}
                     onChange={(e) => {
@@ -715,16 +781,23 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                   </select>
-                  <input
-                    type="number"
-                    value={condition.value}
-                    onChange={(e) => {
-                      const newConditions = [...rule.conditions];
-                      newConditions[condIdx] = { ...condition, value: parseFloat(e.target.value) || 0 };
-                      onUpdate({ ...rule, conditions: newConditions });
-                    }}
-                    className="w-20 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
-                  />
+                  <div className="relative w-28">
+                    <input
+                      type="number"
+                      value={condition.value}
+                      onChange={(e) => {
+                        const newConditions = [...rule.conditions];
+                        newConditions[condIdx] = { ...condition, value: parseFloat(e.target.value) || 0 };
+                        onUpdate({ ...rule, conditions: newConditions });
+                      }}
+                      className="w-full px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm pr-8"
+                    />
+                    {PARAMETER_LOOKUP.get(condition.param)?.unit && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                        {PARAMETER_LOOKUP.get(condition.param)?.unit}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => {
                       const newConditions = rule.conditions.filter((_, i) => i !== condIdx);
@@ -750,6 +823,108 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
           </label>
         </div>
       )}
+    </div>
+  );
+}
+
+function ConditionListEditor({ title, conditions, onChange }) {
+  const activeConditions = conditions || [];
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs text-slate-400">{title}</label>
+        <button
+          onClick={() => onChange([...(activeConditions || []), { param: '', operator: '>', value: 0 }])}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          + Add Condition
+        </button>
+      </div>
+      <div className="space-y-2">
+        {(activeConditions || []).map((condition, condIdx) => {
+          const paramMeta = PARAMETER_LOOKUP.get(condition.param);
+          const isCustom = !paramMeta;
+          const selectValue = isCustom ? '__custom__' : condition.param;
+
+          return (
+            <div key={condIdx} className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2">
+                <select
+                  value={selectValue}
+                  onChange={(e) => {
+                    const nextParam = e.target.value === '__custom__' ? '' : e.target.value;
+                    const updated = [...activeConditions];
+                    updated[condIdx] = { ...condition, param: nextParam };
+                    onChange(updated);
+                  }}
+                  className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  title={paramMeta?.description || 'Select a parameter'}
+                >
+                  <option value="__custom__">Custom parameter...</option>
+                  {PARAMETER_OPTIONS.map(option => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}{option.unit ? ` (${option.unit})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {isCustom && (
+                  <input
+                    type="text"
+                    value={condition.param}
+                    onChange={(e) => {
+                      const updated = [...activeConditions];
+                      updated[condIdx] = { ...condition, param: e.target.value };
+                      onChange(updated);
+                    }}
+                    placeholder="Parameter"
+                    className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                )}
+              </div>
+              <select
+                value={condition.operator}
+                onChange={(e) => {
+                  const updated = [...activeConditions];
+                  updated[condIdx] = { ...condition, operator: e.target.value };
+                  onChange(updated);
+                }}
+                className="px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+              >
+                {CONDITION_OPERATORS.map(op => (
+                  <option key={op} value={op}>{op}</option>
+                ))}
+              </select>
+              <div className="relative w-28">
+                <input
+                  type="number"
+                  value={condition.value}
+                  onChange={(e) => {
+                    const updated = [...activeConditions];
+                    updated[condIdx] = { ...condition, value: parseFloat(e.target.value) || 0 };
+                    onChange(updated);
+                  }}
+                  className="w-full px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm pr-8"
+                />
+                {paramMeta?.unit && (
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                    {paramMeta.unit}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  const updated = activeConditions.filter((_, i) => i !== condIdx);
+                  onChange(updated);
+                }}
+                className="p-1 hover:bg-red-500/20 rounded"
+              >
+                <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

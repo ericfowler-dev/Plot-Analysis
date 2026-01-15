@@ -163,6 +163,11 @@ function ProfileDropdown({ profiles, selectedId, onSelect }) {
                   Fuel: {profile.fuelTypeName}
                 </div>
               )}
+              {profile.applicationName && (
+                <div className="text-xs text-slate-500 mt-1">
+                  Application: {profile.applicationName}
+                </div>
+              )}
             </div>
             {isSelected && (
               <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />

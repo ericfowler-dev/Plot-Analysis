@@ -100,6 +100,42 @@ export default function ThresholdManager({ onClose }) {
     return grouped;
   }, [profiles, index]);
 
+  const getApplicationName = useCallback((applicationId) => {
+    if (!applicationId) return 'General';
+    const application = index?.applications?.find(app => app.id === applicationId);
+    return application?.name || applicationId;
+  }, [index]);
+
+  const groupProfilesByApplication = useCallback((familyProfiles) => {
+    const grouped = new Map();
+    for (const profile of familyProfiles) {
+      const key = profile.application || 'general';
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key).push(profile);
+    }
+
+    const orderedKeys = [
+      'general',
+      ...(index?.applications || []).map(app => app.id)
+    ];
+    const result = [];
+
+    for (const key of orderedKeys) {
+      if (!grouped.has(key)) continue;
+      result.push({ key, name: getApplicationName(key), profiles: grouped.get(key) });
+    }
+
+    for (const [key, value] of grouped.entries()) {
+      if (!orderedKeys.includes(key)) {
+        result.push({ key, name: getApplicationName(key), profiles: value });
+      }
+    }
+
+    return result;
+  }, [getApplicationName, index]);
+
   /**
    * Handle profile edit
    */
@@ -281,6 +317,15 @@ export default function ThresholdManager({ onClose }) {
             </div>
 
             <div className="flex items-center gap-2">
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload New Files
+                </button>
+              )}
               <button
                 onClick={loadData}
                 disabled={loading}
@@ -385,19 +430,26 @@ export default function ThresholdManager({ onClose }) {
                 {/* Profiles */}
                 {expandedFamilies[familyName] && familyProfiles.length > 0 && (
                   <div className="border-t border-slate-700">
-                    {familyProfiles.map(profile => (
-                      <ProfileRow
-                        key={profile.profileId}
-                        profile={profile}
-                        index={index}
-                        isSelected={selectedProfile === profile.profileId}
-                        onSelect={() => setSelectedProfile(
-                          selectedProfile === profile.profileId ? null : profile.profileId
-                        )}
-                        onEdit={() => handleEditProfile(profile.profileId)}
-                        onDuplicate={() => handleDuplicateProfile(profile.profileId)}
-                        onDelete={() => handleDeleteProfile(profile.profileId)}
-                      />
+                    {groupProfilesByApplication(familyProfiles).map(group => (
+                      <div key={`${familyName}-${group.key}`} className="border-b border-slate-700 last:border-b-0">
+                        <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-900/40">
+                          {group.name}
+                        </div>
+                        {group.profiles.map(profile => (
+                          <ProfileRow
+                            key={profile.profileId}
+                            profile={profile}
+                            index={index}
+                            isSelected={selectedProfile === profile.profileId}
+                            onSelect={() => setSelectedProfile(
+                              selectedProfile === profile.profileId ? null : profile.profileId
+                            )}
+                            onEdit={() => handleEditProfile(profile.profileId)}
+                            onDuplicate={() => handleDuplicateProfile(profile.profileId)}
+                            onDelete={() => handleDeleteProfile(profile.profileId)}
+                          />
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -441,6 +493,7 @@ export default function ThresholdManager({ onClose }) {
  */
 function ProfileRow({ profile, index, isSelected, onSelect, onEdit, onDuplicate, onDelete }) {
   const fuelType = index?.fuelTypes.find(f => f.id === profile.fuelType);
+  const application = index?.applications?.find(app => app.id === profile.application);
   const isGlobal = profile.profileId === 'global-defaults';
 
   return (
@@ -472,6 +525,9 @@ function ProfileRow({ profile, index, isSelected, onSelect, onEdit, onDuplicate,
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
               {profile.fuelType && (
                 <span>Fuel: {fuelType?.name || profile.fuelType}</span>
+              )}
+              {profile.application && (
+                <span>App: {application?.name || profile.application}</span>
               )}
               {profile.parent && (
                 <span>Inherits: {profile.parent}</span>
@@ -590,6 +646,7 @@ function NewProfileModal({ index, profiles, onSave, onClose, loading }) {
   const [parent, setParent] = useState('global-defaults');
   const [engineFamily, setEngineFamily] = useState('');
   const [fuelType, setFuelType] = useState('');
+  const [application, setApplication] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -601,6 +658,7 @@ function NewProfileModal({ index, profiles, onSave, onClose, loading }) {
       parent: parent || null,
       engineFamily: engineFamily || null,
       fuelType: fuelType || null,
+      application: application || null,
       version: '1.0.0',
       status: 'draft',
       createdAt: new Date().toISOString(),
@@ -711,6 +769,22 @@ function NewProfileModal({ index, profiles, onSave, onClose, loading }) {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Application
+            </label>
+            <select
+              value={application}
+              onChange={(e) => setApplication(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200"
+            >
+              <option value="">None</option>
+              {index?.applications?.map(app => (
+                <option key={app.id} value={app.id}>{app.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">

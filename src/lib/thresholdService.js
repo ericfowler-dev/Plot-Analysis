@@ -194,6 +194,8 @@ export async function getSelectableProfiles() {
     listProfiles()
   ]);
 
+  const applicationMap = new Map((index.applications || []).map(app => [app.id, app]));
+
   // Build a hierarchical structure for the selector
   const selectableProfiles = [];
 
@@ -213,7 +215,7 @@ export async function getSelectableProfiles() {
   // Group profiles by engine family
   for (const family of index.engineFamilies) {
     const familyProfiles = profiles.filter(
-      p => p.engineFamily === family.name && p.fuelType
+      p => p.engineFamily === family.name
     );
 
     if (familyProfiles.length > 0) {
@@ -221,20 +223,47 @@ export async function getSelectableProfiles() {
       selectableProfiles.push({
         isGroupHeader: true,
         name: family.name,
-        description: family.description
+        description: family.description,
+        groupType: 'family'
       });
 
-      // Add fuel type variants
+      // Group profiles by application within the family
+      const byApplication = new Map();
       for (const profile of familyProfiles) {
-        const fuelInfo = index.fuelTypes.find(f => f.id === profile.fuelType);
+        const appKey = profile.application || 'general';
+        if (!byApplication.has(appKey)) {
+          byApplication.set(appKey, []);
+        }
+        byApplication.get(appKey).push(profile);
+      }
+
+      const orderedAppKeys = [
+        'general',
+        ...(index.applications || []).map(app => app.id)
+      ];
+      for (const appKey of orderedAppKeys) {
+        if (!byApplication.has(appKey)) continue;
+        const appInfo = appKey === 'general' ? null : applicationMap.get(appKey);
         selectableProfiles.push({
-          profileId: profile.profileId,
-          name: `${family.name} - ${fuelInfo?.name || profile.fuelType}`,
-          description: profile.description,
-          engineFamily: family.name,
-          fuelType: profile.fuelType,
-          fuelTypeName: fuelInfo?.name
+          isGroupHeader: true,
+          name: appKey === 'general' ? 'General' : `Application: ${appInfo?.name || appKey}`,
+          description: appInfo?.description,
+          groupType: 'application'
         });
+
+        for (const profile of byApplication.get(appKey)) {
+          const fuelInfo = index.fuelTypes.find(f => f.id === profile.fuelType);
+          selectableProfiles.push({
+            profileId: profile.profileId,
+            name: profile.name,
+            description: profile.description,
+            engineFamily: family.name,
+            fuelType: profile.fuelType,
+            fuelTypeName: fuelInfo?.name,
+            application: profile.application,
+            applicationName: appInfo?.name
+          });
+        }
       }
     }
   }

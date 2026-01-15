@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, useReducer, Component } from 'react';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, AreaChart, Area, ReferenceLine,
@@ -34,6 +36,7 @@ import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
 import AppHeader from './components/AppHeader';
 import BaselineSelector from './components/BaselineSelector';
+import { useThresholds } from './contexts/ThresholdContext';
 
 // File type constants
 const FILE_TYPES = {
@@ -1376,6 +1379,21 @@ function analysisReducer(state, action) {
         parsed: true,
         activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
       };
+    case 'BPLOT_REPROCESSED':
+      return {
+        ...state,
+        bplotProcessed: action.payload.processed
+      };
+    case 'BPLOT_FILES_REPROCESSED':
+      return {
+        ...state,
+        bplotFiles: action.payload.files,
+        combinedBplotData: action.payload.combinedData,
+        combinedBplotProcessed: action.payload.combinedProcessed,
+        fileBoundaries: action.payload.fileBoundaries || [],
+        bplotData: action.payload.combinedData,
+        bplotProcessed: action.payload.combinedProcessed
+      };
     case 'ADD_BPLOT_FILE':
       // Add a single file to existing multi-file set
       const newFiles = [...state.bplotFiles, action.payload.file];
@@ -1447,6 +1465,13 @@ function analysisReducer(state, action) {
 const PlotAnalyzer = () => {
   // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
+  const { resolvedProfile } = useThresholds();
+  const activeThresholdProfile = useMemo(() => {
+    if (!resolvedProfile || resolvedProfile.profileId === 'fallback') {
+      return null;
+    }
+    return resolvedProfile;
+  }, [resolvedProfile]);
   const {
     hasEcm, hasBplt, ecmFileName, bpltFileName, activeTab,
     fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
@@ -1472,6 +1497,8 @@ const PlotAnalyzer = () => {
   const [selectedFaultIndex, setSelectedFaultIndex] = useState(null);
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [scrollToAlerts, setScrollToAlerts] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef(null);
   const workerRef = useRef(null);
   const alertsRef = useRef(null);
 
@@ -1533,6 +1560,45 @@ const PlotAnalyzer = () => {
       console.warn('Web Worker not supported, using main thread:', err);
     }
   }, []);
+
+  // Reprocess B-Plot anomalies when threshold profile changes
+  useEffect(() => {
+    if (!hasBplt || !activeThresholdProfile) return;
+    const profileId = activeThresholdProfile.profileId;
+
+    if (bplotFiles.length > 0) {
+      if (combinedBplotProcessed?.thresholdProfileId === profileId) return;
+      const updatedFiles = bplotFiles.map(file => ({
+        ...file,
+        processed: processBPlotData(file.data, activeThresholdProfile)
+      }));
+      const combined = combineTimelineData(updatedFiles);
+      dispatch({
+        type: 'BPLOT_FILES_REPROCESSED',
+        payload: {
+          files: updatedFiles,
+          combinedData: combined.data,
+          combinedProcessed: combined.processed,
+          fileBoundaries: combined.fileBoundaries
+        }
+      });
+      return;
+    }
+
+    if (!bplotData || bplotProcessed?.thresholdProfileId === profileId) return;
+    const updatedProcessed = processBPlotData(bplotData, activeThresholdProfile);
+    dispatch({
+      type: 'BPLOT_REPROCESSED',
+      payload: { processed: updatedProcessed }
+    });
+  }, [
+    activeThresholdProfile,
+    hasBplt,
+    bplotFiles,
+    bplotData,
+    bplotProcessed,
+    combinedBplotProcessed
+  ]);
 
   // ----------------------------------------------------------------------------
   // FILE PROCESSING - Adapt for new Excel format
@@ -1648,7 +1714,7 @@ const PlotAnalyzer = () => {
 
         // Parse as B-Plot CSV
         const bplotParsed = parseBPlotData(text);
-        const bplotProcessedData = processBPlotData(bplotParsed);
+        const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1676,7 +1742,7 @@ const PlotAnalyzer = () => {
       if (detectedType === FILE_TYPES.BPLOT) {
         // Process as B-Plot time-series data
         const bplotParsed = parseBPlotData(text);
-        const bplotProcessedData = processBPlotData(bplotParsed);
+        const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1765,7 +1831,7 @@ const PlotAnalyzer = () => {
           const text = result.content;
 
           const bplotParsed = parseBPlotData(text);
-          const bplotProcessedData = processBPlotData(bplotParsed);
+          const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
 
           bplotFilesData.push({
             id: generateFileId(),
@@ -1788,7 +1854,7 @@ const PlotAnalyzer = () => {
 
         if (detectedType === FILE_TYPES.BPLOT) {
           const bplotParsed = parseBPlotData(text);
-          const bplotProcessedData = processBPlotData(bplotParsed);
+          const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
 
           bplotFilesData.push({
             id: generateFileId(),
@@ -2000,6 +2066,84 @@ const PlotAnalyzer = () => {
     handleTabChange('overview');
   };
 
+  const exportToPDF = useCallback(async () => {
+    if (isExporting || !reportRef.current) return;
+    setIsExporting(true);
+
+    try {
+      const dataUrl = await toPng(reportRef.current, {
+        cacheBust: true,
+        pixelRatio: 2
+      });
+
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const orientation = img.width > img.height ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({
+        orientation,
+        unit: 'pt',
+        format: 'a4'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const scale = pageWidth / img.width;
+      const scaledHeight = img.height * scale;
+
+      if (scaledHeight <= pageHeight) {
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, scaledHeight);
+      } else {
+        const pageHeightPx = Math.floor(pageHeight / scale);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = img.width;
+        canvas.height = pageHeightPx;
+
+        let remainingHeight = img.height;
+        let offsetY = 0;
+        let pageIndex = 0;
+
+        while (remainingHeight > 0) {
+          if (!ctx) break;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(
+            img,
+            0,
+            offsetY,
+            img.width,
+            pageHeightPx,
+            0,
+            0,
+            img.width,
+            pageHeightPx
+          );
+
+          const pageData = canvas.toDataURL('image/png');
+          if (pageIndex > 0) pdf.addPage();
+          pdf.addImage(pageData, 'PNG', 0, 0, pageWidth, pageHeight);
+
+          remainingHeight -= pageHeightPx;
+          offsetY += pageHeightPx;
+          pageIndex += 1;
+        }
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      pdf.save(`plot-analysis-${timestamp}.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      setError('PDF export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting]);
+
   // ----------------------------------------------------------------------------
   // RENDER: UPLOAD SCREEN
   // ----------------------------------------------------------------------------
@@ -2087,6 +2231,8 @@ const PlotAnalyzer = () => {
         fileBoundaries={fileBoundaries}
         bplotFiles={bplotFiles}
         onAddEcmFile={handleAddEcmFile}
+        onExport={exportToPDF}
+        reportRef={reportRef}
       />
     );
   }
@@ -2107,7 +2253,7 @@ const PlotAnalyzer = () => {
     const mappedTab = bpltTabMap[activeTab] || 'overview';
 
     return (
-      <div className="min-h-screen bg-[#020617] text-white">
+      <div className="min-h-screen bg-[#020617] text-white" ref={reportRef}>
         <AppHeader
           hasEcm={hasEcm}
           hasBplt={hasBplt}
@@ -2115,7 +2261,8 @@ const PlotAnalyzer = () => {
           bpltFileName={bpltFileName}
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onImport={() => document.getElementById('fileIn').click()}
+          onImport={reset}
+          onExport={exportToPDF}
           eventCount={bplotProcessed?.events?.length || 0}
         />
         <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
@@ -2139,7 +2286,7 @@ const PlotAnalyzer = () => {
   // RENDER: ECM MAIN DASHBOARD
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#020617] text-white">
+    <div className="min-h-screen bg-[#020617] text-white" ref={reportRef}>
       <AppHeader
         hasEcm={hasEcm}
         hasBplt={hasBplt}
@@ -2147,7 +2294,8 @@ const PlotAnalyzer = () => {
         bpltFileName={bpltFileName}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onImport={() => document.getElementById('fileIn').click()}
+        onImport={reset}
+        onExport={exportToPDF}
         eventCount={faults?.length || 0}
       />
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />

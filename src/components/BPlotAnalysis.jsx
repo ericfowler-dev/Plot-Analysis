@@ -95,8 +95,10 @@ const BPlotAnalysis = ({
   fileBoundaries = [],      // File boundaries for multi-file view
   bplotFiles = [],          // Array of loaded B-Plot files
   onAddEcmFile,             // Callback to add ECM file for overlay
+  onExport,                 // Callback to export report
   externalActiveTab,        // External tab control (for combined view)
-  hideHeader = false        // Hide header when embedded in combined view
+  hideHeader = false,       // Hide header when embedded in combined view
+  reportRef                // Ref for PDF export
 }) => {
   const [internalActiveTab, setInternalActiveTab] = useState('overview');
   // Use external tab if provided, otherwise use internal state
@@ -229,7 +231,7 @@ const BPlotAnalysis = ({
   // RENDER
   // =============================================================================
   return (
-    <div className={hideHeader ? '' : 'min-h-screen bg-[#020617]'} style={{ color: 'white' }}>
+    <div className={hideHeader ? '' : 'min-h-screen bg-[#020617]'} style={{ color: 'white' }} ref={reportRef}>
       {!hideHeader && (
         <>
           <AppHeader
@@ -240,6 +242,7 @@ const BPlotAnalysis = ({
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onImport={onReset}
+            onExport={onExport}
             eventCount={processedData?.events?.length || 0}
           />
 
@@ -329,8 +332,8 @@ const BPlotAnalysis = ({
 
       {/* Main Content - Full width for charts, constrained for other tabs */}
       <main className={`${activeTab === 'charts' ? 'px-6' : 'max-w-7xl mx-auto'} p-6`}>
-        {/* Alerts Section */}
-        {alerts.length > 0 && (
+        {/* Alerts Section (non-overview tabs) */}
+        {activeTab !== 'overview' && alerts.length > 0 && (
           <div className={`mb-6 space-y-2 ${activeTab === 'charts' ? 'max-w-7xl mx-auto' : ''}`}>
             {alerts.map((alert, i) => (
               <AlertCard key={i} alert={alert} />
@@ -461,25 +464,34 @@ const BPlotAnalysis = ({
                       strokeWidth={2}
                       name="RPM"
                     />
-                  <Line
-                    yAxisId="map"
-                    type="monotone"
-                    dataKey="MAP"
-                    stroke="#8b5cf6"
-                    dot={false}
-                    strokeWidth={2}
-                    name="MAP (psia)"
-                  />
-                  <Brush
-                    dataKey="Time"
-                    height={18}
-                    stroke="#22c55e"
-                    travellerWidth={8}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                    <Line
+                      yAxisId="map"
+                      type="monotone"
+                      dataKey="MAP"
+                      stroke="#8b5cf6"
+                      dot={false}
+                      strokeWidth={2}
+                      name="MAP (psia)"
+                    />
+                    <Brush
+                      dataKey="Time"
+                      height={18}
+                      stroke="#22c55e"
+                      travellerWidth={8}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+
+            {/* Alerts Section (overview, below chart) */}
+            {alerts.length > 0 && (
+              <div className="space-y-2">
+                {alerts.map((alert, i) => (
+                  <AlertCard key={i} alert={alert} />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
