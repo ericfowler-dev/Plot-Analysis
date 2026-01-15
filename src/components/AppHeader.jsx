@@ -80,19 +80,19 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
       className={`
         relative flex items-center h-10 px-5 transition-all duration-300
         ${isActive
-          ? 'text-cyan-400 border-cyan-500/60 bg-gradient-to-br from-cyan-500/20 via-cyan-500/5 to-transparent shadow-[0_0_25px_rgba(0,242,255,0.2),inset_0_0_30px_rgba(0,242,255,0.08)]'
-          : 'text-slate-400 border-cyan-500/20 bg-gradient-to-br from-cyan-500/8 to-transparent hover:text-white hover:border-cyan-500/50 hover:bg-gradient-to-br hover:from-cyan-500/15 hover:via-cyan-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(0,242,255,0.15)]'
+          ? 'text-green-400 border-green-500/60 bg-gradient-to-br from-green-500/20 via-green-500/5 to-transparent shadow-[0_0_25px_rgba(57,255,20,0.2),inset_0_0_30px_rgba(57,255,20,0.08)]'
+          : 'text-slate-400 border-green-500/20 bg-gradient-to-br from-green-500/8 to-transparent hover:text-white hover:border-green-500/50 hover:bg-gradient-to-br hover:from-green-500/15 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)]'
         }
         border
       `}
       style={{
         clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)',
-        textShadow: isActive ? '0 0 10px rgba(0,242,255,0.8)' : 'none'
+        textShadow: isActive ? '0 0 10px rgba(57,255,20,0.8)' : 'none'
       }}
     >
       {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-3 h-3 bg-gradient-to-br from-cyan-500/60 via-cyan-500/20 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-3 h-3 bg-gradient-to-tl from-cyan-500/40 via-cyan-500/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 w-3 h-3 bg-gradient-to-br from-green-500/60 via-green-500/20 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-3 h-3 bg-gradient-to-tl from-green-500/40 via-green-500/10 to-transparent pointer-events-none" />
 
       <span className="text-[10px] font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
         {tab.label}
@@ -136,7 +136,7 @@ const AppHeader = ({
 
   return (
     <header
-      className="bg-[#020617] border-b border-cyan-500/20 shadow-[0_1px_25px_rgba(0,242,255,0.12)]"
+      className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       <div className="max-w-[1920px] mx-auto flex flex-col xl:flex-row items-center justify-between px-6 py-4 gap-6">
@@ -145,10 +145,10 @@ const AppHeader = ({
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {/* Logo icon */}
-            <div className="relative w-11 h-11 flex items-center justify-center bg-slate-900 border border-cyan-500/30 rounded-sm shadow-[0_0_15px_rgba(0,242,255,0.2)]">
+            <div className="relative w-11 h-11 flex items-center justify-center bg-slate-900 border border-green-500/30 rounded-sm shadow-[0_0_15px_rgba(57,255,20,0.2)]">
               <span
-                className="material-symbols-outlined text-cyan-400 text-2xl"
-                style={{ textShadow: '0 0 10px rgba(0,242,255,0.8)' }}
+                className="material-symbols-outlined text-green-400 text-2xl"
+                style={{ textShadow: '0 0 10px rgba(57,255,20,0.8)' }}
               >
                 analytics
               </span>
@@ -158,8 +158,8 @@ const AppHeader = ({
             </div>
             <div className="flex flex-col">
               <span
-                className="text-[13px] font-black text-cyan-400 leading-tight tracking-wider"
-                style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 8px rgba(0,242,255,0.4)' }}
+                className="text-[13px] font-black text-green-400 leading-tight tracking-wider"
+                style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 8px rgba(57,255,20,0.4)' }}
               >
                 PLOT ANALYZER
               </span>
@@ -167,21 +167,21 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                DATA ANALYSIS v1.2.0
+                DATA ANALYSIS v1.2.1
               </span>
             </div>
           </div>
 
           {/* Separator */}
           {(hasEcm || hasBplt) && (
-            <div className="hidden xl:block w-px h-6 bg-gradient-to-b from-transparent via-cyan-500/40 to-transparent" />
+            <div className="hidden xl:block w-px h-6 bg-gradient-to-b from-transparent via-green-500/40 to-transparent" />
           )}
 
           {/* File indicators */}
           {(hasEcm || hasBplt) && (
             <div className="hidden xl:flex flex-col gap-1.5">
               <span
-                className="text-[9px] uppercase text-cyan-500/50 font-bold tracking-widest"
+                className="text-[9px] uppercase text-green-500/50 font-bold tracking-widest"
                 style={{ fontFamily: 'Fira Code, monospace' }}
               >
                 Stream Source
@@ -216,12 +216,12 @@ const AppHeader = ({
           {(hasEcm || hasBplt) && onExport && (
             <button
               onClick={onExport}
-              className="flex items-center gap-2 h-10 px-5 text-slate-400 border border-cyan-500/25 bg-gradient-to-br from-cyan-500/5 to-transparent hover:text-white hover:border-cyan-500/60 hover:bg-gradient-to-br hover:from-cyan-500/12 hover:via-cyan-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(0,242,255,0.15)] transition-all duration-300"
+              className="flex items-center gap-2 h-10 px-5 text-slate-400 border border-green-500/25 bg-gradient-to-br from-green-500/5 to-transparent hover:text-white hover:border-green-500/60 hover:bg-gradient-to-br hover:from-green-500/12 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)] transition-all duration-300"
               style={{
                 clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
               }}
             >
-              <Download className="w-4 h-4 text-cyan-400/70" />
+              <Download className="w-4 h-4 text-green-400/70" />
               <span
                 className="text-[10px] font-bold uppercase"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
@@ -232,12 +232,12 @@ const AppHeader = ({
           )}
           <button
             onClick={onImport}
-            className="flex items-center gap-2 h-10 px-5 text-white border border-cyan-400/50 bg-cyan-400/10 hover:bg-cyan-400/20 hover:shadow-[0_0_20px_rgba(0,242,255,0.2)] transition-all duration-300"
+            className="flex items-center gap-2 h-10 px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
             style={{
               clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
             }}
           >
-            <Upload className="w-4 h-4 text-cyan-400" />
+            <Upload className="w-4 h-4 text-green-400" />
             <span
               className="text-[10px] font-bold uppercase"
               style={{ fontFamily: 'Orbitron, sans-serif' }}

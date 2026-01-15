@@ -46,7 +46,7 @@ const FILE_TYPES = {
 // =============================================================================
 const DEBUG = false;
 const PERF = false;
-const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE_MB = 100;
 const WARN_FILE_SIZE_MB = 20;
 const MB_BYTES = 1024 * 1024;
 
@@ -168,7 +168,7 @@ const ChartCard = ({ title, icon, children, onClick, className = '' }) => (
 const SpeedLoadSummaryCard = ({ histogram, onClick }) => {
   if (!histogram || !histogram.data || histogram.data.length === 0) {
     return (
-      <ChartCard title="Engine Speed vs Load" icon={<BarChart3 className="w-4 h-4 text-cyan-400" />}>
+      <ChartCard title="Engine Speed vs Load" icon={<BarChart3 className="w-4 h-4 text-green-400" />}>
         <div className="text-slate-500 text-sm">No data available</div>
       </ChartCard>
     );
@@ -214,7 +214,7 @@ const SpeedLoadSummaryCard = ({ histogram, onClick }) => {
   const highLoadPercent = totalHours > 0 ? (highLoadHours / totalHours * 100) : 0;
 
   return (
-    <ChartCard title="Engine Speed vs Load" icon={<BarChart3 className="w-4 h-4 text-cyan-400" />} onClick={onClick}>
+    <ChartCard title="Engine Speed vs Load" icon={<BarChart3 className="w-4 h-4 text-green-400" />} onClick={onClick}>
       <div className="space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Runtime</span>
@@ -535,7 +535,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[#93adc8]">MIN (0%)</span>
-            <div className="w-24 h-2 rounded-full bg-gradient-to-r from-[#1a2632] via-[#197fe6]/50 to-[#197fe6]" />
+            <div className="w-24 h-2 rounded-full bg-gradient-to-r from-[#1a2632] via-[#22c55e]/50 to-[#22c55e]" />
             <span className="text-[10px] text-[#93adc8]">MAX</span>
           </div>
           {faultOverlays.length > 0 && (
@@ -560,7 +560,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
                   {formatNumber(x, 1)}
                 </th>
               ))}
-              <th className="w-20 p-2 text-center text-xs font-bold text-[#197fe6] border-l border-[#344d65]/50">
+              <th className="w-20 p-2 text-center text-xs font-bold text-[#22c55e] border-l border-[#344d65]/50">
                 Row Total
               </th>
             </tr>
@@ -581,7 +581,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
                   return (
                     <td
                       key={xIdx}
-                      className={`p-2 rounded border text-center cursor-pointer transition-all hover:border-[#197fe6] ${
+                      className={`p-2 rounded border text-center cursor-pointer transition-all hover:border-[#22c55e] ${
                         fault ? 'border-red-500 border-2' : 'border-white/5'
                       }`}
                       style={cellStyle}
@@ -612,7 +612,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
           </tbody>
           <tfoot>
             <tr>
-              <td className="p-2 text-right text-[10px] font-bold text-[#197fe6] uppercase pr-4 border-t border-[#344d65]/50">
+              <td className="p-2 text-right text-[10px] font-bold text-[#22c55e] uppercase pr-4 border-t border-[#344d65]/50">
                 Col Total
               </td>
               {colTotals.map((total, idx) => (
@@ -912,13 +912,13 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
               onClick={() => onSelectFault(idx)}
               className={`p-3 rounded-lg cursor-pointer transition-all ${
                 selectedFaultIndex === idx
-                  ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-lg shadow-cyan-500/10'
+                  ? 'bg-green-500/20 border border-green-500/50 shadow-lg shadow-green-500/10'
                   : 'bg-slate-800/50 border border-transparent hover:bg-slate-800 hover:border-slate-700'
               }`}
             >
               {/* Fault Header */}
               <div className="flex items-center justify-between mb-1">
-                <span className={`font-mono font-bold ${selectedFaultIndex === idx ? 'text-cyan-400' : 'text-cyan-500'}`}>
+                <span className={`font-mono font-bold ${selectedFaultIndex === idx ? 'text-green-400' : 'text-green-500'}`}>
                   DTC {fault.code}
                 </span>
                 <div className="flex items-center gap-1">
@@ -996,7 +996,7 @@ const FaultSnapshotDetailInline = ({ fault }) => {
       <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-cyan-400 font-mono font-bold text-lg">DTC {fault.code}</div>
+            <div className="text-green-400 font-mono font-bold text-lg">DTC {fault.code}</div>
             <div className="text-white text-base">{fault.description || 'Unknown fault'}</div>
           </div>
           <div className="flex gap-2">
@@ -1035,7 +1035,7 @@ const FaultSnapshotDetailInline = ({ fault }) => {
         </div>
 
         {snapshotHours !== null && (
-          <div className="mt-3 text-red-400 font-bold text-lg tracking-wide">
+          <div className="mt-3 text-green-400 font-bold text-lg tracking-wide">
             Snapshot data Hours: {formatNumber(snapshotHours, 2)}
           </div>
         )}
@@ -1082,7 +1082,7 @@ const FaultSnapshotDetailInline = ({ fault }) => {
                 <div className="text-slate-500 font-semibold pb-1 border-b border-slate-700">Raw Value</div>
                 {Object.entries(snapshot).map(([key, value]) => (
                   <div key={key} className="contents">
-                    <div className="py-0.5 text-cyan-400">{key}</div>
+                    <div className="py-0.5 text-green-400">{key}</div>
                     <div className="py-0.5 text-slate-300">{String(value)}</div>
                   </div>
                 ))}
@@ -1122,7 +1122,7 @@ const FaultSnapshotDetail = ({ fault, histograms, onClose }) => {
       <div className="bg-[#111921] px-6 py-4 border-b border-[#344d65] flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-[#197fe6] font-mono">DTC {fault.code}</span>
+            <span className="text-2xl font-bold text-[#22c55e] font-mono">DTC {fault.code}</span>
             <span className="text-white text-lg">{fault.description}</span>
           </div>
         </div>
@@ -1171,11 +1171,11 @@ const FaultSnapshotDetail = ({ fault, histograms, onClose }) => {
           </div>
           <div>
             <div className="text-[10px] text-[#93adc8] uppercase tracking-wider mb-1">Fault RPM</div>
-            <div className="font-mono font-bold text-[#197fe6]">{formatNumber(snapshot.rpm, 0)} RPM</div>
+            <div className="font-mono font-bold text-[#22c55e]">{formatNumber(snapshot.rpm, 0)} RPM</div>
           </div>
           <div>
             <div className="text-[10px] text-[#93adc8] uppercase tracking-wider mb-1">Fault MAP</div>
-            <div className="font-mono font-bold text-[#197fe6]">{formatNumber(snapshot.rMAP, 2)} psia</div>
+            <div className="font-mono font-bold text-[#22c55e]">{formatNumber(snapshot.rMAP, 2)} psia</div>
           </div>
         </div>
       </div>
@@ -1526,15 +1526,22 @@ const PlotAnalyzer = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
+    const items = e.dataTransfer?.items;
+    const files = items && items.length > 0
+      ? Array.from(items)
+        .filter(item => item.kind === 'file')
+        .map(item => item.getAsFile())
+        .filter(Boolean)
+      : Array.from(e.dataTransfer?.files || []);
+
+    if (files.length > 0) {
       // Filter valid files
-      const validFiles = Array.from(files).filter(file =>
+      const validFiles = files.filter(file =>
         /\.xlsx?$/i.test(file.name) || /\.csv$/i.test(file.name) || /\.bplt$/i.test(file.name)
       );
 
       if (validFiles.length === 0) {
-        setError('Please upload CSV, Excel, or BPLT files (.csv, .xls, .xlsx, .bplt)');
+        setError('Failed to process file: Unknown file format. Please upload an ECM download CSV or a .bplt file.');
       } else if (validFiles.length === 1) {
         processFile(validFiles[0]);
       } else {
@@ -1692,12 +1699,16 @@ const PlotAnalyzer = () => {
           }
         });
       } else {
-        throw new Error('Unknown file format. Please upload an ECM download CSV or a B-Plot CSV file.');
+        throw new Error('Unknown file format. Please upload an ECM download CSV or a .bplt file.');
       }
 
     } catch (error) {
       console.error('File processing error:', error);
-      setError(`Failed to process file: ${error.message}`);
+      if (error?.message === 'Failed to fetch' || error?.message?.startsWith('Unknown file format.')) {
+        setError('Failed to process file: Unknown file format. Please upload an ECM download CSV or a .bplt file.');
+      } else {
+        setError(`Failed to process file: ${error?.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1842,7 +1853,11 @@ const PlotAnalyzer = () => {
 
     } catch (error) {
       console.error('Multi-file processing error:', error);
-      setError(`Failed to process files: ${error.message}`);
+      if (error?.message === 'Failed to fetch' || error?.message?.startsWith('Unknown file format.')) {
+        setError('Failed to process file: Unknown file format. Please upload an ECM download CSV or a .bplt file.');
+      } else {
+        setError(`Failed to process files: ${error?.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1988,7 +2003,7 @@ const PlotAnalyzer = () => {
         />
         <div className="flex-1 flex items-center justify-center p-8">
           <div
-            className="w-full max-w-2xl border-2 border-dashed border-cyan-500/30 rounded-lg p-16 text-center hover:border-cyan-500/60 transition-all cursor-pointer bg-slate-900/30"
+            className="w-full max-w-2xl border-2 border-dashed border-green-500/30 rounded-lg p-16 text-center hover:border-green-500/60 transition-all cursor-pointer bg-slate-900/30"
             onClick={() => document.getElementById('fileIn').click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -2001,8 +2016,8 @@ const PlotAnalyzer = () => {
 
             {isLoading ? (
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" style={{ boxShadow: '0 0 20px rgba(0,242,255,0.3)' }} />
-                <p className="text-cyan-400 text-lg" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(0,242,255,0.5)' }}>Analyzing plot data...</p>
+                <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4" style={{ boxShadow: '0 0 20px rgba(57,255,20,0.3)' }} />
+                <p className="text-green-400 text-lg" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(57,255,20,0.5)' }}>Analyzing plot data...</p>
               </div>
             ) : error ? (
               <div className="text-red-400">
@@ -2011,19 +2026,19 @@ const PlotAnalyzer = () => {
               </div>
             ) : (
               <>
-                <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-slate-900 border border-cyan-500/40 rounded-lg" style={{ boxShadow: '0 0 20px rgba(0,242,255,0.2)' }}>
-                  <Upload className="w-10 h-10 text-cyan-400" style={{ filter: 'drop-shadow(0 0 8px rgba(0,242,255,0.6))' }} />
+                <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-slate-900 border border-green-500/40 rounded-lg" style={{ boxShadow: '0 0 20px rgba(57,255,20,0.2)' }}>
+                  <Upload className="w-10 h-10 text-green-400" style={{ filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.6))' }} />
                 </div>
-                <h1 className="text-xl font-bold text-cyan-400 mb-3 tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(0,242,255,0.4)' }}>UPLOAD DATA FILES</h1>
+                <h1 className="text-xl font-bold text-green-400 mb-3 tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(57,255,20,0.4)' }}>UPLOAD DATA FILES</h1>
                 <p className="text-slate-400 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>Drop your ECM CSV or B-Plot files to analyze</p>
                 <div className="text-xs text-slate-500 mb-6" style={{ fontFamily: 'Fira Code, monospace' }}>
-                  Supports: ECM download CSV, B-Plot CSV, BPLT binary files<br/>
-                  Upload multiple B-Plot files for unified timeline view<br/>
+                  Supports: ECM download CSV, .bplt, BPLT CSV files<br/>
+                  Upload .bplt + ECM Download for unified mult-tab view<br/>
                   Max file size: {MAX_FILE_SIZE_MB} MB per file
                 </div>
                 <div className="flex justify-center gap-8 text-sm text-slate-500">
                   <span className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,242,255,0.6))' }} />
+                    <Activity className="w-4 h-4 text-green-400" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                     <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>ANALYSIS</span>
                   </span>
                   <span className="flex items-center gap-2">
@@ -2130,7 +2145,7 @@ const PlotAnalyzer = () => {
             {/* ECM Device Information */}
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
               <div className="flex items-center gap-2 mb-5 text-base text-slate-300 font-semibold">
-                <Cpu className="w-5 h-5 text-cyan-400" /> ECM Device Information
+                <Cpu className="w-5 h-5 text-green-400" /> ECM Device Information
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-5">
                 <InfoBox label="Hardware P/N" value={ecmInfo['ECI H/W P/N']} />
@@ -2170,7 +2185,7 @@ const PlotAnalyzer = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
               <MetricCard icon={<Gauge className="text-emerald-400 w-5 h-5" />} label="Engine Hours"
                 value={Number(stats.engineHours || 0).toFixed(1)} unit="h" sub="Total runtime" />
-              <MetricCard icon={<Activity className="text-cyan-400 w-5 h-5" />} label="Histograms"
+              <MetricCard icon={<Activity className="text-green-400 w-5 h-5" />} label="Histograms"
                 value={stats.histogramCount || 0} sub="Data sets analyzed" />
               <MetricCard icon={<Wrench className="text-amber-400 w-5 h-5" />} label="Faults"
                 value={stats.totalFaults || 0} sub={`${faults.filter(f => f?.isCritical).length} critical`} />
@@ -2271,7 +2286,7 @@ const PlotAnalyzer = () => {
               <div className="bg-[#111921] rounded-xl border border-[#344d65] p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    <BarChart3 className="w-5 h-5 text-[#197fe6]" />
+                    <BarChart3 className="w-5 h-5 text-[#22c55e]" />
                     <span className="text-base font-semibold text-white">Histogram Analysis</span>
                   </div>
                   {faults.length > 0 && (
@@ -2280,7 +2295,7 @@ const PlotAnalyzer = () => {
                         type="checkbox"
                         checked={showFaultOverlays}
                         onChange={(e) => setShowFaultOverlays(e.target.checked)}
-                        className="w-4 h-4 rounded border-[#344d65] bg-[#1a2632] text-[#197fe6] focus:ring-[#197fe6]"
+                        className="w-4 h-4 rounded border-[#344d65] bg-[#1a2632] text-[#22c55e] focus:ring-[#22c55e]"
                       />
                       <span className="text-sm text-[#93adc8]">Show Fault Overlays ({faults.length})</span>
                     </label>
@@ -2293,7 +2308,7 @@ const PlotAnalyzer = () => {
                       onClick={() => dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: option.key })}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         selectedHistogram === option.key
-                          ? 'bg-[#197fe6] text-white shadow-lg'
+                          ? 'bg-[#22c55e] text-white shadow-lg'
                           : 'bg-[#1a2632] text-[#93adc8] hover:bg-[#344d65] border border-[#344d65]'
                       }`}
                     >
@@ -2335,7 +2350,7 @@ const PlotAnalyzer = () => {
                       onClick={() => setSelectedFaultIndex(idx)}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[#197fe6] font-mono font-bold">DTC {fault.code}</span>
+                        <span className="text-[#22c55e] font-mono font-bold">DTC {fault.code}</span>
                       {fault.causedShutdown && (
                         <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded flex items-center gap-1 shutdown-glow">
                           <AlertTriangle className="w-3 h-3" />

@@ -244,7 +244,7 @@ const BPlotAnalysis = ({
           />
 
           {/* Secondary Controls Bar */}
-          <div className="border-b border-cyan-500/20 bg-slate-900/30 px-6 py-2">
+          <div className="border-b border-green-500/20 bg-slate-900/30 px-6 py-2">
             <div className="max-w-[1920px] mx-auto flex items-center justify-between">
               {/* Status Indicators */}
               <div className="flex items-center gap-4">
@@ -273,7 +273,7 @@ const BPlotAnalysis = ({
                     onClick={() => setShowFileBoundaries(!showFileBoundaries)}
                     className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
                       showFileBoundaries
-                        ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-400'
+                        ? 'bg-green-500/15 border border-green-500/40 text-green-400'
                         : 'bg-slate-800/50 border border-slate-700 text-slate-400'
                     }`}
                     style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
@@ -302,7 +302,7 @@ const BPlotAnalysis = ({
 
       {/* Secondary Controls Bar for embedded mode */}
       {hideHeader && (
-        <div className="border-b border-cyan-500/20 bg-slate-900/30 px-6 py-2">
+        <div className="border-b border-green-500/20 bg-slate-900/30 px-6 py-2">
           <div className="max-w-[1920px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <MILStatusIndicator isActive={milStatus.isActive} />
@@ -343,7 +343,7 @@ const BPlotAnalysis = ({
             {/* Summary Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
-                icon={<Clock className="w-5 h-5 text-cyan-400" />}
+                icon={<Clock className="w-5 h-5 text-green-400" />}
                 label="Recording Duration"
                 value={summary.duration}
               />
@@ -524,7 +524,7 @@ const BPlotAnalysis = ({
                               checked={selectedChannels.includes(channel)}
                               onChange={() => toggleChannel(channel)}
                               disabled={!selectedChannels.includes(channel) && selectedChannels.length >= MAX_CHART_CHANNELS}
-                              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
+                              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-green-500 focus:ring-green-500 focus:ring-offset-slate-900"
                             />
                             <span className={selectedChannels.includes(channel) ? 'text-white' : ''}>
                               {BPLOT_PARAMETERS[channel]?.name || channel}
@@ -616,13 +616,13 @@ const BPlotAnalysis = ({
                         <ReferenceLine
                           key={`file-boundary-${boundary.fileId}`}
                           x={boundary.startTime}
-                          stroke="#06b6d4"
+                          stroke="#22c55e"
                           strokeDasharray="5 5"
                           strokeWidth={2}
                           label={{
                             value: boundary.fileName.replace(/\.[^.]+$/, ''),
                             position: 'top',
-                            fill: '#06b6d4',
+                            fill: '#22c55e',
                             fontSize: 10
                           }}
                         />
@@ -701,7 +701,7 @@ const BPlotAnalysis = ({
                                 {stateStats.map((s, i) => (
                                   <div key={i}>
                                     <div className="flex justify-between items-center mb-0.5">
-                                      <span className="text-cyan-400">{s.displayName}</span>
+                                      <span className="text-green-400">{s.displayName}</span>
                                       <span className="text-slate-400">
                                         {s.durationFormatted} ({s.percentage.toFixed(0)}%)
                                       </span>
@@ -709,7 +709,7 @@ const BPlotAnalysis = ({
                                     {/* Progress bar */}
                                     <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
                                       <div
-                                        className="h-full bg-cyan-500 rounded-full transition-all"
+                                        className="h-full bg-green-500 rounded-full transition-all"
                                         style={{ width: `${Math.min(100, s.percentage)}%` }}
                                       />
                                     </div>

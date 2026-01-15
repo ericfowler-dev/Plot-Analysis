@@ -114,7 +114,7 @@ function ProfileIndicator({ profile, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/50 rounded-lg text-sm text-blue-300 hover:bg-blue-500/30 transition-colors"
+      className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg text-sm text-green-300 hover:bg-green-500/30 transition-colors"
     >
       <Settings className="w-4 h-4" />
       <span>Profile: {profile.name}</span>
