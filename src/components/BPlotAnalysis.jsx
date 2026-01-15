@@ -122,13 +122,15 @@ const BPlotAnalysis = ({
     rawData
   } = processedData;
 
-  // Calculate MIL status - check if any data point has MILout_mirror = 1
+  // Calculate MIL status - check if any data point has MILout_mirror = 1 while engine running (RPM >= 500)
   const milStatus = useMemo(() => {
     if (!rawData || rawData.length === 0) return { isActive: false, percentage: 0 };
-    const activeCount = rawData.filter(row => row.MILout_mirror === 1).length;
+    const engineRunningData = rawData.filter(row => (row.rpm ?? row.RPM ?? 0) >= 500);
+    if (engineRunningData.length === 0) return { isActive: false, percentage: 0 };
+    const activeCount = engineRunningData.filter(row => row.MILout_mirror === 1).length;
     return {
       isActive: activeCount > 0,
-      percentage: ((activeCount / rawData.length) * 100).toFixed(1)
+      percentage: ((activeCount / engineRunningData.length) * 100).toFixed(1)
     };
   }, [rawData]);
 
