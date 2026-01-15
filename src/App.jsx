@@ -2170,7 +2170,7 @@ const PlotAnalyzer = () => {
               clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)'
             }}
           >
-            <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple onChange={handleFileUpload} className="hidden" />
+            <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
             {isLoading ? (
               <div className="flex flex-col items-center">
@@ -2265,7 +2265,7 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           eventCount={bplotProcessed?.events?.length || 0}
         />
-        <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple onChange={handleFileUpload} className="hidden" />
+        <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
         <BPlotAnalysis
           data={bplotData}
           processedData={bplotProcessed}
@@ -2298,7 +2298,7 @@ const PlotAnalyzer = () => {
         onExport={exportToPDF}
         eventCount={faults?.length || 0}
       />
-      <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple onChange={handleFileUpload} className="hidden" />
+      <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
       <main className="w-full px-6 py-6 space-y-8 mx-auto" style={{ maxWidth: '98%' }}>
 
