@@ -2149,70 +2149,122 @@ const PlotAnalyzer = () => {
   // ----------------------------------------------------------------------------
   if (!parsed) {
     return (
-      <div className="min-h-screen bg-[#020617] flex flex-col">
-        <AppHeader
-          hasEcm={false}
-          hasBplt={false}
-          ecmFileName=""
-          bpltFileName=""
-          activeTab="overview"
-          onTabChange={handleTabChange}
-          onImport={() => document.getElementById('fileIn').click()}
-        />
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div
-            className="w-full max-w-2xl border-2 border-dashed border-green-500/30 rounded-lg p-16 text-center hover:border-green-500/60 transition-all cursor-pointer bg-slate-900/30"
-            onClick={() => document.getElementById('fileIn').click()}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            style={{
-              clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)'
-            }}
-          >
-            <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+      <div className="bg-[#050505] font-sans text-slate-300 min-h-screen selection:bg-[#00FF88] selection:text-black overflow-x-hidden">
+        <div className="fixed inset-0 grid-pattern pointer-events-none" />
 
-            {isLoading ? (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4" style={{ boxShadow: '0 0 20px rgba(57,255,20,0.3)' }} />
-                <p className="text-green-400 text-lg" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(57,255,20,0.5)' }}>Analyzing plot data...</p>
+        <nav className="relative z-10 border-b border-[#262626] bg-[#050505]/90 backdrop-blur-md">
+          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#121212] rounded flex items-center justify-center border border-[#00FF88]/20">
+                <span className="material-symbols-outlined text-[#00FF88] scale-110">equalizer</span>
               </div>
-            ) : error ? (
-              <div className="text-red-400">
-                <AlertCircle className="w-16 h-16 mx-auto mb-4" />
-                <p style={{ fontFamily: 'Fira Code, monospace' }}>{error}</p>
+              <div>
+                <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.3</p>
               </div>
-            ) : (
-              <>
-                <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-slate-900 border border-green-500/40 rounded-lg" style={{ boxShadow: '0 0 20px rgba(57,255,20,0.2)' }}>
-                  <Upload className="w-10 h-10 text-green-400" style={{ filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.6))' }} />
-                </div>
-                <h1 className="text-xl font-bold text-green-400 mb-3 tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 10px rgba(57,255,20,0.4)' }}>UPLOAD DATA FILES</h1>
-                <p className="text-slate-400 mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>Drop your ECM CSV or B-Plot files to analyze</p>
-                <div className="text-xs text-slate-500 mb-6" style={{ fontFamily: 'Fira Code, monospace' }}>
-                  Supports: ECM download CSV, .bplt, BPLT CSV files<br/>
-                  Upload .bplt + ECM Download for unified mult-tab view<br/>
-                  Max file size: {MAX_FILE_SIZE_MB} MB per file
-                </div>
-                <BaselineSelector />
-                <div className="flex justify-center gap-8 text-sm text-slate-500">
-                  <span className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-green-400" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
-                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>ANALYSIS</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-400" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
-                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>TRENDS</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,165,0,0.6))' }} />
-                    <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '10px' }}>ANOMALIES</span>
-                  </span>
-                </div>
-              </>
-            )}
+            </div>
+            <button
+              onClick={() => document.getElementById('fileIn').click()}
+              className="flex items-center gap-2 bg-transparent border border-[#00FF88]/40 text-[#00FF88] hover:bg-[#00FF88] hover:text-black transition-all duration-300 px-4 py-2 rounded text-xs font-bold uppercase tracking-widest group"
+            >
+              <span className="material-symbols-outlined text-sm transition-transform group-hover:-translate-y-0.5">upload</span>
+              Import New Files
+            </button>
           </div>
-        </div>
+        </nav>
+
+        <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 pb-24">
+          <div className="relative group">
+            <div
+              className="upload-dashed p-1"
+              style={{
+                backgroundImage: 'url(/upload-bg.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                borderRadius: '1rem',
+                filter: 'contrast(1.1) brightness(0.8)'
+              }}
+            >
+              <div
+                className="bg-[#121212]/60 backdrop-blur-md rounded-xl p-12 md:p-20 flex flex-col items-center text-center transition-all duration-300 hover:bg-[#121212]/80 border border-white/5"
+                onClick={() => document.getElementById('fileIn').click()}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                style={{ cursor: 'pointer' }}
+              >
+                <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+
+                {isLoading ? (
+                  <>
+                    <div className="w-20 h-20 border-4 border-[#00FF88] border-t-transparent rounded-full animate-spin mb-8" />
+                    <h2 className="text-4xl font-black text-[#00FF88] mb-4 tracking-tight" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0, 255, 136, 0.6)' }}>
+                      Analyzing...
+                    </h2>
+                  </>
+                ) : error ? (
+                  <>
+                    <div className="w-20 h-20 mb-8 flex items-center justify-center bg-red-500/10 rounded-2xl border border-red-500/30">
+                      <span className="material-symbols-outlined text-red-400 text-5xl">error</span>
+                    </div>
+                    <h2 className="text-2xl font-black text-red-400 mb-4" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                      Upload Error
+                    </h2>
+                    <p className="text-sm text-slate-500">{error}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 mb-8 flex items-center justify-center bg-[#00FF88]/10 rounded-2xl border border-[#00FF88]/30 group-hover:scale-110 group-hover:border-[#00FF88] transition-all duration-500">
+                      <span className="material-symbols-outlined text-[#00FF88] text-5xl">cloud_upload</span>
+                    </div>
+                    <h2 className="text-4xl font-black text-[#00FF88] mb-4 tracking-tight" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0, 255, 136, 0.6)' }}>
+                      UPLOAD DATA FILES
+                    </h2>
+                    <div className="space-y-2">
+                      <p className="text-xl font-medium text-slate-100">
+                        Drop your ECM CSV or B-Plot files to analyze
+                      </p>
+                      <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                        Supports: ECM download CSV, .bplt, BPLT CSV files<br />
+                        Upload .bplt + ECM Download for unified multi-tab view<br />
+                        Max file size: {MAX_FILE_SIZE_MB} MB per file
+                      </p>
+                    </div>
+                    <label
+                      htmlFor="fileIn"
+                      className="mt-10 cursor-pointer bg-[#00FF88] text-black font-black px-10 py-4 rounded-full hover:shadow-[0_0_30px_rgba(0,255,136,0.6)] hover:scale-105 transition-all active:scale-95 uppercase tracking-[0.2em] text-sm inline-block"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Select Files
+                    </label>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12">
+            <BaselineSelector />
+          </div>
+
+          <div className="mt-16 flex flex-wrap justify-center gap-10 opacity-40 hover:opacity-100 transition-opacity duration-500">
+            <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.25em] text-slate-400 uppercase">
+              <span className="material-symbols-outlined text-[#00FF88] text-lg">analytics</span>
+              ANALYSIS
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.25em] text-slate-400 uppercase">
+              <span className="material-symbols-outlined text-[#00FF88] text-lg">trending_up</span>
+              TRENDS
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.25em] text-slate-400 uppercase">
+              <span className="material-symbols-outlined text-orange-500/80 text-lg">warning</span>
+              ANOMALIES
+            </div>
+          </div>
+        </main>
+
+        <div className="fixed top-1/4 -left-20 w-96 h-96 bg-[#00FF88]/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="fixed bottom-1/4 -right-20 w-[30rem] h-[30rem] bg-[#00FF88]/5 blur-[150px] rounded-full pointer-events-none" />
       </div>
     );
   }

@@ -13,6 +13,41 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Grid pattern background */
+.grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+}
+
+/* Neon glow effects - green theme */
+.neon-glow-green {
+  text-shadow: 0 0 15px rgba(57, 255, 20, 0.6);
+}
+
+.neon-border-green {
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+}
+
+/* Upload dashed border gradient */
+.upload-dashed-border {
+  background: linear-gradient(135deg, rgba(57, 255, 20, 0.15) 0%, rgba(57, 255, 20, 0.05) 50%, rgba(57, 255, 20, 0.15) 100%);
+  border-radius: 1rem;
+  padding: 2px;
+}
+
+.upload-dashed-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(57, 255, 20, 0.4), rgba(57, 255, 20, 0.1), rgba(57, 255, 20, 0.4));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
 @keyframes shutdownPulse {
   0%, 100% {
     box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
