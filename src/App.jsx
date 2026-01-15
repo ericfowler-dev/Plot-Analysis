@@ -1947,7 +1947,7 @@ const PlotAnalyzer = () => {
   const handleAddEcmFile = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv';
+    input.accept = '.csv,text/csv,text/plain';
     input.onchange = async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -2317,7 +2317,7 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           eventCount={bplotProcessed?.events?.length || 0}
         />
-        <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+        <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
         <BPlotAnalysis
           data={bplotData}
           processedData={bplotProcessed}
@@ -2350,7 +2350,7 @@ const PlotAnalyzer = () => {
         onExport={exportToPDF}
         eventCount={faults?.length || 0}
       />
-      <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+      <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
       <main className="w-full px-6 py-6 space-y-8 mx-auto" style={{ maxWidth: '98%' }}>
 

@@ -122,13 +122,48 @@ const BPlotAnalysis = ({
     rawData
   } = processedData;
 
-  // Calculate MIL status - check if any data point has MILout_mirror = 1
+  // Calculate MIL status - check if MILout_mirror = 1 while engine running (RPM >= 500) for minimum duration
   const milStatus = useMemo(() => {
-    if (!rawData || rawData.length === 0) return { isActive: false, percentage: 0 };
-    const activeCount = rawData.filter(row => row.MILout_mirror === 1).length;
+    if (!rawData || rawData.length === 0) return { isActive: false, percentage: 0, duration: 0 };
+
+    const MIN_DURATION_SECONDS = 5; // Minimum duration to consider MIL active (filters out shutdown blips)
+
+    // Filter to engine running data and sort by time
+    const engineRunningData = rawData
+      .filter(row => (row.rpm ?? row.RPM ?? 0) >= 500)
+      .sort((a, b) => (a.Time ?? 0) - (b.Time ?? 0));
+
+    if (engineRunningData.length === 0) return { isActive: false, percentage: 0, duration: 0 };
+
+    // Calculate total duration where MIL = 1 while engine running
+    let totalMilDuration = 0;
+    let milStartTime = null;
+
+    for (let i = 0; i < engineRunningData.length; i++) {
+      const row = engineRunningData[i];
+      const isMilActive = row.MILout_mirror === 1;
+      const currentTime = row.Time ?? 0;
+
+      if (isMilActive && milStartTime === null) {
+        milStartTime = currentTime;
+      } else if (!isMilActive && milStartTime !== null) {
+        totalMilDuration += currentTime - milStartTime;
+        milStartTime = null;
+      }
+    }
+
+    // Handle case where MIL is still active at end of data
+    if (milStartTime !== null) {
+      const lastTime = engineRunningData[engineRunningData.length - 1].Time ?? 0;
+      totalMilDuration += lastTime - milStartTime;
+    }
+
+    const activeCount = engineRunningData.filter(row => row.MILout_mirror === 1).length;
+
     return {
-      isActive: activeCount > 0,
-      percentage: ((activeCount / rawData.length) * 100).toFixed(1)
+      isActive: totalMilDuration >= MIN_DURATION_SECONDS,
+      percentage: ((activeCount / engineRunningData.length) * 100).toFixed(1),
+      duration: totalMilDuration.toFixed(1)
     };
   }, [rawData]);
 
@@ -445,7 +480,8 @@ const BPlotAnalysis = ({
                     <YAxis yAxisId="rpm" stroke="#3b82f6" fontSize={12} domain={[0, 'auto']} />
                     <YAxis yAxisId="map" orientation="right" stroke="#8b5cf6" fontSize={12} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}
+                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '8px', maxWidth: '280px' }}
                       labelFormatter={(v) => `Time: ${formatDuration(v)}`}
                       formatter={(value, name) => {
                         if (typeof value === 'number') {
@@ -496,9 +532,9 @@ const BPlotAnalysis = ({
         )}
 
         {activeTab === 'charts' && (
-          <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+          <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
             {/* Sidebar - Channel Selection */}
-            <aside className="w-64 bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
+            <aside className="w-full lg:w-64 max-h-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
               <div className="p-4 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-slate-300">
@@ -557,8 +593,8 @@ const BPlotAnalysis = ({
             </aside>
 
             {/* Main Chart Area */}
-            <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex flex-col">
-              <div className="flex-1">
+            <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
+              <div className="flex-1 h-[300px] lg:h-auto">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -592,7 +628,8 @@ const BPlotAnalysis = ({
                       />
                     ))}
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px' }}
+                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px' }}
                       labelFormatter={(v, payload) => {
                         const sourceFile = payload?.[0]?.payload?._sourceFile;
                         if (sourceFile && fileBoundaries.length > 1) {

@@ -169,7 +169,7 @@
     {
       "id": "dtc-active",
       "name": "Active Diagnostic Trouble Code",
-      "description": "Malfunction indicator lamp is active",
+      "description": "Malfunction indicator lamp is active while engine running",
       "enabled": true,
       "conditions": [
         {
@@ -178,8 +178,15 @@
           "value": 1
         }
       ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
       "logic": "AND",
-      "duration": 0,
+      "duration": 5,
       "severity": "warning",
       "category": "fault"
     },

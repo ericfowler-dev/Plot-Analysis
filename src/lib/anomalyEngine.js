@@ -292,8 +292,11 @@ export function detectAnomalies(data, thresholds, options = {}) {
     statistics.alertCounts[key] = (statistics.alertCounts[key] || 0) + 1;
   }
 
-  // Filter alerts by minimum duration
-  const filteredAlerts = alerts.filter(a => (a.duration || 0) >= minDuration);
+  // Filter alerts by minimum duration (use per-alert minDuration if set, otherwise global)
+  const filteredAlerts = alerts.filter(a => {
+    const requiredDuration = a.minDuration || minDuration;
+    return (a.duration || 0) >= requiredDuration;
+  });
 
   return {
     alerts: filteredAlerts,
@@ -591,27 +594,49 @@ function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
 }
 
 /**
+ * Evaluate a single condition against a row
+ */
+function evaluateRuleCondition(condition, row, columnMap) {
+  const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
+  if (value === undefined) return false;
+
+  switch (condition.operator) {
+    case '>': return value > condition.value;
+    case '<': return value < condition.value;
+    case '>=': return value >= condition.value;
+    case '<=': return value <= condition.value;
+    case '==': return value == condition.value;
+    case '!=': return value != condition.value;
+    default: return false;
+  }
+}
+
+/**
  * Check custom anomaly rules
  */
 function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, values, isRunning) {
   for (const rule of rules) {
     if (!rule.enabled) continue;
 
-    // Evaluate conditions
-    const conditionResults = (rule.conditions || []).map(condition => {
-      const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
-      if (value === undefined) return false;
-
-      switch (condition.operator) {
-        case '>': return value > condition.value;
-        case '<': return value < condition.value;
-        case '>=': return value >= condition.value;
-        case '<=': return value <= condition.value;
-        case '==': return value == condition.value;
-        case '!=': return value != condition.value;
-        default: return false;
+    // Check requireWhen conditions first - ALL must be true for rule to apply
+    if (Array.isArray(rule.requireWhen) && rule.requireWhen.length > 0) {
+      const meetsRequirements = rule.requireWhen.every(condition =>
+        evaluateRuleCondition(condition, row, columnMap)
+      );
+      if (!meetsRequirements) {
+        // Requirements not met, end any active alert
+        const alertId = `custom_${rule.id}`;
+        if (startTimes.has(alertId)) {
+          handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+        }
+        continue;
       }
-    });
+    }
+
+    // Evaluate main conditions
+    const conditionResults = (rule.conditions || []).map(condition =>
+      evaluateRuleCondition(condition, row, columnMap)
+    );
 
     // Apply logic
     const isTriggered = rule.logic === 'OR'
@@ -626,7 +651,8 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
         description: rule.description,
         severity: rule.severity || SEVERITY.WARNING,
         category: rule.category || CATEGORIES.CUSTOM,
-        ruleId: rule.id
+        ruleId: rule.id,
+        minDuration: rule.duration || 0
       });
     } else if (startTimes.has(alertId)) {
       handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
@@ -653,6 +679,7 @@ function handleAlertState(alertId, isActive, time, value, alerts, startTimes, va
         threshold: config.threshold,
         unit: config.unit,
         ruleId: config.ruleId,
+        minDuration: config.minDuration || 0,
         startTime: time,
         endTime: null,
         duration: null,
