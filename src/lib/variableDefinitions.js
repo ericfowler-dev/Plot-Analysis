@@ -163,7 +163,7 @@ export const VARIABLE_DEFINITIONS = {
     description: 'Current active fuel closed-loop control mode',
     unit: '',
     category: 'fuel',
-    values: { 0: 'Open Loop', 1: 'Closed Loop', 3: 'CL + Adaptive' }
+    values: { 0: 'Open Loop', 2: 'Closed Loop', 3: 'CL + Adaptive' }
   },
   fuel_shutoff_chk: {
     name: 'Fuel Shutoff',

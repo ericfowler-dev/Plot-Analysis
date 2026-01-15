@@ -75,7 +75,7 @@ export const BPLOT_PARAMETERS = {
   fuel_ctl_mode: {
     name: 'Fuel Control Mode',
     unit: '',
-    description: '0=Open Loop; 1=Closed Loop; 3=CL + Adaptive',
+    description: '0=Open Loop; 2=Closed Loop; 3=CL + Adaptive',
     category: 'engine',
     hideAverage: true,
     showTimeInState: true
@@ -654,7 +654,7 @@ export const VALUE_MAPPINGS = {
   },
   fuel_ctl_mode: {
     0: 'Open Loop',
-    1: 'Closed Loop',
+    2: 'Closed Loop',
     3: 'CL + Adaptive'
   },
   MILout_mirror: {
