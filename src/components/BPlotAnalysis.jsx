@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine
+  ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, Brush
 } from 'recharts';
 import {
   Activity, AlertCircle, AlertTriangle, Clock, Zap,
@@ -461,19 +461,25 @@ const BPlotAnalysis = ({
                       strokeWidth={2}
                       name="RPM"
                     />
-                    <Line
-                      yAxisId="map"
-                      type="monotone"
-                      dataKey="MAP"
-                      stroke="#8b5cf6"
-                      dot={false}
-                      strokeWidth={2}
-                      name="MAP (psia)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                  <Line
+                    yAxisId="map"
+                    type="monotone"
+                    dataKey="MAP"
+                    stroke="#8b5cf6"
+                    dot={false}
+                    strokeWidth={2}
+                    name="MAP (psia)"
+                  />
+                  <Brush
+                    dataKey="Time"
+                    height={18}
+                    stroke="#22c55e"
+                    travellerWidth={8}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
+          </div>
           </div>
         )}
 
@@ -646,6 +652,12 @@ const BPlotAnalysis = ({
                         }}
                       />
                     ))}
+                    <Brush
+                      dataKey="Time"
+                      height={20}
+                      stroke="#22c55e"
+                      travellerWidth={8}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

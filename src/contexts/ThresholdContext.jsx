@@ -55,6 +55,11 @@ const FALLBACK_THRESHOLDS = {
 export function ThresholdProvider({ children }) {
   // Currently selected profile ID
   const [selectedProfileId, setSelectedProfileId] = useState('global-defaults');
+  const [baselineSelection, setBaselineSelection] = useState({
+    group: '',
+    size: '',
+    application: ''
+  });
 
   // Resolved profile with all inherited values
   const [resolvedProfile, setResolvedProfile] = useState(null);
@@ -205,6 +210,7 @@ export function ThresholdProvider({ children }) {
     resolvedProfile,
     profiles,
     selectableProfiles,
+    baselineSelection,
     index,
     loading,
     error,
@@ -213,6 +219,7 @@ export function ThresholdProvider({ children }) {
     // Actions
     selectProfile,
     refreshProfiles,
+    setBaselineSelection,
     setThresholdSystemEnabled,
 
     // Helpers

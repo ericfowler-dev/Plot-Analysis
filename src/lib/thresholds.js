@@ -156,7 +156,8 @@ export const ECM_HISTOGRAM_CONFIG = {
     xAxis: 'Manifold Pressure (psia)',
     yAxis: 'Engine Speed (RPM)',
     unit: 'events',
-    description: 'Engine knock events by speed and load'
+    description: 'Engine knock events by speed and load',
+    secondsPerUnit: 6.6
   },
   ect: {
     title: 'Engine Coolant Temperature Histogram',

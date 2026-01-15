@@ -33,6 +33,7 @@ import { processBPlotData } from './lib/bplotProcessData';
 import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
 import AppHeader from './components/AppHeader';
+import BaselineSelector from './components/BaselineSelector';
 
 // File type constants
 const FILE_TYPES = {
@@ -459,7 +460,7 @@ const BackfireSummaryCard = ({ histogram, title, onClick }) => {
 // =============================================================================
 // HEATMAP TABLE - Distribution Matrix for Histograms
 // =============================================================================
-const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit = 'hours', sourceInSeconds = false }) => {
+const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit = 'hours', sourceInSeconds = false, secondsPerUnit = 1 }) => {
   if (!histogram || !histogram.data || histogram.data.length === 0) {
     return (
       <div className="rounded-xl border border-[#344d65] bg-[#111921] p-8 text-center">
@@ -474,7 +475,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
   const data = histogram.data || [];
 
   // Conversion factor: if source is in seconds, convert to hours for display
-  const conversionFactor = sourceInSeconds ? (1 / 3600) : 1;
+  const conversionFactor = sourceInSeconds ? (secondsPerUnit / 3600) : 1;
 
   // Calculate totals and statistics (in display units)
   let grandTotal = 0;
@@ -578,15 +579,16 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
                   const cellStyle = getCellStyle(value);
                   const fault = getFaultAtCell(yLabel, xLabel);
 
+                  const faultDescription = fault?.description || fault?.faultInfo?.name;
                   return (
                     <td
                       key={xIdx}
-                      className={`p-2 rounded border text-center cursor-pointer transition-all hover:border-[#22c55e] ${
+                      className={`relative p-2 rounded border text-center cursor-pointer transition-all hover:border-[#22c55e] ${
                         fault ? 'border-red-500 border-2' : 'border-white/5'
                       }`}
                       style={cellStyle}
                       onClick={() => onCellClick && onCellClick(yLabel, xLabel, value)}
-                      title={`RPM: ${yLabel}, MAP: ${xLabel}\n${unit === 'events' ? 'Events' : 'Hours'}: ${unit === 'events' ? Math.round(value) : value.toFixed(4)}\n${percent.toFixed(2)}% of total${fault ? `\nFault DTC ${fault.code}` : ''}`}
+                      title={`RPM: ${yLabel}, MAP: ${xLabel}\n${unit === 'events' ? 'Events' : 'Hours'}: ${unit === 'events' ? Math.round(value) : value.toFixed(4)}\n${percent.toFixed(2)}% of total${fault ? `\nFault DTC ${fault.code}${faultDescription ? `\n${faultDescription}` : ''}` : ''}`}
                     >
                       {value > 0 ? (
                         <>
@@ -1469,11 +1471,23 @@ const PlotAnalyzer = () => {
   const [rawFileContent, setRawFileContent] = useState('');
   const [selectedFaultIndex, setSelectedFaultIndex] = useState(null);
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
+  const [scrollToAlerts, setScrollToAlerts] = useState(false);
   const workerRef = useRef(null);
+  const alertsRef = useRef(null);
 
   useEffect(() => {
     if (PERF) console.log(`[perf] tab change: ${activeTab}`);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!scrollToAlerts) return;
+    if (activeTab !== 'charts' && activeTab !== 'charts-ecm') return;
+    if (!analysis?.alerts?.length) return;
+    if (alertsRef.current) {
+      alertsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setScrollToAlerts(false);
+  }, [scrollToAlerts, activeTab, analysis?.alerts?.length]);
 
   // Initialize worker for plot data processing
   useEffect(() => {
@@ -2036,6 +2050,7 @@ const PlotAnalyzer = () => {
                   Upload .bplt + ECM Download for unified mult-tab view<br/>
                   Max file size: {MAX_FILE_SIZE_MB} MB per file
                 </div>
+                <BaselineSelector />
                 <div className="flex justify-center gap-8 text-sm text-slate-500">
                   <span className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-green-400" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
@@ -2167,14 +2182,20 @@ const PlotAnalyzer = () => {
 
             {/* Alerts and Recommendations */}
             {analysis?.alerts?.length > 0 && (
-              <div className="bg-red-950/30 border border-red-800 rounded-xl p-4">
+              <div className="bg-red-950/50 border border-red-600/70 rounded-xl p-4">
                 <div className="flex items-center gap-3">
                   <ShieldAlert className="w-6 h-6 text-red-400" />
                   <div className="flex-1">
                     <div className="font-semibold text-red-400">{analysis.alerts.length} System Alert{analysis.alerts.length > 1 ? 's' : ''}</div>
                     <div className="text-sm text-red-300/70">Issues detected requiring attention</div>
                   </div>
-                  <button onClick={() => handleTabChange('charts')} className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm">
+                  <button
+                    onClick={() => {
+                      setScrollToAlerts(true);
+                      handleTabChange('charts');
+                    }}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm"
+                  >
                     View Details
                   </button>
                 </div>
@@ -2281,6 +2302,34 @@ const PlotAnalyzer = () => {
         {/* ==================== CHARTS ==================== */}
         {(activeTab === 'charts' || activeTab === 'charts-ecm') && (
           <div className="space-y-6">
+            {analysis?.alerts?.length > 0 && (
+              <div ref={alertsRef} className="bg-red-950/50 border border-red-600/70 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <ShieldAlert className="w-5 h-5 text-red-400" />
+                  <div className="font-semibold text-red-400">System Alerts</div>
+                </div>
+                <div className="space-y-3">
+                  {analysis.alerts.map((alert, index) => {
+                    const isWarning = alert.level === 'warning';
+                    const borderColor = isWarning ? 'border-red-500/40' : 'border-red-500/60';
+                    const bgColor = isWarning ? 'bg-red-950/40' : 'bg-red-950/60';
+                    const textColor = isWarning ? 'text-red-300' : 'text-red-300';
+                    return (
+                      <div key={index} className={`rounded-lg border ${borderColor} ${bgColor} p-3`}>
+                        <div className={`text-sm font-semibold ${textColor}`}>
+                          {alert.message}
+                        </div>
+                        {alert.recommendation && (
+                          <div className="text-xs text-slate-300 mt-1">
+                            Recommendation: {alert.recommendation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {/* Histogram Selector with Fault Overlay Toggle */}
             {histogramOptions.length > 0 && (
               <div className="bg-[#111921] rounded-xl border border-[#344d65] p-4">
@@ -2327,6 +2376,7 @@ const PlotAnalyzer = () => {
                 faultOverlays={showFaultOverlays ? faults : []}
                 unit={selectedHistogram.includes('backfire') ? 'events' : 'hours'}
                 sourceInSeconds={selectedHistogram.includes('knock')}
+                secondsPerUnit={ECM_HISTOGRAM_CONFIG.knock?.secondsPerUnit || 1}
               />
             )}
 

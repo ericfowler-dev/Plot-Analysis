@@ -3,7 +3,7 @@
 // Processes parsed ECM data for visualization and analysis
 // =============================================================================
 
-import { ECM_THRESHOLDS, ECM_FAULT_MAPPING, ECM_SEVERITY_MAP, ECM_PARAMETERS, ECM_FUEL_TYPES, ECM_SYSTEM_STATES } from './thresholds.js';
+import { ECM_THRESHOLDS, ECM_FAULT_MAPPING, ECM_SEVERITY_MAP, ECM_PARAMETERS, ECM_FUEL_TYPES, ECM_SYSTEM_STATES, ECM_HISTOGRAM_CONFIG } from './thresholds.js';
 
 // Process histogram data for visualization
 export function processHistogramData(histogram, config) {
@@ -284,10 +284,13 @@ export function analyzeECMData(ecmInfo, histograms, faults, stats) {
 
   // Knock analysis
   if (safeHistograms.knock?.stats?.total > ECM_THRESHOLDS.knockDetection.maxEvents) {
+    const knockUnits = safeHistograms.knock.stats.total || 0;
+    const secondsPerUnit = ECM_HISTOGRAM_CONFIG?.knock?.secondsPerUnit || 1;
+    const knockHours = (knockUnits * secondsPerUnit) / 3600;
     analysis.alerts.push({
       level: 'warning',
-      message: `High knock events detected: ${safeHistograms.knock.stats.total} events`,
-      recommendation: 'Inspect ignition system and fuel quality'
+      message: `High knock activity detected: ${knockHours.toFixed(1)} hours accumulated`,
+      recommendation: 'Inspect fuel quality, valve clearance, and ignition system. If engine has high hours with low load, inspect for carbon buildup inside combustion chamber'
     });
   }
 
@@ -296,7 +299,7 @@ export function analyzeECMData(ecmInfo, histograms, faults, stats) {
     analysis.alerts.push({
       level: 'warning',
       message: `Recent backfire events detected: ${safeHistograms.backfireRecent.stats.total} events`,
-      recommendation: 'Check air-fuel mixture and ignition timing'
+      recommendation: 'Check ignition system and valve clearance. If no obvious conditions found, record plot file data and submit to PSI Technical Support'
     });
   }
 
