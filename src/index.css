@@ -13,6 +13,105 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.upload-baseline-spacing {
+  margin-top: 3rem;
+}
+
+@media (min-width: 1024px) {
+  .upload-baseline-spacing {
+    margin-top: 4rem;
+  }
+}
+
+.upload-shell {
+  width: min(64rem, 100%);
+  margin: 0 auto;
+}
+
+.upload-panel-bg {
+  background: linear-gradient(145deg, rgba(10, 10, 10, 0.95), rgba(18, 18, 18, 0.8) 45%, rgba(8, 8, 8, 0.9));
+}
+
+.upload-panel-bg:hover {
+  background: linear-gradient(145deg, rgba(12, 12, 12, 0.98), rgba(22, 22, 22, 0.85) 45%, rgba(10, 10, 10, 0.92));
+}
+
+.baseline-card {
+  border: 1px solid #262626;
+  border-radius: 1rem;
+  overflow: hidden;
+  background-color: #121212;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.baseline-card-header {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #262626;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.baseline-card-body {
+  padding: 2rem;
+}
+
+.baseline-description {
+  margin-bottom: 2rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.baseline-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .baseline-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.baseline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.baseline-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.baseline-select {
+  width: 100%;
+  background: #050505;
+  border: 1px solid #262626;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  outline: none;
+  appearance: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.baseline-select:focus {
+  border-color: #00ff88;
+  box-shadow: 0 0 0 1px #00ff88;
+}
+
+.baseline-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Grid pattern background */
 .grid-pattern {
   background-size: 40px 40px;
@@ -31,6 +130,7 @@ body {
 
 /* Upload dashed border gradient */
 .upload-dashed-border {
+  position: relative;
   background: linear-gradient(135deg, rgba(57, 255, 20, 0.15) 0%, rgba(57, 255, 20, 0.05) 50%, rgba(57, 255, 20, 0.15) 100%);
   border-radius: 1rem;
   padding: 2px;

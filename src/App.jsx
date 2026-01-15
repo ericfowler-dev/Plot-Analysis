@@ -2160,7 +2160,7 @@ const PlotAnalyzer = () => {
               </div>
               <div>
                 <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
-                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.3</p>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.4</p>
               </div>
             </div>
             <button
@@ -2173,10 +2173,10 @@ const PlotAnalyzer = () => {
           </div>
         </nav>
 
-        <main className="relative z-10 max-w-4xl mx-auto px-6 pt-16 pb-24">
+        <main className="relative z-10 upload-shell px-6 pt-16 pb-24">
           <div className="relative group">
             <div
-              className="upload-dashed p-1"
+              className="upload-dashed-border p-1"
               style={{
                 backgroundImage: 'url(/upload-bg.png)',
                 backgroundSize: 'cover',
@@ -2186,7 +2186,7 @@ const PlotAnalyzer = () => {
               }}
             >
               <div
-                className="bg-[#121212]/60 backdrop-blur-md rounded-xl p-12 md:p-20 flex flex-col items-center text-center transition-all duration-300 hover:bg-[#121212]/80 border border-white/5"
+                className="upload-panel-bg backdrop-blur-md rounded-xl p-12 md:p-20 flex flex-col items-center text-center transition-all duration-300 border border-white/5"
                 onClick={() => document.getElementById('fileIn').click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -2243,7 +2243,7 @@ const PlotAnalyzer = () => {
             </div>
           </div>
 
-          <div className="mt-12">
+          <div className="upload-baseline-spacing">
             <BaselineSelector />
           </div>
 

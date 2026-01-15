@@ -65,19 +65,19 @@ export default function BaselineSelector() {
 
   return (
     <div
-      className="bg-[#121212] border border-[#262626] rounded-xl overflow-hidden shadow-2xl"
+      className="baseline-card bg-[#121212] border border-[#262626] rounded-xl overflow-hidden shadow-2xl"
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="bg-white/5 px-6 py-4 border-b border-[#262626] flex items-center gap-3">
+      <div className="baseline-card-header bg-white/5 px-6 py-4 border-b border-[#262626] flex items-center gap-3">
         <span className="material-symbols-outlined text-[#00FF88] text-xl">tune</span>
         <h3 className="font-bold text-sm tracking-widest text-slate-200 uppercase">Baseline Tuning (optional)</h3>
       </div>
 
       {/* Content */}
-      <div className="p-8">
-        <p className="text-xs text-slate-500 mb-8 leading-relaxed">
+      <div className="baseline-card-body p-8">
+        <p className="baseline-description text-xs text-slate-500 mb-8 leading-relaxed">
           Use a baseline group to fine-tune anomaly thresholds. Only sizes with baseline data are shown. Leave blank to use defaults.
         </p>
 
@@ -88,16 +88,16 @@ export default function BaselineSelector() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-3">
-            <label className="block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Baseline Group</label>
+        <div className="baseline-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="baseline-field space-y-3">
+            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Baseline Group</label>
             <select
               value={baselineSelection.group}
               onChange={handleGroupChange}
               disabled={loading || loadError}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="baseline-select w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Group: Global Defaults</option>
               {groups.map(group => (
@@ -106,15 +106,15 @@ export default function BaselineSelector() {
             </select>
           </div>
 
-          <div className="space-y-3">
-            <label className="block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Engine Profile</label>
+          <div className="baseline-field space-y-3">
+            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Engine Profile</label>
             <select
               value={baselineSelection.size}
               onChange={handleSizeChange}
               disabled={!baselineSelection.group || loading || loadError}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="baseline-select w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Engine Size (available)</option>
               {sizes.map(size => (
@@ -123,15 +123,15 @@ export default function BaselineSelector() {
             </select>
           </div>
 
-          <div className="space-y-3">
-            <label className="block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Application Type</label>
+          <div className="baseline-field space-y-3">
+            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Application Type</label>
             <select
               value={baselineSelection.application}
               onChange={handleAppChange}
               disabled={!baselineSelection.size || loading || loadError}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="baseline-select w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Application</option>
               {applications.map(app => (
