@@ -64,7 +64,7 @@ const FileIndicator = ({ type, fileName }) => {
         {type}
       </div>
       <span
-        className="text-[11px] text-slate-400 opacity-80 max-w-[160px] 2xl:max-w-[220px] truncate"
+        className="text-[11px] text-slate-400 opacity-80 max-w-[100px] xl:max-w-[140px] truncate"
         style={{ fontFamily: 'Fira Code, monospace' }}
         title={fileName}
       >
@@ -80,7 +80,7 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
     <button
       onClick={() => onClick(tab.id)}
       className={`
-        relative flex items-center h-9 px-3 xl:h-10 xl:px-4 transition-all duration-300
+        relative flex items-center h-9 px-3 lg:h-10 lg:px-4 transition-all duration-300
         ${isActive
           ? 'text-green-400 border-green-500/60 bg-gradient-to-br from-green-500/20 via-green-500/5 to-transparent shadow-[0_0_25px_rgba(57,255,20,0.2),inset_0_0_30px_rgba(57,255,20,0.08)]'
           : 'text-slate-400 border-green-500/20 bg-gradient-to-br from-green-500/8 to-transparent hover:text-white hover:border-green-500/50 hover:bg-gradient-to-br hover:from-green-500/15 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)]'
@@ -96,7 +96,7 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
       <div className="absolute top-0 left-0 w-3 h-3 bg-gradient-to-br from-green-500/60 via-green-500/20 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-3 h-3 bg-gradient-to-tl from-green-500/40 via-green-500/10 to-transparent pointer-events-none" />
 
-      <span className="text-[9px] xl:text-[10px] font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+      <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
         {tab.label}
       </span>
       <SourceBadge source={tab.source} />
@@ -141,7 +141,7 @@ const AppHeader = ({
       className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
-      <div className="max-w-[1920px] mx-auto w-full flex flex-col xl:flex-row items-center justify-between px-6 py-4 gap-4">
+      <div className="max-w-[1920px] mx-auto w-full flex flex-col lg:flex-row items-center justify-between px-6 py-4 gap-4">
 
         {/* Left: Branding & Status */}
         <div className="flex items-center gap-4 min-w-0">
@@ -176,19 +176,19 @@ const AppHeader = ({
 
           {/* Separator */}
           {(hasEcm || hasBplt) && (
-            <div className="hidden xl:block w-px h-6 bg-gradient-to-b from-transparent via-green-500/40 to-transparent" />
+            <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-green-500/40 to-transparent" />
           )}
 
           {/* File indicators */}
           {(hasEcm || hasBplt) && (
-            <div className="hidden xl:flex flex-col gap-1.5 min-w-0">
+            <div className="hidden lg:flex flex-col gap-1.5 min-w-0">
               <span
                 className="text-[9px] uppercase text-green-500/50 font-bold tracking-widest"
                 style={{ fontFamily: 'Fira Code, monospace' }}
               >
                 Stream Source
               </span>
-              <div className="flex items-center gap-4 min-w-0">
+              <div className="flex flex-col gap-1 min-w-0">
                 {hasEcm && <FileIndicator type="ECM" fileName={ecmFileName} />}
                 {hasBplt && <FileIndicator type="BPLT" fileName={bpltFileName} />}
               </div>
@@ -198,8 +198,8 @@ const AppHeader = ({
 
         {/* Center: Navigation Tabs */}
         {tabs.length > 0 && (
-          <nav className="flex items-center w-full xl:flex-1 xl:min-w-0">
-            <div className="flex items-center gap-1 flex-nowrap justify-start xl:justify-center overflow-hidden max-w-full">
+          <nav className="flex items-center w-full lg:flex-1 lg:min-w-0">
+            <div className="flex items-center gap-1 flex-nowrap justify-start lg:justify-center overflow-hidden max-w-full">
               {tabs.map(tab => (
                 <NavTab
                   key={tab.id}
@@ -218,14 +218,14 @@ const AppHeader = ({
           {(hasEcm || hasBplt) && onExport && (
             <button
               onClick={onExport}
-              className="flex items-center gap-2 h-9 px-4 xl:h-10 xl:px-5 text-slate-400 border border-green-500/25 bg-gradient-to-br from-green-500/5 to-transparent hover:text-white hover:border-green-500/60 hover:bg-gradient-to-br hover:from-green-500/12 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)] transition-all duration-300"
+              className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-slate-400 border border-green-500/25 bg-gradient-to-br from-green-500/5 to-transparent hover:text-white hover:border-green-500/60 hover:bg-gradient-to-br hover:from-green-500/12 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)] transition-all duration-300"
               style={{
                 clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
               }}
             >
               <Download className="w-4 h-4 text-green-400/70" />
               <span
-                className="text-[9px] xl:text-[10px] font-bold uppercase"
+                className="text-[9px] lg:text-[10px] font-bold uppercase"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
                 Export
@@ -234,14 +234,14 @@ const AppHeader = ({
           )}
           <button
             onClick={onImport}
-            className="flex items-center gap-2 h-9 px-4 xl:h-10 xl:px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
+            className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
             style={{
               clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
             }}
           >
             <Upload className="w-4 h-4 text-green-400" />
             <span
-              className="text-[9px] xl:text-[10px] font-bold uppercase"
+              className="text-[9px] lg:text-[10px] font-bold uppercase"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
               Import New Files
