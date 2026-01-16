@@ -208,7 +208,7 @@ class EngineStateTracker {
   constructor(config = {}) {
     // Configurable RPM thresholds
     this.rpmCrankingThreshold = config.rpmCrankingThreshold || 100;   // RPM to detect cranking
-    this.rpmRunningThreshold = config.rpmRunningThreshold || 500;     // RPM to consider engine "running"
+    this.rpmRunningThreshold = config.rpmRunningThreshold || 650;     // RPM to consider engine "running"
     this.rpmStableThreshold = config.rpmStableThreshold || 800;       // RPM for stable operation
 
     // Configurable timing thresholds (seconds)
@@ -477,11 +477,11 @@ function calculateMinOilPressure(rpm, pressureMap) {
   // Default pressure map if none provided
   const defaultMap = [
     { rpm: 0, pressure: 0 },
-    { rpm: 600, pressure: 8 },
-    { rpm: 1000, pressure: 15 },
-    { rpm: 1500, pressure: 25 },
-    { rpm: 2000, pressure: 35 },
-    { rpm: 3000, pressure: 45 }
+    { rpm: 600, pressure: 4 },
+    { rpm: 1000, pressure: 8 },
+    { rpm: 1500, pressure: 10 },
+    { rpm: 2000, pressure: 10 },
+    { rpm: 3000, pressure: 10 }
   ];
 
   const map = pressureMap && pressureMap.length >= 2 ? pressureMap : defaultMap;
@@ -1641,7 +1641,7 @@ export function summarizeAlerts(alerts) {
 export function formatAlert(alert) {
   let message = alert.name;
 
-  if (alert.value !== null && alert.unit) {
+  if (alert.value != null && typeof alert.value === 'number' && alert.unit) {
     message += `: ${alert.value.toFixed(1)}${alert.unit}`;
   }
 
@@ -1649,7 +1649,7 @@ export function formatAlert(alert) {
     message += ` (threshold: ${alert.threshold}${alert.unit || ''})`;
   }
 
-  if (alert.duration) {
+  if (alert.duration != null && typeof alert.duration === 'number') {
     message += ` for ${alert.duration.toFixed(1)}s`;
   }
 
