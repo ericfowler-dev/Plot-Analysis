@@ -2285,18 +2285,22 @@ const PlotAnalyzer = () => {
   // ---------------------------------------------------------------------------
   if (fileType === FILE_TYPES.BPLOT && bplotProcessed) {
     return (
-      <BPlotAnalysis
-        data={bplotData}
-        processedData={bplotProcessed}
-        fileName={fileName}
-        onReset={reset}
-        ecmFaults={ecmFaultsForOverlay}
-        fileBoundaries={fileBoundaries}
-        bplotFiles={bplotFiles}
-        onAddEcmFile={handleAddEcmFile}
-        onExport={exportToPDF}
-        reportRef={reportRef}
-      />
+      <>
+        <BPlotAnalysis
+          data={bplotData}
+          processedData={bplotProcessed}
+          fileName={fileName}
+          onReset={reset}
+          ecmFaults={ecmFaultsForOverlay}
+          fileBoundaries={fileBoundaries}
+          bplotFiles={bplotFiles}
+          onAddEcmFile={handleAddEcmFile}
+          onExport={exportToPDF}
+          onReportIssue={() => setShowReportIssue(true)}
+          reportRef={reportRef}
+        />
+        <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
+      </>
     );
   }
 

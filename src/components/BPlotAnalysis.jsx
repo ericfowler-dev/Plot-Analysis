@@ -96,6 +96,7 @@ const BPlotAnalysis = ({
   bplotFiles = [],          // Array of loaded B-Plot files
   onAddEcmFile,             // Callback to add ECM file for overlay
   onExport,                 // Callback to export report
+  onReportIssue,            // Callback to open report issue modal
   externalActiveTab,        // External tab control (for combined view)
   hideHeader = false,       // Hide header when embedded in combined view
   reportRef                // Ref for PDF export
@@ -278,6 +279,7 @@ const BPlotAnalysis = ({
             onTabChange={setActiveTab}
             onImport={onReset}
             onExport={onExport}
+            onReportIssue={onReportIssue}
             eventCount={processedData?.events?.length || 0}
           />
 
