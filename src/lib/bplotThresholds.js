@@ -2,6 +2,173 @@
 // B-PLOT THRESHOLDS AND PARAMETER DEFINITIONS
 // =============================================================================
 
+// =============================================================================
+// VALIDITY POLICIES
+// Defines when channel data is considered valid for statistics and alerts
+// =============================================================================
+
+/**
+ * Validity Policy Types
+ * Used to determine when channel data should be included in statistics/alerts
+ */
+export const VALIDITY_POLICY = {
+  ALWAYS_VALID: 'AlwaysValid',                     // No restrictions - include all samples
+  VALID_WHEN_KEY_ON: 'ValidWhenKeyOn',             // VSW > 0 (key in run position)
+  VALID_WHEN_ENGINE_RUNNING: 'ValidWhenEngineRunning',   // RPM > threshold (engine cranking or running)
+  VALID_WHEN_ENGINE_STABLE: 'ValidWhenEngineStable',     // Engine in stable running state only
+  VALID_WHEN_FUEL_ENABLED: 'ValidWhenFuelEnabled',       // Fuel shutoff not active
+  VALID_WHEN_RPM_ABOVE: 'ValidWhenRpmAbove'              // Custom RPM threshold per channel
+};
+
+/**
+ * Default validity configuration
+ * Can be overridden per-channel in BPLOT_PARAMETERS
+ */
+export const DEFAULT_VALIDITY_CONFIG = {
+  rpmRunningThreshold: 500,      // RPM to consider engine "running"
+  rpmStableThreshold: 800,       // RPM for stable operation
+  vswThreshold: 1,               // VSW voltage for key-on detection
+  startupGraceSeconds: 3,        // Ignore first N seconds after engine start
+  shutdownGraceSeconds: 2        // Ignore last N seconds before engine stop
+};
+
+/**
+ * Channel validity policy overrides
+ * Maps channel names to their validity requirements
+ * Default is ALWAYS_VALID if not specified
+ */
+export const CHANNEL_VALIDITY_POLICIES = {
+  // Oil Pressure - only valid during stable running for alerts, running for stats
+  OILP_press: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    excludeNegative: false,    // 0 is valid for oil pressure
+    excludeZero: false
+  },
+
+  // EPR (Electronic Pressure Regulator) - only valid when engine running
+  EPR_cmd: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    excludeNegative: true      // Negative values are sensor errors
+  },
+  EPR_actual: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    excludeNegative: true      // Negative values are sensor errors
+  },
+  MJ_P_act: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    excludeNegative: true
+  },
+  MJ_P_cmd: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    excludeNegative: true
+  },
+
+  // Pulse Width - only valid when engine running (0 when not injecting)
+  PWe_avg: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    excludeZero: true          // 0 means no injection
+  },
+
+  // Fuel trim - only valid in closed loop operation
+  CL_BM1: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE
+  },
+  A_BM1: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE
+  },
+
+  // Engine load - only meaningful when running
+  eng_load: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Knock retard - only valid when engine running
+  KNK_retard: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Ignition timing - only valid when engine running
+  SA: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Manifold pressure - meaningful when key on
+  MAP: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Coolant temperature - valid when key on (sensor always reads)
+  ECT: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Battery voltage - always valid (monitors battery state)
+  Vbat: {
+    statsPolicy: VALIDITY_POLICY.ALWAYS_VALID,
+    alertPolicy: VALIDITY_POLICY.ALWAYS_VALID
+  },
+
+  // RPM - always valid
+  rpm: {
+    statsPolicy: VALIDITY_POLICY.ALWAYS_VALID,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+  RPM: {
+    statsPolicy: VALIDITY_POLICY.ALWAYS_VALID,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // UEGO/Lambda sensors - only valid when engine running
+  Phi_UEGO: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE
+  },
+
+  // Governor RPM demand - only meaningful when running
+  rpmd_gov: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // MFG pressure channels - only valid when running
+  MFG_DPPress: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+  MFG_DSPress: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+  MFG_USPress: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  }
+};
+
+/**
+ * Get validity policy for a channel
+ * Returns the policy config or default (AlwaysValid) if not specified
+ */
+export function getChannelValidityPolicy(channelName) {
+  return CHANNEL_VALIDITY_POLICIES[channelName] || {
+    statsPolicy: VALIDITY_POLICY.ALWAYS_VALID,
+    alertPolicy: VALIDITY_POLICY.ALWAYS_VALID
+  };
+}
+
 /**
  * Threshold values for alert detection
  */
