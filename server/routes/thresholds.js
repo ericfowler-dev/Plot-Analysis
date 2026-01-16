@@ -24,6 +24,8 @@ import {
   compareProfiles,
   validateThresholdValues
 } from '../utils/thresholdMerger.js';
+import { requireAdmin, getAdminActor } from '../utils/adminAuth.js';
+import { recordConfiguratorChange } from '../utils/configuratorStore.js';
 
 const router = express.Router();
 
@@ -118,7 +120,7 @@ router.get('/resolved/:profileId', async (req, res) => {
  * POST /api/thresholds/profile
  * Create or update a profile
  */
-router.post('/profile', async (req, res) => {
+router.post('/profile', requireAdmin, async (req, res) => {
   try {
     const profile = req.body;
 
@@ -139,7 +141,18 @@ router.post('/profile', async (req, res) => {
       }
     }
 
+    let action = 'profile.create';
+    try {
+      await loadProfile(profile.profileId);
+      action = 'profile.update';
+    } catch {}
+
     const saved = await saveProfile(profile);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action,
+      details: { profileId: saved.profileId }
+    });
     res.json({ success: true, profile: saved });
   } catch (error) {
     console.error('Error saving profile:', error);
@@ -151,7 +164,7 @@ router.post('/profile', async (req, res) => {
  * PUT /api/thresholds/profile/:profileId
  * Update an existing profile
  */
-router.put('/profile/:profileId', async (req, res) => {
+router.put('/profile/:profileId', requireAdmin, async (req, res) => {
   try {
     const { profileId } = req.params;
     const updates = req.body;
@@ -181,6 +194,11 @@ router.put('/profile/:profileId', async (req, res) => {
     }
 
     const saved = await saveProfile(updated);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'profile.update',
+      details: { profileId: saved.profileId }
+    });
     res.json({ success: true, profile: saved });
   } catch (error) {
     console.error(`Error updating profile ${req.params.profileId}:`, error);
@@ -193,10 +211,15 @@ router.put('/profile/:profileId', async (req, res) => {
  * DELETE /api/thresholds/profile/:profileId
  * Delete a profile
  */
-router.delete('/profile/:profileId', async (req, res) => {
+router.delete('/profile/:profileId', requireAdmin, async (req, res) => {
   try {
     const { profileId } = req.params;
     const result = await deleteProfile(profileId);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'profile.delete',
+      details: { profileId }
+    });
     res.json({ success: true, ...result });
   } catch (error) {
     console.error(`Error deleting profile ${req.params.profileId}:`, error);
@@ -208,7 +231,7 @@ router.delete('/profile/:profileId', async (req, res) => {
  * POST /api/thresholds/duplicate/:profileId
  * Duplicate a profile with a new ID
  */
-router.post('/duplicate/:profileId', async (req, res) => {
+router.post('/duplicate/:profileId', requireAdmin, async (req, res) => {
   try {
     const { profileId } = req.params;
     const { newId, newName } = req.body;
@@ -218,6 +241,11 @@ router.post('/duplicate/:profileId', async (req, res) => {
     }
 
     const duplicated = await duplicateProfile(profileId, newId, newName);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'profile.duplicate',
+      details: { sourceId: profileId, profileId: newId }
+    });
     res.json({ success: true, profile: duplicated });
   } catch (error) {
     console.error(`Error duplicating profile ${req.params.profileId}:`, error);
@@ -282,7 +310,7 @@ router.get('/export', async (req, res) => {
  * Import profiles from JSON file
  * Query param: overwrite=true to overwrite existing profiles
  */
-router.post('/import', upload.single('file'), async (req, res) => {
+router.post('/import', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
@@ -297,6 +325,15 @@ router.post('/import', upload.single('file'), async (req, res) => {
     }
 
     const results = await importProfiles(exportData, overwrite);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'profile.import',
+      details: {
+        imported: results.imported?.length || 0,
+        skipped: results.skipped?.length || 0,
+        errors: results.errors?.length || 0
+      }
+    });
     res.json({ success: true, results });
   } catch (error) {
     console.error('Error importing profiles:', error);
@@ -328,7 +365,7 @@ router.post('/validate', async (req, res) => {
  * POST /api/thresholds/clear-cache
  * Clear the profile cache (useful for development)
  */
-router.post('/clear-cache', async (req, res) => {
+router.post('/clear-cache', requireAdmin, async (req, res) => {
   try {
     clearCache();
     res.json({ success: true, message: 'Cache cleared' });

@@ -360,6 +360,31 @@ export default function ThresholdEditor({ profile, index, onSave, onCancel, load
     onSave(editedProfile);
   }, [editedProfile, validation, onSave]);
 
+  const handleSaveAs = useCallback(() => {
+    if (!validation.isValid) {
+      if (!confirm('There are validation errors. Save anyway?')) {
+        return;
+      }
+    }
+    const newId = prompt('Enter new profile ID (lowercase, hyphens allowed):');
+    if (!newId) return;
+    const newName = prompt('Enter display name for the new profile:');
+    if (!newName) return;
+
+    const now = new Date().toISOString();
+    const newProfile = {
+      ...editedProfile,
+      profileId: newId,
+      name: newName,
+      status: 'draft',
+      version: '1.0.0',
+      createdAt: now,
+      lastModified: now
+    };
+
+    onSave(newProfile);
+  }, [editedProfile, onSave, validation]);
+
   /**
    * Toggle category expansion
    */
@@ -415,6 +440,14 @@ export default function ThresholdEditor({ profile, index, onSave, onCancel, load
               >
                 <Save className="w-4 h-4" />
                 {loading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={handleSaveAs}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Copy className="w-4 h-4" />
+                Save As
               </button>
             </div>
           </div>
@@ -695,6 +728,9 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
 
   // Check if a parameter is an engine state predicate
   const isEnginePredicate = (param) => ENGINE_STATE_OPTIONS.some(opt => opt.key === param);
+  const isTipMapDeltaRule = rule.type === 'tip_map_delta';
+  const tipMapConfig = rule.config || {};
+  const loadGateConfig = tipMapConfig.loadGate || {};
 
   // Get timing summary for collapsed view
   const getTimingSummary = () => {
@@ -913,6 +949,220 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
               </div>
             )}
           </div>
+
+          {isTipMapDeltaRule && (
+            <div className="border border-slate-600 rounded-lg p-3 space-y-3">
+              <div className="text-xs text-slate-400 uppercase tracking-wider">TIP/MAP Delta Config</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Full Load MAP (psia)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={tipMapConfig.fullLoadMapPsi ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        fullLoadMapPsi: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    No Load MAP (psia)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={tipMapConfig.noLoadMapPsi ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        noLoadMapPsi: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Load Limit (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={tipMapConfig.loadLimitPct ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        loadLimitPct: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Ideal Delta (psi)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={tipMapConfig.deltaIdealPsi ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        deltaIdealPsi: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    High Delta (psi)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={tipMapConfig.deltaHighPsi ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        deltaHighPsi: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Low Delta (psi)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={tipMapConfig.deltaLowPsi ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        deltaLowPsi: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Load Gate Param
+                  </label>
+                  <select
+                    value={loadGateConfig.param || 'MAP'}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        loadGate: {
+                          ...loadGateConfig,
+                          param: e.target.value
+                        }
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  >
+                    {SIGNAL_PARAMETER_OPTIONS.map(option => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}{option.unit ? ` (${option.unit})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Operator
+                  </label>
+                  <select
+                    value={loadGateConfig.operator || '>='}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        loadGate: {
+                          ...loadGateConfig,
+                          operator: e.target.value
+                        }
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  >
+                    {CONDITION_OPERATORS.map(op => (
+                      <option key={op} value={op}>{op}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Load Threshold
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={loadGateConfig.value ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        loadGate: {
+                          ...loadGateConfig,
+                          value: e.target.value === '' ? null : parseFloat(e.target.value)
+                        }
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Debounce (s)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={loadGateConfig.debounceSec ?? ''}
+                    onChange={(e) => onUpdate({
+                      ...rule,
+                      config: {
+                        ...tipMapConfig,
+                        loadGate: {
+                          ...loadGateConfig,
+                          debounceSec: parseFloat(e.target.value) || 0
+                        }
+                      }
+                    })}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Require When (Engine State Conditions) */}
           <EngineStateConditionEditor

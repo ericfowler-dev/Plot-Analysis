@@ -5,6 +5,16 @@
 
 const API_BASE = '/api/thresholds';
 
+function getAdminHeaders() {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('adminToken');
+  const actor = localStorage.getItem('adminUser') || localStorage.getItem('adminActor');
+  const headers = {};
+  if (token) headers['x-admin-token'] = token;
+  if (actor) headers['x-admin-user'] = actor;
+  return headers;
+}
+
 /**
  * Helper function for API calls
  */
@@ -15,6 +25,7 @@ async function apiCall(endpoint, options = {}) {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
+        ...getAdminHeaders(),
         ...options.headers
       },
       ...options
@@ -153,6 +164,9 @@ export async function importProfiles(file, overwrite = false) {
   const url = `${API_BASE}/import${overwrite ? '?overwrite=true' : ''}`;
   const response = await fetch(url, {
     method: 'POST',
+    headers: {
+      ...getAdminHeaders()
+    },
     body: formData
   });
 

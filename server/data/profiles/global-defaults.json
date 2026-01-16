@@ -6,10 +6,10 @@
   "engineFamily": null,
   "fuelType": null,
   "application": null,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-16T13:38:57.620Z",
+  "lastModified": "2026-01-16T20:03:22.238Z",
   "modifiedBy": "system",
   "thresholds": {
     "battery": {
@@ -269,6 +269,51 @@
       "duration": 30,
       "severity": "warning",
       "category": "fuel"
+    },
+    {
+      "id": "tip-map-delta",
+      "name": "TIP/MAP Delta",
+      "description": "TIP / MAP Delta Pressure Issue - Possible Wastegate Adjustment Issue",
+      "enabled": true,
+      "conditions": [],
+      "logic": "AND",
+      "duration": 0,
+      "severity": "warning",
+      "category": "pressure",
+      "type": "tip_map_delta",
+      "config": {
+        "fullLoadMapPsi": 31.3,
+        "noLoadMapPsi": 2.2,
+        "loadLimitPct": 87,
+        "deltaIdealPsi": 3.5,
+        "deltaHighPsi": 4.2,
+        "deltaLowPsi": 2,
+        "loadGate": {
+          "param": "LoadLim_max",
+          "operator": ">=",
+          "value": null,
+          "debounceSec": 3
+        }
+      },
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "EngineRunning",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "ignoreWhen": [
+        {
+          "param": "EngineStarting",
+          "operator": "==",
+          "value": 1
+        }
+      ]
     }
   ],
   "metadata": {
