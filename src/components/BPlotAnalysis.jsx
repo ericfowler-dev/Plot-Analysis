@@ -534,6 +534,7 @@ const BPlotAnalysis = ({
         )}
 
         {activeTab === 'charts' && (
+          <>
           <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
             {/* Sidebar - Channel Selection */}
             <aside className="w-full lg:w-64 max-h-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
@@ -722,6 +723,7 @@ const BPlotAnalysis = ({
               ))}
             </div>
           )}
+          </>
         )}
 
         {activeTab === 'channels' && (
