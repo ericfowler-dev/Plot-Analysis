@@ -883,6 +883,10 @@ function isEngineStatePredicate(param) {
  * @returns {Object} Detection results with alerts and statistics
  */
 export function detectAnomalies(data, thresholds, options = {}) {
+  // DEBUG: Log incoming thresholds
+  console.log('[detectAnomalies DEBUG] thresholds.profileId:', thresholds?.profileId);
+  console.log('[detectAnomalies DEBUG] oilPressure config:', thresholds?.thresholds?.oilPressure);
+
   const {
     gracePeriod = 5, // seconds to ignore at start
     sampleRate = 1,  // samples per second (estimated if not provided)
@@ -1209,6 +1213,19 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   const warningThreshold = userWarningMin !== undefined ? userWarningMin : 20;
   const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 10;
 
+  // DEBUG: Log threshold values to trace where wrong values come from
+  if (filteredPressure < 25 && !window._oilDebugLogged) {
+    console.log('[OilPressure DEBUG] config.warning:', config.warning);
+    console.log('[OilPressure DEBUG] config.critical:', config.critical);
+    console.log('[OilPressure DEBUG] userWarningMin:', userWarningMin);
+    console.log('[OilPressure DEBUG] userCriticalMin:', userCriticalMin);
+    console.log('[OilPressure DEBUG] warningThreshold:', warningThreshold);
+    console.log('[OilPressure DEBUG] criticalThreshold:', criticalThreshold);
+    console.log('[OilPressure DEBUG] filteredPressure:', filteredPressure);
+    console.log('[OilPressure DEBUG] rpm:', rpm);
+    window._oilDebugLogged = true;
+  }
+
   // Simple threshold comparison using user-configured values
   // Critical low
   if (filteredPressure < criticalThreshold) {
@@ -1228,6 +1245,8 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   // Warning low (only if not already critical)
   if (filteredPressure < warningThreshold && filteredPressure >= criticalThreshold) {
     if (!startTimes.has('oil_pressure_warning_low')) {
+      // DEBUG: Log when creating oil pressure warning alert
+      console.log('[OilPressure ALERT] Creating warning alert with threshold:', warningThreshold, 'pressure:', filteredPressure.toFixed(1));
       handleAlertState('oil_pressure_warning_low', true, time, filteredPressure, alerts, startTimes, values, {
         name: 'Low Oil Pressure',
         severity: SEVERITY.WARNING,
