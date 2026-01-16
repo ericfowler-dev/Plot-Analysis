@@ -3,11 +3,6 @@
  * Uses configurable threshold profiles to detect anomalies in engine data
  */
 
-// ========== MODULE LOAD MARKER ==========
-// This should appear in console when the module is loaded
-console.log('%c[anomalyEngine.js] MODULE LOADED - Version: 2026-01-16-FIX', 'background: #ff0; color: #000; font-size: 16px; padding: 4px;');
-// ========================================
-
 /**
  * Alert severity levels
  */
@@ -476,10 +471,8 @@ class OilPressureFilter {
  * @returns {number} Minimum allowable oil pressure in psi
  */
 function calculateMinOilPressure(rpm, pressureMap) {
-  // DEPRECATED: This function should not be called anymore
-  // Oil pressure thresholds should come from user config (warning.min, critical.min)
-  console.error('[DEPRECATED] calculateMinOilPressure was called! This should not happen.');
-  console.trace('[DEPRECATED] Stack trace:');
+  // DEPRECATED: This function is no longer used - oil pressure thresholds
+  // now come from user config (warning.min, critical.min)
 
   // Default pressure map if none provided
   const defaultMap = [
@@ -550,9 +543,7 @@ class OilPressureAlertTracker {
    * @deprecated This method uses dynamic RPM-based thresholds. Use checkOilPressure function instead.
    */
   check(pressure, minPressure, time) {
-    // DEPRECATED: This method should not be called anymore
-    console.error('[DEPRECATED] OilPressureAlertTracker.check() was called! This should not happen.');
-    console.trace('[DEPRECATED] Stack trace:');
+    // DEPRECATED: This method is no longer used - see checkOilPressure function
 
     const warningThreshold = minPressure + this.warningOffsetPsi;
     const criticalThreshold = minPressure + this.criticalOffsetPsi;
@@ -898,10 +889,6 @@ function isEngineStatePredicate(param) {
  * @returns {Object} Detection results with alerts and statistics
  */
 export function detectAnomalies(data, thresholds, options = {}) {
-  // DEBUG: Log incoming thresholds
-  console.log('[detectAnomalies DEBUG] thresholds.profileId:', thresholds?.profileId);
-  console.log('[detectAnomalies DEBUG] oilPressure config:', thresholds?.thresholds?.oilPressure);
-
   const {
     gracePeriod = 5, // seconds to ignore at start
     sampleRate = 1,  // samples per second (estimated if not provided)
@@ -1228,19 +1215,6 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   const warningThreshold = userWarningMin !== undefined ? userWarningMin : 20;
   const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 10;
 
-  // DEBUG: Log threshold values to trace where wrong values come from
-  if (filteredPressure < 25 && !window._oilDebugLogged) {
-    console.log('[OilPressure DEBUG] config.warning:', config.warning);
-    console.log('[OilPressure DEBUG] config.critical:', config.critical);
-    console.log('[OilPressure DEBUG] userWarningMin:', userWarningMin);
-    console.log('[OilPressure DEBUG] userCriticalMin:', userCriticalMin);
-    console.log('[OilPressure DEBUG] warningThreshold:', warningThreshold);
-    console.log('[OilPressure DEBUG] criticalThreshold:', criticalThreshold);
-    console.log('[OilPressure DEBUG] filteredPressure:', filteredPressure);
-    console.log('[OilPressure DEBUG] rpm:', rpm);
-    window._oilDebugLogged = true;
-  }
-
   // Simple threshold comparison using user-configured values
   // Critical low
   if (filteredPressure < criticalThreshold) {
@@ -1260,8 +1234,6 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   // Warning low (only if not already critical)
   if (filteredPressure < warningThreshold && filteredPressure >= criticalThreshold) {
     if (!startTimes.has('oil_pressure_warning_low')) {
-      // DEBUG: Log when creating oil pressure warning alert
-      console.log('[OilPressure ALERT] Creating warning alert with threshold:', warningThreshold, 'pressure:', filteredPressure.toFixed(1));
       handleAlertState('oil_pressure_warning_low', true, time, filteredPressure, alerts, startTimes, values, {
         name: 'Low Oil Pressure',
         severity: SEVERITY.WARNING,
@@ -1667,17 +1639,6 @@ export function summarizeAlerts(alerts) {
  * Format alert for display
  */
 export function formatAlert(alert) {
-  // DEBUG: Log alert details for oil pressure
-  if (alert.id && alert.id.includes('oil_pressure')) {
-    console.log('[formatAlert DEBUG] Oil pressure alert:', {
-      id: alert.id,
-      name: alert.name,
-      threshold: alert.threshold,
-      value: alert.value,
-      duration: alert.duration
-    });
-  }
-
   let message = alert.name;
 
   if (alert.value !== null && alert.unit) {

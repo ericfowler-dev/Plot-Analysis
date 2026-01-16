@@ -198,12 +198,7 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
 
   // Detect anomalies and warnings (pass raw data to check VSW)
   let alerts = [];
-  // DEBUG: Log which detection path is being used
-  console.log('[processRawData DEBUG] thresholdProfile:', thresholdProfile?.profileId);
-  console.log('[processRawData DEBUG] has thresholds:', !!thresholdProfile?.thresholds);
-  console.log('[processRawData DEBUG] has anomalyRules:', !!thresholdProfile?.anomalyRules);
   if (thresholdProfile?.thresholds || thresholdProfile?.anomalyRules) {
-    console.log('[processRawData DEBUG] Using detectAnomalies (profile-based detection)');
     const profileAlerts = detectAnomalies(data, thresholdProfile, {
       sampleRate,
       gracePeriod: 5,
@@ -217,7 +212,6 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
       ruleId: alert.ruleId
     }));
   } else {
-    console.log('[processRawData DEBUG] Using detectAlerts (fallback/legacy detection)');
     alerts = detectAlerts(data, channelStats);
   }
 
