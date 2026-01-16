@@ -139,10 +139,10 @@ const AppHeader = ({
       className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
-      <div className="max-w-[1920px] mx-auto flex flex-col xl:flex-row items-center justify-between px-6 py-4 gap-6">
+      <div className="max-w-[1920px] mx-auto w-full flex flex-col xl:flex-row items-center justify-between px-6 py-4 gap-6">
 
         {/* Left: Branding & Status */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 flex-shrink-0">
           <div className="flex items-center gap-4">
             {/* Logo icon */}
             <div className="relative w-11 h-11 flex items-center justify-center bg-slate-900 border border-green-500/30 rounded-sm shadow-[0_0_15px_rgba(57,255,20,0.2)]">
@@ -196,8 +196,8 @@ const AppHeader = ({
 
         {/* Center: Navigation Tabs */}
         {tabs.length > 0 && (
-          <nav className="flex items-center">
-            <div className="flex items-center gap-1.5 flex-nowrap justify-center overflow-hidden">
+          <nav className="flex items-center w-full xl:flex-1 xl:min-w-0">
+            <div className="flex items-center gap-1.5 flex-nowrap justify-start xl:justify-center overflow-x-auto max-w-full px-1">
               {tabs.map(tab => (
                 <NavTab
                   key={tab.id}
@@ -212,7 +212,7 @@ const AppHeader = ({
         )}
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {(hasEcm || hasBplt) && onExport && (
             <button
               onClick={onExport}
