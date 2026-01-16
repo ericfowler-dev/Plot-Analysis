@@ -9,7 +9,11 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 const ISSUES_FILE = path.join(__dirname, '../data/issues.json');
 
-// Ensure issues file exists
+// GitHub configuration
+const GITHUB_OWNER = 'ericfowler-dev';
+const GITHUB_REPO = 'Plot-Analysis';
+
+// Ensure issues file exists (for local fallback)
 function ensureIssuesFile() {
   const dir = path.dirname(ISSUES_FILE);
   if (!fs.existsSync(dir)) {
@@ -20,32 +24,109 @@ function ensureIssuesFile() {
   }
 }
 
-// Submit a new issue
-router.post('/issues', (req, res) => {
-  try {
-    ensureIssuesFile();
+// Create GitHub issue
+async function createGitHubIssue(title, description, type, email) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    return null;
+  }
 
+  // Map type to GitHub label
+  const labelMap = {
+    bug: 'bug',
+    feature: 'enhancement',
+    question: 'question',
+    other: 'feedback'
+  };
+
+  const body = `${description}
+
+---
+**Submitted via Plot Analyzer**
+- Type: ${type}
+- Email: ${email || 'Not provided'}
+- Submitted: ${new Date().toISOString()}`;
+
+  const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: JSON.stringify({
+      title,
+      body,
+      labels: [labelMap[type] || 'feedback']
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('GitHub API error:', error);
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Save to local file (fallback)
+function saveToLocalFile(issue) {
+  ensureIssuesFile();
+  const issues = JSON.parse(fs.readFileSync(ISSUES_FILE, 'utf-8'));
+  issues.push(issue);
+  fs.writeFileSync(ISSUES_FILE, JSON.stringify(issues, null, 2));
+}
+
+// Submit a new issue
+router.post('/issues', async (req, res) => {
+  try {
     const { title, description, type, email } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
     }
 
-    const issues = JSON.parse(fs.readFileSync(ISSUES_FILE, 'utf-8'));
+    const issueType = type || 'bug';
 
+    // Try GitHub first if token is available
+    if (process.env.GITHUB_TOKEN) {
+      try {
+        const ghIssue = await createGitHubIssue(title, description, issueType, email);
+        console.log(`GitHub issue created: #${ghIssue.number}`);
+        return res.json({
+          success: true,
+          issue: {
+            id: ghIssue.number,
+            title,
+            description,
+            type: issueType,
+            url: ghIssue.html_url,
+            source: 'github'
+          }
+        });
+      } catch (ghError) {
+        console.error('GitHub issue creation failed, falling back to local:', ghError.message);
+        // Fall through to local storage
+      }
+    }
+
+    // Fallback to local file storage
     const newIssue = {
       id: Date.now(),
       title,
       description,
-      type: type || 'bug',
+      type: issueType,
       email: email || null,
       status: 'open',
       createdAt: new Date().toISOString(),
-      userAgent: req.headers['user-agent'] || 'unknown'
+      userAgent: req.headers['user-agent'] || 'unknown',
+      source: 'local'
     };
 
-    issues.push(newIssue);
-    fs.writeFileSync(ISSUES_FILE, JSON.stringify(issues, null, 2));
+    saveToLocalFile(newIssue);
+    console.log('Issue saved locally:', newIssue.id);
 
     res.json({ success: true, issue: newIssue });
   } catch (error) {
@@ -54,7 +135,7 @@ router.post('/issues', (req, res) => {
   }
 });
 
-// Get all issues (for admin viewing)
+// Get all issues (for admin viewing - local only)
 router.get('/issues', (req, res) => {
   try {
     ensureIssuesFile();
