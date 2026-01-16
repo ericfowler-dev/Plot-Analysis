@@ -152,13 +152,36 @@ export default function ThresholdManager({ onClose }) {
   };
 
   /**
+   * Increment version string (e.g., "1.0" -> "1.1", "1.9" -> "1.10", "2.0.1" -> "2.0.2")
+   */
+  const incrementVersion = (version) => {
+    if (!version) return '1.1';
+    const parts = version.split('.');
+    if (parts.length === 0) return '1.1';
+    // Increment the last part
+    const lastPart = parseInt(parts[parts.length - 1], 10);
+    if (isNaN(lastPart)) {
+      parts[parts.length - 1] = '1';
+    } else {
+      parts[parts.length - 1] = String(lastPart + 1);
+    }
+    return parts.join('.');
+  };
+
+  /**
    * Handle profile save
    */
   const handleSaveProfile = async (profile) => {
     try {
       setActionLoading(true);
-      await saveProfile(profile);
-      showMessage('Profile saved successfully', 'success');
+      // Auto-increment version on save
+      const updatedProfile = {
+        ...profile,
+        version: incrementVersion(profile.version),
+        lastModified: new Date().toISOString()
+      };
+      await saveProfile(updatedProfile);
+      showMessage(`Profile saved (v${updatedProfile.version})`, 'success');
       setEditingProfile(null);
       await loadData();
     } catch (err) {
