@@ -2193,7 +2193,7 @@ const PlotAnalyzer = () => {
                 onDragEnter={handleDragOver}
                 style={{ cursor: 'pointer' }}
               >
-                <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt" multiple onChange={handleFileUpload} className="hidden" />
+                <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
                 {isLoading ? (
                   <>
