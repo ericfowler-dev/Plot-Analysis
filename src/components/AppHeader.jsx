@@ -179,11 +179,11 @@ const AppHeader = ({
             <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-green-500/40 to-transparent" />
           )}
 
-          {/* File indicators */}
+          {/* File indicators - stacked vertically */}
           {(hasEcm || hasBplt) && (
-            <div className="hidden lg:flex flex-col gap-1.5 min-w-0">
+            <div className="hidden lg:block min-w-0">
               <span
-                className="text-[9px] uppercase text-green-500/50 font-bold tracking-widest"
+                className="text-[9px] uppercase text-green-500/50 font-bold tracking-widest block mb-1"
                 style={{ fontFamily: 'Fira Code, monospace' }}
               >
                 Stream Source
@@ -196,10 +196,10 @@ const AppHeader = ({
           )}
         </div>
 
-        {/* Center: Navigation Tabs */}
+        {/* Navigation Tabs */}
         {tabs.length > 0 && (
-          <nav className="flex items-center w-full lg:flex-1 lg:min-w-0">
-            <div className="flex items-center gap-1 flex-nowrap justify-start lg:justify-center overflow-hidden max-w-full">
+          <nav className="flex items-center w-full lg:flex-1 lg:min-w-0 lg:ml-6">
+            <div className="flex items-center gap-1.5 flex-nowrap justify-start overflow-hidden max-w-full">
               {tabs.map(tab => (
                 <NavTab
                   key={tab.id}
