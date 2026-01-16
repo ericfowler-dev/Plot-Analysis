@@ -1652,6 +1652,17 @@ export function summarizeAlerts(alerts) {
  * Format alert for display
  */
 export function formatAlert(alert) {
+  // DEBUG: Log alert details for oil pressure
+  if (alert.id && alert.id.includes('oil_pressure')) {
+    console.log('[formatAlert DEBUG] Oil pressure alert:', {
+      id: alert.id,
+      name: alert.name,
+      threshold: alert.threshold,
+      value: alert.value,
+      duration: alert.duration
+    });
+  }
+
   let message = alert.name;
 
   if (alert.value !== null && alert.unit) {
