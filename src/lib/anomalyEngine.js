@@ -13,6 +13,31 @@ export const SEVERITY = {
 };
 
 /**
+ * Engine state predicates for use in conditions
+ * These map to the engine state tracker's current state
+ */
+export const ENGINE_STATE_PREDICATES = {
+  ENGINE_RUNNING: 'EngineRunning',
+  ENGINE_STABLE: 'EngineStable',
+  ENGINE_STARTING: 'EngineStarting',
+  ENGINE_STOPPING: 'EngineStopping',
+  KEY_ON: 'KeyOn',
+  FUEL_ENABLED: 'FuelEnabled'
+};
+
+/**
+ * List of all available engine state predicates for UI dropdowns
+ */
+export const ENGINE_STATE_PREDICATE_OPTIONS = [
+  { key: 'EngineRunning', label: 'Engine Running', description: 'Engine RPM above running threshold' },
+  { key: 'EngineStable', label: 'Engine Stable', description: 'Engine running in stable operation' },
+  { key: 'EngineStarting', label: 'Engine Starting', description: 'Engine in cranking or warmup phase' },
+  { key: 'EngineStopping', label: 'Engine Stopping', description: 'Engine shutting down' },
+  { key: 'KeyOn', label: 'Key On', description: 'Ignition switch is on (Vsw > 1)' },
+  { key: 'FuelEnabled', label: 'Fuel Enabled', description: 'Fuel system is active' }
+];
+
+/**
  * Alert categories
  */
 export const CATEGORIES = {
@@ -613,6 +638,224 @@ class HysteresisTracker {
 }
 
 /**
+ * Rule timing tracker for managing persistence and delay timers for custom rules
+ * Supports:
+ * - Trigger persistence: condition must be true for X seconds before triggering
+ * - Clear persistence: condition must be false for X seconds before clearing
+ * - Start delay: skip evaluation for X seconds after engine starts
+ * - Stop delay: skip evaluation for X seconds after engine stops
+ * - Window evaluation: track occurrences within a rolling time window
+ */
+class RuleTimingTracker {
+  constructor() {
+    // Map of rule ID -> timing state
+    this.ruleStates = new Map();
+    // Track engine state transitions
+    this.lastEngineStartTime = null;
+    this.lastEngineStopTime = null;
+    this.lastEngineState = ENGINE_STATE.OFF;
+  }
+
+  /**
+   * Update engine state transition times
+   */
+  updateEngineState(engineState, time) {
+    if (this.lastEngineState !== engineState.state) {
+      // Detect state transitions
+      if (engineState.state === ENGINE_STATE.RUNNING_STABLE ||
+          engineState.state === ENGINE_STATE.RUNNING_UNSTABLE) {
+        if (this.lastEngineState === ENGINE_STATE.OFF ||
+            this.lastEngineState === ENGINE_STATE.CRANKING) {
+          this.lastEngineStartTime = time;
+        }
+      } else if (engineState.state === ENGINE_STATE.STOPPING ||
+                 engineState.state === ENGINE_STATE.OFF) {
+        if (this.lastEngineState === ENGINE_STATE.RUNNING_STABLE ||
+            this.lastEngineState === ENGINE_STATE.RUNNING_UNSTABLE) {
+          this.lastEngineStopTime = time;
+        }
+      }
+      this.lastEngineState = engineState.state;
+    }
+  }
+
+  /**
+   * Check if rule should be evaluated based on start/stop delays
+   */
+  shouldEvaluate(ruleId, rule, time) {
+    const startDelaySec = rule.startDelaySec || 0;
+    const stopDelaySec = rule.stopDelaySec || 0;
+
+    // Check start delay
+    if (startDelaySec > 0 && this.lastEngineStartTime !== null) {
+      const timeSinceStart = time - this.lastEngineStartTime;
+      if (timeSinceStart < startDelaySec) {
+        return false;
+      }
+    }
+
+    // Check stop delay
+    if (stopDelaySec > 0 && this.lastEngineStopTime !== null) {
+      const timeSinceStop = time - this.lastEngineStopTime;
+      if (timeSinceStop < stopDelaySec) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if alert should trigger/clear based on persistence timers
+   * Returns { shouldTrigger: boolean, shouldClear: boolean, isActive: boolean }
+   */
+  checkPersistence(ruleId, conditionMet, time, rule) {
+    const triggerPersistenceSec = rule.triggerPersistenceSec || 0;
+    const clearPersistenceSec = rule.clearPersistenceSec || 0;
+
+    // Get or create state for this rule
+    let state = this.ruleStates.get(ruleId);
+    if (!state) {
+      state = {
+        isActive: false,
+        conditionTrueSince: null,
+        conditionFalseSince: null,
+        windowHistory: [] // for windowed evaluation
+      };
+      this.ruleStates.set(ruleId, state);
+    }
+
+    // Track window history if windowSec is set
+    if (rule.windowSec) {
+      state.windowHistory.push({ time, met: conditionMet });
+      // Remove entries outside the window
+      const windowStart = time - rule.windowSec;
+      state.windowHistory = state.windowHistory.filter(h => h.time >= windowStart);
+
+      // For windowed evaluation, count total time condition was met in window
+      const totalTimeMet = state.windowHistory.reduce((acc, h, i, arr) => {
+        if (!h.met) return acc;
+        const nextTime = i < arr.length - 1 ? arr[i + 1].time : time;
+        return acc + (nextTime - h.time);
+      }, 0);
+
+      // Check if condition met for required time within window
+      conditionMet = totalTimeMet >= (rule.triggerPersistenceSec || 0);
+    }
+
+    if (conditionMet) {
+      state.conditionFalseSince = null;
+
+      if (state.conditionTrueSince === null) {
+        state.conditionTrueSince = time;
+      }
+
+      // Check trigger persistence
+      if (!state.isActive) {
+        const duration = time - state.conditionTrueSince;
+        if (duration >= triggerPersistenceSec) {
+          state.isActive = true;
+          return { shouldTrigger: true, shouldClear: false, isActive: true };
+        }
+      }
+    } else {
+      state.conditionTrueSince = null;
+
+      if (state.conditionFalseSince === null) {
+        state.conditionFalseSince = time;
+      }
+
+      // Check clear persistence
+      if (state.isActive) {
+        const duration = time - state.conditionFalseSince;
+        if (duration >= clearPersistenceSec) {
+          state.isActive = false;
+          return { shouldTrigger: false, shouldClear: true, isActive: false };
+        }
+      }
+    }
+
+    return {
+      shouldTrigger: false,
+      shouldClear: false,
+      isActive: state.isActive
+    };
+  }
+
+  /**
+   * Force clear a rule's state
+   */
+  clearRule(ruleId) {
+    this.ruleStates.delete(ruleId);
+  }
+
+  reset() {
+    this.ruleStates.clear();
+    this.lastEngineStartTime = null;
+    this.lastEngineStopTime = null;
+    this.lastEngineState = ENGINE_STATE.OFF;
+  }
+}
+
+/**
+ * Evaluate an engine state predicate
+ * @param {string} predicate - The predicate name (e.g., 'EngineRunning')
+ * @param {Object} engineState - Current engine state from tracker
+ * @param {Object} row - Current data row
+ * @param {Object} columnMap - Column name mapping
+ * @returns {boolean} True if predicate is satisfied
+ */
+function evaluateEngineStatePredicate(predicate, engineState, row, columnMap) {
+  const state = engineState?.state || ENGINE_STATE.OFF;
+  const vsw = row?.Vsw ?? row?.vsw ?? row?.VSW ?? 0;
+
+  switch (predicate) {
+    case ENGINE_STATE_PREDICATES.ENGINE_RUNNING:
+    case 'EngineRunning':
+      return state === ENGINE_STATE.RUNNING_UNSTABLE ||
+             state === ENGINE_STATE.RUNNING_STABLE;
+
+    case ENGINE_STATE_PREDICATES.ENGINE_STABLE:
+    case 'EngineStable':
+      return state === ENGINE_STATE.RUNNING_STABLE;
+
+    case ENGINE_STATE_PREDICATES.ENGINE_STARTING:
+    case 'EngineStarting':
+      return state === ENGINE_STATE.CRANKING ||
+             state === ENGINE_STATE.RUNNING_UNSTABLE;
+
+    case ENGINE_STATE_PREDICATES.ENGINE_STOPPING:
+    case 'EngineStopping':
+      return state === ENGINE_STATE.STOPPING;
+
+    case ENGINE_STATE_PREDICATES.KEY_ON:
+    case 'KeyOn':
+      return vsw > 1;
+
+    case ENGINE_STATE_PREDICATES.FUEL_ENABLED:
+    case 'FuelEnabled':
+      // Check for fuel enable signal if available, otherwise infer from engine running
+      const fuelEnable = row?.FUEL_ENABLE ?? row?.fuel_enable ?? row?.FuelEnable;
+      if (fuelEnable !== undefined) {
+        return fuelEnable > 0;
+      }
+      // Fallback: assume fuel enabled when engine is running
+      return state === ENGINE_STATE.RUNNING_UNSTABLE ||
+             state === ENGINE_STATE.RUNNING_STABLE;
+
+    default:
+      return false;
+  }
+}
+
+/**
+ * Check if a string is an engine state predicate
+ */
+function isEngineStatePredicate(param) {
+  return ENGINE_STATE_PREDICATE_OPTIONS.some(opt => opt.key === param);
+}
+
+/**
  * Main anomaly detection function
  * Processes time-series data and returns detected anomalies
  *
@@ -700,6 +943,9 @@ export function detectAnomalies(data, thresholds, options = {}) {
   // Track previous engine state for clearing alerts on state change
   let prevEngineState = ENGINE_STATE.OFF;
 
+  // Initialize rule timing tracker for custom rules with persistence/delay
+  const ruleTimingTracker = new RuleTimingTracker();
+
   // Process each data row
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -720,6 +966,9 @@ export function detectAnomalies(data, thresholds, options = {}) {
       oilPressureAlertTracker.clearAll();
     }
     prevEngineState = engineState.state;
+
+    // Update rule timing tracker with engine state transitions
+    ruleTimingTracker.updateEngineState(engineState, time);
 
     // Skip grace period
     if (i < graceSamples) continue;
@@ -762,9 +1011,13 @@ export function detectAnomalies(data, thresholds, options = {}) {
       }
     }
 
-    // Run custom anomaly rules
+    // Run custom anomaly rules with timing and engine state support
     if (thresholds.anomalyRules && thresholds.anomalyRules.length > 0) {
-      checkAnomalyRules(row, time, thresholds.anomalyRules, columnMap, alerts, alertStartTimes, alertValues, isRunning);
+      checkAnomalyRules(
+        row, time, thresholds.anomalyRules, columnMap,
+        alerts, alertStartTimes, alertValues, isRunning,
+        engineState, ruleTimingTracker
+      );
     }
   }
 
@@ -1167,8 +1420,30 @@ function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
 
 /**
  * Evaluate a single condition against a row
+ * Supports both signal comparisons and engine state predicates
+ *
+ * @param {Object} condition - Condition to evaluate { param, operator, value }
+ * @param {Object} row - Current data row
+ * @param {Object} columnMap - Column name mapping
+ * @param {Object} engineState - Current engine state (optional, for predicates)
+ * @returns {boolean} True if condition is met
  */
-function evaluateRuleCondition(condition, row, columnMap) {
+function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
+  // Check if this is an engine state predicate
+  if (isEngineStatePredicate(condition.param)) {
+    const predicateResult = evaluateEngineStatePredicate(condition.param, engineState, row, columnMap);
+    // For predicates, operator and value determine expected result
+    // e.g., { param: 'EngineStable', operator: '==', value: 1 } means "when engine is stable"
+    // e.g., { param: 'EngineStable', operator: '==', value: 0 } means "when engine is NOT stable"
+    const expectedValue = condition.value === 1 || condition.value === true || condition.value === 'true';
+    switch (condition.operator) {
+      case '==': return predicateResult === expectedValue;
+      case '!=': return predicateResult !== expectedValue;
+      default: return predicateResult === expectedValue;
+    }
+  }
+
+  // Standard signal comparison
   const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
   if (value === undefined) return false;
 
@@ -1184,50 +1459,114 @@ function evaluateRuleCondition(condition, row, columnMap) {
 }
 
 /**
- * Check custom anomaly rules
+ * Check custom anomaly rules with timing and engine state support
+ *
+ * Enhanced rule evaluation supporting:
+ * - Engine state predicates (EngineRunning, EngineStable, etc.)
+ * - Timing fields (triggerPersistenceSec, clearPersistenceSec, startDelaySec, stopDelaySec, windowSec)
+ * - Require When / Ignore When blocks with engine state conditions
+ *
+ * @param {Object} row - Current data row
+ * @param {number} time - Current time
+ * @param {Array} rules - Array of anomaly rules to evaluate
+ * @param {Object} columnMap - Column name mapping
+ * @param {Array} alerts - Alerts array (mutated)
+ * @param {Map} startTimes - Alert start times (mutated)
+ * @param {Map} values - Alert values (mutated)
+ * @param {boolean} isRunning - Whether engine is running
+ * @param {Object} engineState - Current engine state from tracker
+ * @param {RuleTimingTracker} ruleTimingTracker - Timing tracker instance
  */
-function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, values, isRunning) {
+function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, values, isRunning,
+                           engineState = null, ruleTimingTracker = null) {
   for (const rule of rules) {
     if (!rule.enabled) continue;
 
-    // Check requireWhen conditions first - ALL must be true for rule to apply
-    if (Array.isArray(rule.requireWhen) && rule.requireWhen.length > 0) {
-      const meetsRequirements = rule.requireWhen.every(condition =>
-        evaluateRuleCondition(condition, row, columnMap)
+    const alertId = `custom_${rule.id}`;
+
+    // Check start/stop delays if timing tracker available
+    if (ruleTimingTracker && !ruleTimingTracker.shouldEvaluate(alertId, rule, time)) {
+      // In delay period - don't trigger new alerts, but don't close existing ones either
+      continue;
+    }
+
+    // Check ignoreWhen conditions - if ANY is true, skip this rule
+    if (Array.isArray(rule.ignoreWhen) && rule.ignoreWhen.length > 0) {
+      const shouldIgnore = rule.ignoreWhen.some(condition =>
+        evaluateRuleCondition(condition, row, columnMap, engineState)
       );
-      if (!meetsRequirements) {
-        // Requirements not met, end any active alert
-        const alertId = `custom_${rule.id}`;
+      if (shouldIgnore) {
+        // Ignored - end any active alert
         if (startTimes.has(alertId)) {
           handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+          if (ruleTimingTracker) ruleTimingTracker.clearRule(alertId);
         }
         continue;
       }
     }
 
-    // Evaluate main conditions
+    // Check requireWhen conditions - ALL must be true for rule to apply
+    if (Array.isArray(rule.requireWhen) && rule.requireWhen.length > 0) {
+      const meetsRequirements = rule.requireWhen.every(condition =>
+        evaluateRuleCondition(condition, row, columnMap, engineState)
+      );
+      if (!meetsRequirements) {
+        // Requirements not met, end any active alert
+        if (startTimes.has(alertId)) {
+          handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+          if (ruleTimingTracker) ruleTimingTracker.clearRule(alertId);
+        }
+        continue;
+      }
+    }
+
+    // Evaluate main conditions (supporting both signals and engine state predicates)
     const conditionResults = (rule.conditions || []).map(condition =>
-      evaluateRuleCondition(condition, row, columnMap)
+      evaluateRuleCondition(condition, row, columnMap, engineState)
     );
 
     // Apply logic
-    const isTriggered = rule.logic === 'OR'
+    const conditionsMet = rule.logic === 'OR'
       ? conditionResults.some(r => r)
       : conditionResults.every(r => r);
 
-    const alertId = `custom_${rule.id}`;
+    // Apply timing (persistence, windowing) if tracker available and timing fields are set
+    const hasTiming = rule.triggerPersistenceSec || rule.clearPersistenceSec ||
+                      rule.windowSec || rule.startDelaySec || rule.stopDelaySec;
 
-    if (isTriggered) {
-      handleAlertState(alertId, true, time, null, alerts, startTimes, values, {
-        name: rule.name,
-        description: rule.description,
-        severity: rule.severity || SEVERITY.WARNING,
-        category: rule.category || CATEGORIES.CUSTOM,
-        ruleId: rule.id,
-        minDuration: rule.duration || 0
-      });
-    } else if (startTimes.has(alertId)) {
-      handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+    if (ruleTimingTracker && hasTiming) {
+      const persistence = ruleTimingTracker.checkPersistence(alertId, conditionsMet, time, rule);
+
+      if (persistence.shouldTrigger) {
+        // Conditions met for required persistence - trigger alert
+        handleAlertState(alertId, true, time, null, alerts, startTimes, values, {
+          name: rule.name,
+          description: rule.description,
+          severity: rule.severity || SEVERITY.WARNING,
+          category: rule.category || CATEGORIES.CUSTOM,
+          ruleId: rule.id,
+          minDuration: 0 // Persistence already applied
+        });
+      } else if (persistence.shouldClear) {
+        // Conditions not met for clear persistence - clear alert
+        handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+      }
+      // If neither shouldTrigger nor shouldClear, maintain current state (handled by persistence tracker)
+
+    } else {
+      // No timing - use legacy immediate trigger/clear behavior
+      if (conditionsMet) {
+        handleAlertState(alertId, true, time, null, alerts, startTimes, values, {
+          name: rule.name,
+          description: rule.description,
+          severity: rule.severity || SEVERITY.WARNING,
+          category: rule.category || CATEGORIES.CUSTOM,
+          ruleId: rule.id,
+          minDuration: rule.duration || 0
+        });
+      } else if (startTimes.has(alertId)) {
+        handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+      }
     }
   }
 }
