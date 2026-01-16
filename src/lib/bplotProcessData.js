@@ -7,9 +7,10 @@ import {
   calculateChannelStats,
   extractEngineEvents,
   downsampleData,
-  getChannelsByCategory
+  getChannelsByCategory,
+  generateEngineStates
 } from './bplotParsers.js';
-import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS } from './bplotThresholds.js';
+import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, getChannelValidityPolicy } from './bplotThresholds.js';
 import { detectAnomalies, formatAlert } from './anomalyEngine.js';
 
 /**
@@ -160,9 +161,21 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
   const timeInStateStats = {};
   const sampleRate = timeInfo ? parseFloat(timeInfo.sampleRate) : 1;
 
+  // Generate engine states for validity masking
+  // This tracks engine state (off, cranking, running_unstable, running_stable, stopping)
+  // for each sample, used to filter channel statistics appropriately
+  const engineStates = generateEngineStates(normalizedData);
+
   for (const channel of channels) {
     if (headers.includes(channel.name)) {
-      channelStats[channel.name] = calculateChannelStats(data, channel.name);
+      // Get validity policy for this channel
+      const validityPolicy = getChannelValidityPolicy(channel.name);
+
+      // Calculate stats with validity mask applied
+      channelStats[channel.name] = calculateChannelStats(normalizedData, channel.name, {
+        engineStates,
+        policyConfig: validityPolicy
+      });
 
       // Calculate time-in-state for categorical channels
       const param = BPLOT_PARAMETERS[channel.name];

@@ -2,6 +2,184 @@
 // B-PLOT DATA PARSERS - For time-series engine data from BPLT files
 // =============================================================================
 
+import {
+  VALIDITY_POLICY,
+  DEFAULT_VALIDITY_CONFIG,
+  getChannelValidityPolicy
+} from './bplotThresholds';
+
+// =============================================================================
+// VALIDITY MASK SYSTEM
+// Determines which samples are valid for statistics and alerts per channel
+// =============================================================================
+
+/**
+ * Engine state constants (must match anomalyEngine.js)
+ */
+const ENGINE_STATE = {
+  OFF: 'off',
+  CRANKING: 'cranking',
+  RUNNING_UNSTABLE: 'running_unstable',
+  RUNNING_STABLE: 'running_stable',
+  STOPPING: 'stopping'
+};
+
+/**
+ * Check if a sample is valid based on the validity policy
+ *
+ * @param {Object} row - The data row to check
+ * @param {string} policy - The validity policy to apply
+ * @param {Object} engineState - Engine state info for this sample (optional)
+ * @param {Object} config - Validity configuration
+ * @returns {boolean} True if the sample is valid for the given policy
+ */
+export function isSampleValid(row, policy, engineState = null, config = DEFAULT_VALIDITY_CONFIG) {
+  const rpm = row.rpm ?? row.RPM ?? 0;
+  const vsw = row.Vsw ?? row.vsw ?? row.VSW ?? 0;
+  const fuelShutoff = row.fuel_shutoff_chk ?? 0;
+
+  switch (policy) {
+    case VALIDITY_POLICY.ALWAYS_VALID:
+      return true;
+
+    case VALIDITY_POLICY.VALID_WHEN_KEY_ON:
+      return vsw >= config.vswThreshold;
+
+    case VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING:
+      // Valid when RPM above running threshold OR engine state is running/unstable
+      if (engineState) {
+        return engineState === ENGINE_STATE.RUNNING_STABLE ||
+               engineState === ENGINE_STATE.RUNNING_UNSTABLE;
+      }
+      return rpm >= config.rpmRunningThreshold;
+
+    case VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE:
+      // Valid only when engine is in stable running state
+      if (engineState) {
+        return engineState === ENGINE_STATE.RUNNING_STABLE;
+      }
+      // Fallback: RPM above stable threshold
+      return rpm >= config.rpmStableThreshold;
+
+    case VALIDITY_POLICY.VALID_WHEN_FUEL_ENABLED:
+      // Valid when fuel shutoff is not active (0 = fuel enabled)
+      return fuelShutoff === 0 && rpm >= config.rpmRunningThreshold;
+
+    case VALIDITY_POLICY.VALID_WHEN_RPM_ABOVE:
+      // Custom RPM threshold - requires config.customRpmThreshold
+      const threshold = config.customRpmThreshold || config.rpmRunningThreshold;
+      return rpm >= threshold;
+
+    default:
+      return true;
+  }
+}
+
+/**
+ * Check if a value passes additional validity filters
+ *
+ * @param {number} value - The value to check
+ * @param {Object} policyConfig - Policy configuration with excludeNegative, excludeZero flags
+ * @returns {boolean} True if the value passes filters
+ */
+export function isValueValid(value, policyConfig = {}) {
+  if (isNaN(value)) return false;
+  if (policyConfig.excludeNegative && value < 0) return false;
+  if (policyConfig.excludeZero && value === 0) return false;
+  return true;
+}
+
+/**
+ * Generate engine state for each sample in the dataset
+ * This is a simplified version - for full state tracking, use EngineStateTracker from anomalyEngine.js
+ *
+ * @param {Array} data - Array of data rows
+ * @param {Object} config - Validity configuration
+ * @returns {Array} Array of engine states corresponding to each data row
+ */
+export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
+  const states = [];
+  let lastState = ENGINE_STATE.OFF;
+  let stateStartTime = 0;
+  let rpmHistory = [];
+  const historySize = 5;
+
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const rpm = row.rpm ?? row.RPM ?? 0;
+    const time = row.Time ?? i / 10;
+
+    // Maintain RPM history for smoothing
+    rpmHistory.push(rpm);
+    if (rpmHistory.length > historySize) {
+      rpmHistory.shift();
+    }
+    const smoothedRpm = rpmHistory.reduce((a, b) => a + b, 0) / rpmHistory.length;
+
+    // Simple state machine
+    let newState = lastState;
+
+    switch (lastState) {
+      case ENGINE_STATE.OFF:
+        if (smoothedRpm >= 100) {
+          newState = ENGINE_STATE.CRANKING;
+          stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.CRANKING:
+        if (smoothedRpm < 100) {
+          newState = ENGINE_STATE.OFF;
+          stateStartTime = time;
+        } else if (smoothedRpm >= config.rpmRunningThreshold &&
+                   (time - stateStartTime) >= config.startupGraceSeconds) {
+          newState = ENGINE_STATE.RUNNING_UNSTABLE;
+          stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.RUNNING_UNSTABLE:
+        if (smoothedRpm < 100) {
+          newState = ENGINE_STATE.OFF;
+          stateStartTime = time;
+        } else if (smoothedRpm < config.rpmRunningThreshold) {
+          newState = ENGINE_STATE.STOPPING;
+          stateStartTime = time;
+        } else if (smoothedRpm >= config.rpmStableThreshold &&
+                   (time - stateStartTime) >= 2) {
+          newState = ENGINE_STATE.RUNNING_STABLE;
+          stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.RUNNING_STABLE:
+        if (smoothedRpm < 100) {
+          newState = ENGINE_STATE.OFF;
+          stateStartTime = time;
+        } else if (smoothedRpm < config.rpmRunningThreshold) {
+          newState = ENGINE_STATE.STOPPING;
+          stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.STOPPING:
+        if (smoothedRpm < 100) {
+          newState = ENGINE_STATE.OFF;
+          stateStartTime = time;
+        } else if (smoothedRpm >= config.rpmRunningThreshold) {
+          newState = ENGINE_STATE.RUNNING_UNSTABLE;
+          stateStartTime = time;
+        }
+        break;
+    }
+
+    lastState = newState;
+    states.push(newState);
+  }
+
+  return states;
+}
+
 /**
  * Parse B-Plot CSV content into structured data
  * @param {string} content - Raw CSV content
@@ -186,24 +364,80 @@ export function extractTimeInfo(data) {
 }
 
 /**
- * Calculate statistics for a specific channel
+ * Calculate statistics for a specific channel with optional validity mask
+ *
+ * @param {Array} data - Array of data rows
+ * @param {string} channelName - Name of the channel to calculate stats for
+ * @param {Object} options - Options for validity filtering
+ * @param {Array} options.engineStates - Array of engine states for each row (optional)
+ * @param {string} options.policy - Validity policy to apply (optional)
+ * @param {Object} options.policyConfig - Policy-specific configuration (optional)
+ * @returns {Object|null} Channel statistics or null if no valid data
  */
-export function calculateChannelStats(data, channelName) {
-  const values = data.map(row => row[channelName]).filter(v => !isNaN(v));
+export function calculateChannelStats(data, channelName, options = {}) {
+  const { engineStates, policy, policyConfig } = options;
 
-  if (values.length === 0) return null;
+  // Get channel's validity policy if not explicitly provided
+  const channelPolicy = policy || getChannelValidityPolicy(channelName);
+  const statsPolicy = channelPolicy.statsPolicy || VALIDITY_POLICY.ALWAYS_VALID;
 
-  const sorted = [...values].sort((a, b) => a - b);
-  const sum = values.reduce((a, b) => a + b, 0);
+  // Extract valid values based on validity mask
+  const validValues = [];
+  let totalCount = 0;
+  let validCount = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const value = row[channelName];
+
+    if (isNaN(value)) continue;
+    totalCount++;
+
+    // Check sample validity based on policy
+    const engineState = engineStates ? engineStates[i] : null;
+    const sampleIsValid = isSampleValid(row, statsPolicy, engineState);
+
+    // Check value validity (negative/zero exclusions)
+    const valueIsValid = isValueValid(value, policyConfig || channelPolicy);
+
+    if (sampleIsValid && valueIsValid) {
+      validValues.push(value);
+      validCount++;
+    }
+  }
+
+  // Return null with metadata if no valid values
+  if (validValues.length === 0) {
+    return {
+      name: channelName,
+      min: null,
+      max: null,
+      avg: null,
+      median: null,
+      stdDev: null,
+      count: 0,
+      totalCount,
+      validCount: 0,
+      noValidData: true,
+      policy: statsPolicy
+    };
+  }
+
+  const sorted = [...validValues].sort((a, b) => a - b);
+  const sum = validValues.reduce((a, b) => a + b, 0);
 
   return {
     name: channelName,
     min: sorted[0],
     max: sorted[sorted.length - 1],
-    avg: sum / values.length,
+    avg: sum / validValues.length,
     median: sorted[Math.floor(sorted.length / 2)],
-    stdDev: calculateStdDev(values, sum / values.length),
-    count: values.length
+    stdDev: calculateStdDev(validValues, sum / validValues.length),
+    count: validValues.length,
+    totalCount,
+    validCount,
+    noValidData: false,
+    policy: statsPolicy
   };
 }
 

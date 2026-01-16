@@ -777,19 +777,31 @@ const BPlotAnalysis = ({
                                   </div>
                                 ))}
                               </div>
+                            ) : stats && stats.noValidData ? (
+                              // Show message when no valid running data exists
+                              <div className="text-xs text-amber-500/80 mt-1 italic">
+                                No valid running data in range
+                              </div>
                             ) : stats && (
                               <div className="text-xs text-slate-400 mt-1 space-y-0.5">
                                 {showMinOnly ? (
                                   // Show only Min value for specific channels
-                                  <div>Min: {stats.min.toFixed(decimals)} {param?.unit}</div>
+                                  <div>Min: {stats.min?.toFixed(decimals) ?? '—'} {param?.unit}</div>
                                 ) : (
                                   <>
-                                    <div>Min: {stats.min.toFixed(decimals)} {param?.unit}</div>
-                                    <div>Max: {stats.max.toFixed(decimals)} {param?.unit}</div>
+                                    <div>Min: {stats.min?.toFixed(decimals) ?? '—'} {param?.unit}</div>
+                                    <div>Max: {stats.max?.toFixed(decimals) ?? '—'} {param?.unit}</div>
                                     {!hideAvg && (
-                                      <div>Avg: {stats.avg.toFixed(decimals)} {param?.unit}</div>
+                                      <div>Avg: {stats.avg?.toFixed(decimals) ?? '—'} {param?.unit}</div>
                                     )}
                                   </>
+                                )}
+                                {/* Show valid sample count if different from total */}
+                                {stats.validCount !== undefined && stats.totalCount !== undefined &&
+                                 stats.validCount < stats.totalCount && (
+                                  <div className="text-slate-500 text-[10px] mt-1">
+                                    ({stats.validCount}/{stats.totalCount} valid samples)
+                                  </div>
                                 )}
                               </div>
                             )}

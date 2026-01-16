@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getResolvedProfile, validateThresholds } from '../../lib/thresholdService';
 import { BPLOT_PARAMETERS } from '../../lib/bplotThresholds';
+import { ENGINE_STATE_PREDICATE_OPTIONS } from '../../lib/anomalyEngine';
 
 // Threshold categories for organization
 const THRESHOLD_CATEGORIES = [
@@ -122,14 +123,30 @@ const THRESHOLD_CATEGORIES = [
   }
 ];
 
-const PARAMETER_OPTIONS = Object.entries(BPLOT_PARAMETERS).map(([key, info]) => ({
+// Signal parameters from BPLOT_PARAMETERS
+const SIGNAL_PARAMETER_OPTIONS = Object.entries(BPLOT_PARAMETERS).map(([key, info]) => ({
   key,
   label: info?.name || key,
   unit: info?.unit || '',
-  description: info?.description || ''
+  description: info?.description || '',
+  category: 'signal'
 })).sort((a, b) => a.label.localeCompare(b.label));
 
+// Engine state predicates for conditions
+const ENGINE_STATE_OPTIONS = ENGINE_STATE_PREDICATE_OPTIONS.map(opt => ({
+  key: opt.key,
+  label: opt.label,
+  unit: '',
+  description: opt.description,
+  category: 'engine_state'
+}));
+
+// Combined options for condition dropdowns
+const PARAMETER_OPTIONS = [...SIGNAL_PARAMETER_OPTIONS];
+const ALL_CONDITION_OPTIONS = [...ENGINE_STATE_OPTIONS, ...SIGNAL_PARAMETER_OPTIONS];
+
 const PARAMETER_LOOKUP = new Map(PARAMETER_OPTIONS.map(option => [option.key, option]));
+const ALL_CONDITION_LOOKUP = new Map(ALL_CONDITION_OPTIONS.map(option => [option.key, option]));
 
 const CONDITION_OPERATORS = ['>', '<', '>=', '<=', '==', '!='];
 
@@ -619,9 +636,26 @@ export default function ThresholdEditor({ profile, index, onSave, onCancel, load
 
 /**
  * Anomaly Rule Editor Component
+ * Enhanced with timing fields and engine state predicates
  */
 function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTiming, setShowTiming] = useState(
+    !!(rule.triggerPersistenceSec || rule.clearPersistenceSec ||
+       rule.startDelaySec || rule.stopDelaySec || rule.windowSec)
+  );
+
+  // Check if a parameter is an engine state predicate
+  const isEnginePredicate = (param) => ENGINE_STATE_OPTIONS.some(opt => opt.key === param);
+
+  // Get timing summary for collapsed view
+  const getTimingSummary = () => {
+    const parts = [];
+    if (rule.triggerPersistenceSec) parts.push(`trigger ${rule.triggerPersistenceSec}s`);
+    if (rule.startDelaySec) parts.push(`start delay ${rule.startDelaySec}s`);
+    if (rule.stopDelaySec) parts.push(`stop delay ${rule.stopDelaySec}s`);
+    return parts.length > 0 ? ` • ${parts.join(', ')}` : '';
+  };
 
   return (
     <div className="bg-slate-700 rounded-lg">
@@ -639,6 +673,7 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
             <div className="font-medium text-slate-200">{rule.name}</div>
             <div className="text-xs text-slate-400">
               {rule.conditions?.length || 0} condition(s) • {rule.severity} • {rule.enabled ? 'Enabled' : 'Disabled'}
+              {getTimingSummary()}
             </div>
           </div>
         </button>
@@ -651,7 +686,8 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-slate-600 pt-4 space-y-3">
+        <div className="px-4 pb-4 border-t border-slate-600 pt-4 space-y-4">
+          {/* Basic Info */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Rule Name</label>
@@ -687,15 +723,6 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Duration (seconds)</label>
-              <input
-                type="number"
-                value={rule.duration || 0}
-                onChange={(e) => onUpdate({ ...rule, duration: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
-              />
-            </div>
-            <div>
               <label className="block text-xs text-slate-400 mb-1">Logic</label>
               <select
                 value={rule.logic || 'AND'}
@@ -706,11 +733,159 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                 <option value="OR">Any condition (OR)</option>
               </select>
             </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  checked={rule.enabled}
+                  onChange={(e) => onUpdate({ ...rule, enabled: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-500 bg-slate-600"
+                />
+                <span className="text-sm text-slate-300">Rule Enabled</span>
+              </label>
+            </div>
           </div>
 
+          {/* Timing Settings (Collapsible) */}
+          <div className="border border-slate-600 rounded-lg">
+            <button
+              onClick={() => setShowTiming(!showTiming)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-600/50"
+            >
+              <span className="flex items-center gap-2">
+                {showTiming ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                Timing & Delays
+              </span>
+              {(rule.triggerPersistenceSec || rule.startDelaySec || rule.stopDelaySec) && (
+                <span className="text-xs text-blue-400">Configured</span>
+              )}
+            </button>
+
+            {showTiming && (
+              <div className="px-3 pb-3 pt-2 border-t border-slate-600 space-y-4">
+                {/* Help text */}
+                <p className="text-[10px] text-slate-500 bg-slate-700/50 p-2 rounded">
+                  These settings control when alerts trigger and clear. Use them to filter out brief spikes or transient conditions.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Trigger Persistence (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={rule.triggerPersistenceSec || ''}
+                      onChange={(e) => onUpdate({ ...rule, triggerPersistenceSec: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Condition must be continuously true for this long before alert triggers. Prevents brief spikes from causing alerts.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Clear Persistence (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={rule.clearPersistenceSec || ''}
+                      onChange={(e) => onUpdate({ ...rule, clearPersistenceSec: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      After alert triggers, condition must be false for this long before clearing. Prevents alert flickering.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Start Delay (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={rule.startDelaySec || ''}
+                      onChange={(e) => onUpdate({ ...rule, startDelaySec: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Ignore this rule for X seconds after engine starts. Use for startup transients (e.g., oil pressure building).
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Stop Delay (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={rule.stopDelaySec || ''}
+                      onChange={(e) => onUpdate({ ...rule, stopDelaySec: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Ignore this rule for X seconds after engine stops. Use for shutdown transients.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Evaluation Window (s)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={rule.windowSec || ''}
+                    onChange={(e) => onUpdate({ ...rule, windowSec: parseFloat(e.target.value) || 0 })}
+                    placeholder="Optional - leave empty for continuous"
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    <strong>Rolling window mode:</strong> Instead of requiring the condition to be continuously true,
+                    this counts total time the condition was true within this window. If total time exceeds
+                    Trigger Persistence, alert fires. Example: Window=10s, Trigger=3s means if condition is
+                    true for 3+ seconds (total) within any 10-second period, the alert triggers.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Require When (Engine State Conditions) */}
+          <EngineStateConditionEditor
+            title="Require When"
+            subtitle="Rule only evaluates when ALL these are true"
+            conditions={rule.requireWhen || []}
+            onChange={(updated) => onUpdate({ ...rule, requireWhen: updated })}
+          />
+
+          {/* Ignore When (Engine State Conditions) */}
+          <EngineStateConditionEditor
+            title="Ignore When"
+            subtitle="Rule skips when ANY of these is true"
+            conditions={rule.ignoreWhen || []}
+            onChange={(updated) => onUpdate({ ...rule, ignoreWhen: updated })}
+          />
+
+          {/* Main Conditions */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-slate-400">Conditions</label>
+              <label className="text-xs text-slate-400">Signal Conditions</label>
               <button
                 onClick={() => onUpdate({
                   ...rule,
@@ -725,9 +900,10 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
               {(rule.conditions || []).map((condition, condIdx) => (
                 <div key={condIdx} className="flex items-center gap-2">
                   {(() => {
-                    const paramMeta = PARAMETER_LOOKUP.get(condition.param);
+                    const paramMeta = ALL_CONDITION_LOOKUP.get(condition.param);
                     const isCustom = !paramMeta;
                     const selectValue = isCustom ? '__custom__' : condition.param;
+                    const isPredicate = isEnginePredicate(condition.param);
 
                     return (
                       <div className="flex-1 flex items-center gap-2">
@@ -736,18 +912,34 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                           onChange={(e) => {
                             const newConditions = [...rule.conditions];
                             const nextParam = e.target.value === '__custom__' ? '' : e.target.value;
-                            newConditions[condIdx] = { ...condition, param: nextParam };
+                            const nextIsPredicate = isEnginePredicate(nextParam);
+                            newConditions[condIdx] = {
+                              ...condition,
+                              param: nextParam,
+                              // For predicates, default to == 1 (true)
+                              operator: nextIsPredicate ? '==' : condition.operator,
+                              value: nextIsPredicate ? 1 : condition.value
+                            };
                             onUpdate({ ...rule, conditions: newConditions });
                           }}
                           className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                           title={paramMeta?.description || 'Select a parameter'}
                         >
                           <option value="__custom__">Custom parameter...</option>
-                          {PARAMETER_OPTIONS.map(option => (
-                            <option key={option.key} value={option.key}>
-                              {option.label}{option.unit ? ` (${option.unit})` : ''}
-                            </option>
-                          ))}
+                          <optgroup label="Engine State">
+                            {ENGINE_STATE_OPTIONS.map(option => (
+                              <option key={option.key} value={option.key}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Signals">
+                            {SIGNAL_PARAMETER_OPTIONS.map(option => (
+                              <option key={option.key} value={option.key}>
+                                {option.label}{option.unit ? ` (${option.unit})` : ''}
+                              </option>
+                            ))}
+                          </optgroup>
                         </select>
                         {isCustom && (
                           <input
@@ -781,23 +973,38 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                   </select>
-                  <div className="relative w-28">
-                    <input
-                      type="number"
+                  {isEnginePredicate(condition.param) ? (
+                    <select
                       value={condition.value}
                       onChange={(e) => {
                         const newConditions = [...rule.conditions];
-                        newConditions[condIdx] = { ...condition, value: parseFloat(e.target.value) || 0 };
+                        newConditions[condIdx] = { ...condition, value: parseInt(e.target.value) };
                         onUpdate({ ...rule, conditions: newConditions });
                       }}
-                      className="w-full px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm pr-8"
-                    />
-                    {PARAMETER_LOOKUP.get(condition.param)?.unit && (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
-                        {PARAMETER_LOOKUP.get(condition.param)?.unit}
-                      </span>
-                    )}
-                  </div>
+                      className="w-28 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                    >
+                      <option value={1}>True</option>
+                      <option value={0}>False</option>
+                    </select>
+                  ) : (
+                    <div className="relative w-28">
+                      <input
+                        type="number"
+                        value={condition.value}
+                        onChange={(e) => {
+                          const newConditions = [...rule.conditions];
+                          newConditions[condIdx] = { ...condition, value: parseFloat(e.target.value) || 0 };
+                          onUpdate({ ...rule, conditions: newConditions });
+                        }}
+                        className="w-full px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm pr-8"
+                      />
+                      {ALL_CONDITION_LOOKUP.get(condition.param)?.unit && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                          {ALL_CONDITION_LOOKUP.get(condition.param)?.unit}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={() => {
                       const newConditions = rule.conditions.filter((_, i) => i !== condIdx);
@@ -811,16 +1018,83 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={rule.enabled}
-              onChange={(e) => onUpdate({ ...rule, enabled: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-500 bg-slate-600"
-            />
-            <span className="text-sm text-slate-300">Rule Enabled</span>
-          </label>
+/**
+ * Engine State Condition Editor Component
+ * For Require When / Ignore When blocks
+ */
+function EngineStateConditionEditor({ title, subtitle, conditions, onChange }) {
+  const [isExpanded, setIsExpanded] = useState(conditions.length > 0);
+
+  return (
+    <div className="border border-slate-600 rounded-lg">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-600/50"
+      >
+        <span className="flex items-center gap-2">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {title}
+        </span>
+        {conditions.length > 0 && (
+          <span className="text-xs text-blue-400">{conditions.length} condition(s)</span>
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-2 border-t border-slate-600">
+          <p className="text-[10px] text-slate-500 mb-2">{subtitle}</p>
+
+          <div className="space-y-2">
+            {conditions.map((condition, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <select
+                  value={condition.param || ''}
+                  onChange={(e) => {
+                    const updated = [...conditions];
+                    updated[idx] = { ...condition, param: e.target.value, operator: '==', value: 1 };
+                    onChange(updated);
+                  }}
+                  className="flex-1 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                >
+                  <option value="">Select engine state...</option>
+                  {ENGINE_STATE_OPTIONS.map(opt => (
+                    <option key={opt.key} value={opt.key}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={condition.value}
+                  onChange={(e) => {
+                    const updated = [...conditions];
+                    updated[idx] = { ...condition, value: parseInt(e.target.value) };
+                    onChange(updated);
+                  }}
+                  className="w-24 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
+                >
+                  <option value={1}>is True</option>
+                  <option value={0}>is False</option>
+                </select>
+                <button
+                  onClick={() => onChange(conditions.filter((_, i) => i !== idx))}
+                  className="p-1 hover:bg-red-500/20 rounded"
+                >
+                  <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => onChange([...conditions, { param: 'EngineStable', operator: '==', value: 1 }])}
+            className="text-xs text-blue-400 hover:text-blue-300 mt-2"
+          >
+            + Add Condition
+          </button>
         </div>
       )}
     </div>
