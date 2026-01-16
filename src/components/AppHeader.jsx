@@ -11,8 +11,7 @@ const TAB_CONFIGS = {
   // ECM only: Overview - Charts - Raw
   ecmOnly: [
     { id: 'overview', label: 'Overview', source: null },
-    { id: 'charts', label: 'Charts', source: null },
-    { id: 'raw', label: 'Raw', source: null }
+    { id: 'charts', label: 'Charts', source: null }
   ],
   // BPLT only: Overview - Charts - Channels - Events
   bpltOnly: [
@@ -28,8 +27,7 @@ const TAB_CONFIGS = {
     { id: 'charts-ecm', label: 'Charts', source: 'ECM' },
     { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
     { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
-    { id: 'events-bplt', label: 'Events', source: 'BPLT' },
-    { id: 'raw-ecm', label: 'Raw', source: 'ECM' }
+    { id: 'events-bplt', label: 'Events', source: 'BPLT' }
   ]
 };
 
