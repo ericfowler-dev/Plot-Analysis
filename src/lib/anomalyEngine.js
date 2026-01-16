@@ -471,6 +471,11 @@ class OilPressureFilter {
  * @returns {number} Minimum allowable oil pressure in psi
  */
 function calculateMinOilPressure(rpm, pressureMap) {
+  // DEPRECATED: This function should not be called anymore
+  // Oil pressure thresholds should come from user config (warning.min, critical.min)
+  console.error('[DEPRECATED] calculateMinOilPressure was called! This should not happen.');
+  console.trace('[DEPRECATED] Stack trace:');
+
   // Default pressure map if none provided
   const defaultMap = [
     { rpm: 0, pressure: 0 },
@@ -537,8 +542,13 @@ class OilPressureAlertTracker {
    * @param {number} minPressure - RPM-based minimum pressure
    * @param {number} time - Current time
    * @returns {Object} Alert state { warning: boolean, critical: boolean }
+   * @deprecated This method uses dynamic RPM-based thresholds. Use checkOilPressure function instead.
    */
   check(pressure, minPressure, time) {
+    // DEPRECATED: This method should not be called anymore
+    console.error('[DEPRECATED] OilPressureAlertTracker.check() was called! This should not happen.');
+    console.trace('[DEPRECATED] Stack trace:');
+
     const warningThreshold = minPressure + this.warningOffsetPsi;
     const criticalThreshold = minPressure + this.criticalOffsetPsi;
     const warningClearThreshold = warningThreshold + this.hysteresisPsi;
