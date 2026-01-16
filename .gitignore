@@ -26,6 +26,9 @@ Thumbs.db
 # Server uploads
 server/uploads/
 
+# Runtime data
+server/data/issues.json
+
 # Python
 __pycache__/
 *.pyc

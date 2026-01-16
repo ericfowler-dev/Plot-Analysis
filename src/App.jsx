@@ -36,6 +36,7 @@ import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
 import AppHeader from './components/AppHeader';
 import BaselineSelector from './components/BaselineSelector';
+import ReportIssue from './components/ReportIssue';
 import { useThresholds } from './contexts/ThresholdContext';
 
 // File type constants
@@ -1498,6 +1499,7 @@ const PlotAnalyzer = () => {
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [scrollToAlerts, setScrollToAlerts] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showReportIssue, setShowReportIssue] = useState(false);
   const reportRef = useRef(null);
   const workerRef = useRef(null);
   const alertsRef = useRef(null);
@@ -2160,7 +2162,7 @@ const PlotAnalyzer = () => {
               </div>
               <div>
                 <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
-                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.4</p>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.5</p>
               </div>
             </div>
             <button
@@ -2247,6 +2249,14 @@ const PlotAnalyzer = () => {
             <BaselineSelector />
           </div>
 
+          <button
+            onClick={() => setShowReportIssue(true)}
+            className="mt-12 mx-auto flex items-center gap-3 px-6 py-3 text-white border border-red-500 bg-red-600/30 hover:bg-red-600/50 hover:border-red-400 shadow-[0_0_15px_rgba(255,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] transition-all duration-300 rounded-lg"
+          >
+            <span className="material-symbols-outlined text-red-300">bug_report</span>
+            <span className="text-sm font-medium">Report an Issue</span>
+          </button>
+
           <div className="mt-16 flex flex-wrap justify-center gap-10 opacity-40 hover:opacity-100 transition-opacity duration-500">
             <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.25em] text-slate-400 uppercase">
               <span className="material-symbols-outlined text-[#00FF88] text-lg">analytics</span>
@@ -2265,6 +2275,7 @@ const PlotAnalyzer = () => {
 
         <div className="fixed top-1/4 -left-20 w-96 h-96 bg-[#00FF88]/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="fixed bottom-1/4 -right-20 w-[30rem] h-[30rem] bg-[#00FF88]/5 blur-[150px] rounded-full pointer-events-none" />
+        <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
       </div>
     );
   }
@@ -2315,6 +2326,7 @@ const PlotAnalyzer = () => {
           onTabChange={handleTabChange}
           onImport={reset}
           onExport={exportToPDF}
+          onReportIssue={() => setShowReportIssue(true)}
           eventCount={bplotProcessed?.events?.length || 0}
         />
         <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
@@ -2330,6 +2342,7 @@ const PlotAnalyzer = () => {
           externalActiveTab={mappedTab}
           hideHeader={true}
         />
+        <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
       </div>
     );
   }
@@ -2348,6 +2361,7 @@ const PlotAnalyzer = () => {
         onTabChange={handleTabChange}
         onImport={reset}
         onExport={exportToPDF}
+        onReportIssue={() => setShowReportIssue(true)}
         eventCount={faults?.length || 0}
       />
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
@@ -2704,6 +2718,7 @@ const PlotAnalyzer = () => {
           </div>
         )}
       </main>
+      <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
     </div>
   );
 };

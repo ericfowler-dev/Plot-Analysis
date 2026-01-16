@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, FileSpreadsheet, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, Download, Bug } from 'lucide-react';
 
 // =============================================================================
 // BMS DATA ANALYZER - TRON-STYLE HEADER
@@ -124,6 +124,7 @@ const AppHeader = ({
   onTabChange,
   onImport,
   onExport,
+  onReportIssue,
   eventCount = 0
 }) => {
   // Determine which tab configuration to use
@@ -169,7 +170,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                DATA ANALYSIS v1.2.4
+                DATA ANALYSIS v1.2.5
               </span>
             </div>
           </div>
@@ -232,6 +233,21 @@ const AppHeader = ({
               </span>
             </button>
           )}
+          <button
+            onClick={onReportIssue}
+            className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-white border border-red-500 bg-red-600/30 hover:bg-red-600/50 hover:border-red-400 shadow-[0_0_15px_rgba(255,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] transition-all duration-300"
+            style={{
+              clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
+            }}
+          >
+            <Bug className="w-4 h-4 text-red-300" />
+            <span
+              className="text-[9px] lg:text-[10px] font-bold uppercase"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Report Issue
+            </span>
+          </button>
           <button
             onClick={onImport}
             className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
