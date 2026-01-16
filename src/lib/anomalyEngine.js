@@ -3,6 +3,11 @@
  * Uses configurable threshold profiles to detect anomalies in engine data
  */
 
+// ========== MODULE LOAD MARKER ==========
+// This should appear in console when the module is loaded
+console.log('%c[anomalyEngine.js] MODULE LOADED - Version: 2026-01-16-FIX', 'background: #ff0; color: #000; font-size: 16px; padding: 4px;');
+// ========================================
+
 /**
  * Alert severity levels
  */
