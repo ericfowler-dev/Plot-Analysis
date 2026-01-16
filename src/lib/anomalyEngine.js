@@ -138,6 +138,442 @@ function isEngineRunning(row, columnMap) {
 }
 
 /**
+ * Engine state constants
+ * Defines the states for engine operation lifecycle
+ */
+const ENGINE_STATE = {
+  OFF: 'off',                     // Engine not running (RPM near 0)
+  CRANKING: 'cranking',           // Engine cranking/starting (RPM rising but not yet stable)
+  RUNNING_UNSTABLE: 'running_unstable', // Engine running but in warmup/stabilization period
+  RUNNING_STABLE: 'running_stable',     // Engine running in stable operation - OK to check oil pressure
+  STOPPING: 'stopping'            // Engine shutting down (RPM decreasing)
+};
+
+/**
+ * Engine state tracker for detecting startup/shutdown transitions
+ * This helps suppress false oil pressure warnings during normal engine transitions
+ *
+ * State transitions:
+ * OFF -> CRANKING: RPM rises above cranking threshold
+ * CRANKING -> RUNNING_UNSTABLE: RPM above running threshold for startHoldoffSeconds
+ * RUNNING_UNSTABLE -> RUNNING_STABLE: RPM above stable threshold for stableHoldoffSeconds
+ * RUNNING_STABLE -> STOPPING: RPM dropping rapidly or falls below running threshold
+ * STOPPING -> OFF: RPM near zero for stopHoldoffSeconds
+ * Any state -> OFF: RPM stays near zero
+ */
+class EngineStateTracker {
+  constructor(config = {}) {
+    // Configurable RPM thresholds
+    this.rpmCrankingThreshold = config.rpmCrankingThreshold || 100;   // RPM to detect cranking
+    this.rpmRunningThreshold = config.rpmRunningThreshold || 500;     // RPM to consider engine "running"
+    this.rpmStableThreshold = config.rpmStableThreshold || 800;       // RPM for stable operation
+
+    // Configurable timing thresholds (seconds)
+    this.startHoldoffSeconds = config.startHoldoffSeconds || 3;       // Time after RPM > running before unstable
+    this.stableHoldoffSeconds = config.stableHoldoffSeconds || 2;     // Time after RPM > stable before stable state
+    this.stopHoldoffSeconds = config.stopHoldoffSeconds || 2;         // Time in stopping before OFF
+
+    // RPM rate threshold for detecting shutdown
+    this.shutdownRpmRate = config.shutdownRpmRate || -300;            // RPM/sec to detect rapid decel
+
+    // State tracking
+    this.state = ENGINE_STATE.OFF;
+    this.stateStartTime = 0;
+    this.lastRpm = 0;
+    this.lastTime = 0;
+
+    // RPM history for rate calculation and smoothing
+    this.rpmHistory = [];
+    this.historyWindowSize = 10; // samples for rate calculation
+
+    // Track time above thresholds for state transitions
+    this.timeAboveRunning = 0;
+    this.timeAboveStable = 0;
+    this.lastAboveRunningTime = null;
+    this.lastAboveStableTime = null;
+  }
+
+  /**
+   * Update engine state based on current RPM and time
+   * Returns the current engine state and metadata
+   */
+  update(rpm, time) {
+    // Track RPM history for rate calculation
+    this.rpmHistory.push({ rpm, time });
+    if (this.rpmHistory.length > this.historyWindowSize) {
+      this.rpmHistory.shift();
+    }
+
+    // Calculate RPM rate of change (RPM/second)
+    const rpmRate = this.calculateRpmRate();
+    const smoothedRpm = this.getSmoothedRpm();
+
+    const prevState = this.state;
+    const timeDelta = this.lastTime > 0 ? time - this.lastTime : 0;
+
+    // Track continuous time above thresholds
+    if (smoothedRpm >= this.rpmRunningThreshold) {
+      if (this.lastAboveRunningTime === null) {
+        this.lastAboveRunningTime = time;
+      }
+      this.timeAboveRunning = time - this.lastAboveRunningTime;
+    } else {
+      this.lastAboveRunningTime = null;
+      this.timeAboveRunning = 0;
+    }
+
+    if (smoothedRpm >= this.rpmStableThreshold) {
+      if (this.lastAboveStableTime === null) {
+        this.lastAboveStableTime = time;
+      }
+      this.timeAboveStable = time - this.lastAboveStableTime;
+    } else {
+      this.lastAboveStableTime = null;
+      this.timeAboveStable = 0;
+    }
+
+    // State machine logic
+    switch (this.state) {
+      case ENGINE_STATE.OFF:
+        if (smoothedRpm >= this.rpmCrankingThreshold) {
+          this.state = ENGINE_STATE.CRANKING;
+          this.stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.CRANKING:
+        if (smoothedRpm < this.rpmCrankingThreshold) {
+          // Cranking failed or stopped
+          this.state = ENGINE_STATE.OFF;
+          this.stateStartTime = time;
+        } else if (this.timeAboveRunning >= this.startHoldoffSeconds) {
+          // Engine has been above running threshold long enough
+          this.state = ENGINE_STATE.RUNNING_UNSTABLE;
+          this.stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.RUNNING_UNSTABLE:
+        if (smoothedRpm < this.rpmCrankingThreshold) {
+          // Engine stopped
+          this.state = ENGINE_STATE.OFF;
+          this.stateStartTime = time;
+        } else if (smoothedRpm < this.rpmRunningThreshold) {
+          // Engine slowing down
+          this.state = ENGINE_STATE.STOPPING;
+          this.stateStartTime = time;
+        } else if (rpmRate < this.shutdownRpmRate) {
+          // Rapid deceleration detected
+          this.state = ENGINE_STATE.STOPPING;
+          this.stateStartTime = time;
+        } else if (this.timeAboveStable >= this.stableHoldoffSeconds) {
+          // Engine has been stable long enough
+          this.state = ENGINE_STATE.RUNNING_STABLE;
+          this.stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.RUNNING_STABLE:
+        if (smoothedRpm < this.rpmCrankingThreshold) {
+          // Engine stopped suddenly
+          this.state = ENGINE_STATE.OFF;
+          this.stateStartTime = time;
+        } else if (smoothedRpm < this.rpmRunningThreshold) {
+          // RPM dropped below running threshold
+          this.state = ENGINE_STATE.STOPPING;
+          this.stateStartTime = time;
+        } else if (rpmRate < this.shutdownRpmRate) {
+          // Rapid deceleration - shutting down
+          this.state = ENGINE_STATE.STOPPING;
+          this.stateStartTime = time;
+        }
+        break;
+
+      case ENGINE_STATE.STOPPING:
+        if (smoothedRpm < this.rpmCrankingThreshold) {
+          const timeInState = time - this.stateStartTime;
+          if (timeInState >= this.stopHoldoffSeconds || smoothedRpm < 50) {
+            // Engine has stopped
+            this.state = ENGINE_STATE.OFF;
+            this.stateStartTime = time;
+          }
+        } else if (smoothedRpm >= this.rpmRunningThreshold && rpmRate >= 0) {
+          // RPM recovered - may have been a transient dip
+          this.state = ENGINE_STATE.RUNNING_UNSTABLE;
+          this.stateStartTime = time;
+        }
+        break;
+    }
+
+    this.lastRpm = rpm;
+    this.lastTime = time;
+
+    return {
+      state: this.state,
+      prevState,
+      timeInState: time - this.stateStartTime,
+      rpmRate,
+      smoothedRpm,
+      timeAboveRunning: this.timeAboveRunning,
+      timeAboveStable: this.timeAboveStable,
+      stateChanged: prevState !== this.state
+    };
+  }
+
+  /**
+   * Calculate RPM rate of change from history (RPM/second)
+   */
+  calculateRpmRate() {
+    if (this.rpmHistory.length < 2) return 0;
+
+    const oldest = this.rpmHistory[0];
+    const newest = this.rpmHistory[this.rpmHistory.length - 1];
+    const timeDiff = newest.time - oldest.time;
+
+    if (timeDiff <= 0) return 0;
+
+    return (newest.rpm - oldest.rpm) / timeDiff;
+  }
+
+  /**
+   * Get smoothed RPM value (simple moving average)
+   */
+  getSmoothedRpm() {
+    if (this.rpmHistory.length === 0) return 0;
+    const sum = this.rpmHistory.reduce((acc, h) => acc + h.rpm, 0);
+    return sum / this.rpmHistory.length;
+  }
+
+  /**
+   * Check if oil pressure monitoring should be active
+   * Returns true only when engine is in RUNNING_STABLE state
+   */
+  shouldCheckOilPressure() {
+    return this.state === ENGINE_STATE.RUNNING_STABLE;
+  }
+
+  /**
+   * Check if we're in a state where warnings should be suppressed
+   * Returns true for OFF, CRANKING, and STOPPING states
+   */
+  shouldSuppressWarnings() {
+    return this.state === ENGINE_STATE.OFF ||
+           this.state === ENGINE_STATE.CRANKING ||
+           this.state === ENGINE_STATE.STOPPING;
+  }
+
+  /**
+   * Get the current state name for display
+   */
+  getStateName() {
+    const names = {
+      [ENGINE_STATE.OFF]: 'Off',
+      [ENGINE_STATE.CRANKING]: 'Cranking',
+      [ENGINE_STATE.RUNNING_UNSTABLE]: 'Running (Stabilizing)',
+      [ENGINE_STATE.RUNNING_STABLE]: 'Running (Stable)',
+      [ENGINE_STATE.STOPPING]: 'Stopping'
+    };
+    return names[this.state] || this.state;
+  }
+
+  /**
+   * Reset tracker state
+   */
+  reset() {
+    this.state = ENGINE_STATE.OFF;
+    this.stateStartTime = 0;
+    this.lastRpm = 0;
+    this.lastTime = 0;
+    this.rpmHistory = [];
+    this.timeAboveRunning = 0;
+    this.timeAboveStable = 0;
+    this.lastAboveRunningTime = null;
+    this.lastAboveStableTime = null;
+  }
+}
+
+/**
+ * Oil pressure signal filter - simple moving average for noise reduction
+ */
+class OilPressureFilter {
+  constructor(windowMs = 500, sampleRate = 10) {
+    this.windowSize = Math.max(1, Math.round((windowMs / 1000) * sampleRate));
+    this.history = [];
+  }
+
+  /**
+   * Add a pressure reading and return filtered value
+   */
+  filter(pressure) {
+    this.history.push(pressure);
+    if (this.history.length > this.windowSize) {
+      this.history.shift();
+    }
+    // Return moving average
+    const sum = this.history.reduce((acc, p) => acc + p, 0);
+    return sum / this.history.length;
+  }
+
+  reset() {
+    this.history = [];
+  }
+}
+
+/**
+ * Calculate minimum allowable oil pressure based on RPM
+ * Uses a configurable piecewise linear map
+ *
+ * @param {number} rpm - Current engine RPM
+ * @param {Array} pressureMap - Array of {rpm, pressure} points defining the curve
+ * @returns {number} Minimum allowable oil pressure in psi
+ */
+function calculateMinOilPressure(rpm, pressureMap) {
+  // Default pressure map if none provided
+  const defaultMap = [
+    { rpm: 0, pressure: 0 },
+    { rpm: 600, pressure: 8 },
+    { rpm: 1000, pressure: 15 },
+    { rpm: 1500, pressure: 25 },
+    { rpm: 2000, pressure: 35 },
+    { rpm: 3000, pressure: 45 }
+  ];
+
+  const map = pressureMap && pressureMap.length >= 2 ? pressureMap : defaultMap;
+
+  // Sort map by RPM
+  const sortedMap = [...map].sort((a, b) => a.rpm - b.rpm);
+
+  // Handle edge cases
+  if (rpm <= sortedMap[0].rpm) return sortedMap[0].pressure;
+  if (rpm >= sortedMap[sortedMap.length - 1].rpm) return sortedMap[sortedMap.length - 1].pressure;
+
+  // Find the two points to interpolate between
+  for (let i = 0; i < sortedMap.length - 1; i++) {
+    if (rpm >= sortedMap[i].rpm && rpm <= sortedMap[i + 1].rpm) {
+      const p1 = sortedMap[i];
+      const p2 = sortedMap[i + 1];
+
+      // Linear interpolation
+      const ratio = (rpm - p1.rpm) / (p2.rpm - p1.rpm);
+      return p1.pressure + ratio * (p2.pressure - p1.pressure);
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Oil pressure alert state tracker with persistence and hysteresis
+ */
+class OilPressureAlertTracker {
+  constructor(config = {}) {
+    // Persistence timers (seconds)
+    this.warnPersistSeconds = config.warnPersistSeconds || 1.5;
+    this.criticalPersistSeconds = config.criticalPersistSeconds || 0.5;
+    this.clearPersistSeconds = config.clearPersistSeconds || 1.0;
+
+    // Hysteresis offset (psi) - must recover above threshold + this value to clear
+    this.hysteresisPsi = config.hysteresisPsi || 3;
+
+    // Warning and critical offsets from RPM-based minimum
+    this.warningOffsetPsi = config.warningOffsetPsi || 5;
+    this.criticalOffsetPsi = config.criticalOffsetPsi || 0;
+
+    // State tracking
+    this.warningActive = false;
+    this.criticalActive = false;
+    this.belowWarningSince = null;
+    this.belowCriticalSince = null;
+    this.aboveWarningSince = null;
+    this.aboveCriticalSince = null;
+  }
+
+  /**
+   * Check oil pressure and return alert state
+   * @param {number} pressure - Filtered oil pressure value
+   * @param {number} minPressure - RPM-based minimum pressure
+   * @param {number} time - Current time
+   * @returns {Object} Alert state { warning: boolean, critical: boolean }
+   */
+  check(pressure, minPressure, time) {
+    const warningThreshold = minPressure + this.warningOffsetPsi;
+    const criticalThreshold = minPressure + this.criticalOffsetPsi;
+    const warningClearThreshold = warningThreshold + this.hysteresisPsi;
+    const criticalClearThreshold = criticalThreshold + this.hysteresisPsi;
+
+    // Check warning state
+    if (pressure < warningThreshold) {
+      if (this.belowWarningSince === null) {
+        this.belowWarningSince = time;
+      }
+      this.aboveWarningSince = null;
+
+      // Activate warning if below threshold for persistence time
+      if (!this.warningActive && (time - this.belowWarningSince) >= this.warnPersistSeconds) {
+        this.warningActive = true;
+      }
+    } else if (pressure >= warningClearThreshold) {
+      if (this.aboveWarningSince === null) {
+        this.aboveWarningSince = time;
+      }
+      this.belowWarningSince = null;
+
+      // Clear warning if above clear threshold for persistence time
+      if (this.warningActive && (time - this.aboveWarningSince) >= this.clearPersistSeconds) {
+        this.warningActive = false;
+      }
+    }
+
+    // Check critical state
+    if (pressure < criticalThreshold) {
+      if (this.belowCriticalSince === null) {
+        this.belowCriticalSince = time;
+      }
+      this.aboveCriticalSince = null;
+
+      // Activate critical if below threshold for persistence time
+      if (!this.criticalActive && (time - this.belowCriticalSince) >= this.criticalPersistSeconds) {
+        this.criticalActive = true;
+      }
+    } else if (pressure >= criticalClearThreshold) {
+      if (this.aboveCriticalSince === null) {
+        this.aboveCriticalSince = time;
+      }
+      this.belowCriticalSince = null;
+
+      // Clear critical if above clear threshold for persistence time
+      if (this.criticalActive && (time - this.aboveCriticalSince) >= this.clearPersistSeconds) {
+        this.criticalActive = false;
+      }
+    }
+
+    return {
+      warning: this.warningActive,
+      critical: this.criticalActive,
+      warningThreshold,
+      criticalThreshold,
+      minPressure
+    };
+  }
+
+  /**
+   * Force clear all alerts (used when engine state changes)
+   */
+  clearAll() {
+    this.warningActive = false;
+    this.criticalActive = false;
+    this.belowWarningSince = null;
+    this.belowCriticalSince = null;
+    this.aboveWarningSince = null;
+    this.aboveCriticalSince = null;
+  }
+
+  reset() {
+    this.clearAll();
+  }
+}
+
+/**
  * Hysteresis state tracker for alerts
  */
 class HysteresisTracker {
@@ -206,12 +642,33 @@ export function detectAnomalies(data, thresholds, options = {}) {
   const statistics = {
     totalSamples: data.length,
     runningSamples: 0,
-    alertCounts: {}
+    alertCounts: {},
+    engineStates: {
+      [ENGINE_STATE.OFF]: 0,
+      [ENGINE_STATE.CRANKING]: 0,
+      [ENGINE_STATE.RUNNING_UNSTABLE]: 0,
+      [ENGINE_STATE.RUNNING_STABLE]: 0,
+      [ENGINE_STATE.STOPPING]: 0
+    }
   };
 
   // Track alert durations
   const alertStartTimes = new Map();
   const alertValues = new Map();
+
+  // Get oil pressure configuration
+  const oilPressureConfig = thresholds.thresholds?.oilPressure || {};
+
+  // Initialize engine state tracker for oil pressure monitoring
+  const engineStateTracker = new EngineStateTracker({
+    rpmCrankingThreshold: oilPressureConfig.rpmCrankingThreshold || 100,
+    rpmRunningThreshold: oilPressureConfig.rpmThreshold || 500,
+    rpmStableThreshold: oilPressureConfig.rpmStableThreshold || 800,
+    startHoldoffSeconds: oilPressureConfig.startHoldoffSeconds || 3,
+    stableHoldoffSeconds: oilPressureConfig.stableHoldoffSeconds || 2,
+    stopHoldoffSeconds: oilPressureConfig.stopHoldoffSeconds || 2,
+    shutdownRpmRate: oilPressureConfig.shutdownRpmRate || -300
+  });
 
   // Estimate sample rate from time column if available
   let effectiveSampleRate = sampleRate;
@@ -224,6 +681,25 @@ export function detectAnomalies(data, thresholds, options = {}) {
 
   const graceSamples = Math.round(gracePeriod * effectiveSampleRate);
 
+  // Initialize oil pressure filter for noise reduction
+  const oilPressureFilter = new OilPressureFilter(
+    oilPressureConfig.filterWindowMs || 500,
+    effectiveSampleRate
+  );
+
+  // Initialize oil pressure alert tracker with persistence and hysteresis
+  const oilPressureAlertTracker = new OilPressureAlertTracker({
+    warnPersistSeconds: oilPressureConfig.warnPersistSeconds || 1.5,
+    criticalPersistSeconds: oilPressureConfig.criticalPersistSeconds || 0.5,
+    clearPersistSeconds: oilPressureConfig.clearPersistSeconds || 1.0,
+    hysteresisPsi: oilPressureConfig.hysteresisPsi || 3,
+    warningOffsetPsi: oilPressureConfig.warningOffsetPsi || 5,
+    criticalOffsetPsi: oilPressureConfig.criticalOffsetPsi || 0
+  });
+
+  // Track previous engine state for clearing alerts on state change
+  let prevEngineState = ENGINE_STATE.OFF;
+
   // Process each data row
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -233,6 +709,17 @@ export function detectAnomalies(data, thresholds, options = {}) {
     if (isRunning) {
       statistics.runningSamples++;
     }
+
+    // Update engine state tracker (needed for oil pressure monitoring)
+    const rpm = getParamValue(row, 'rpm', columnMap) || 0;
+    const engineState = engineStateTracker.update(rpm, time);
+    statistics.engineStates[engineState.state]++;
+
+    // Clear oil pressure alerts when transitioning out of RUNNING_STABLE
+    if (prevEngineState === ENGINE_STATE.RUNNING_STABLE && engineState.state !== ENGINE_STATE.RUNNING_STABLE) {
+      oilPressureAlertTracker.clearAll();
+    }
+    prevEngineState = engineState.state;
 
     // Skip grace period
     if (i < graceSamples) continue;
@@ -249,9 +736,14 @@ export function detectAnomalies(data, thresholds, options = {}) {
         checkCoolantTemp(row, time, thresholds.thresholds.coolantTemp, columnMap, alerts, alertStartTimes, alertValues, i, graceSamples, effectiveSampleRate);
       }
 
-      // Oil pressure check
+      // Oil pressure check - uses engine state tracker for startup/shutdown awareness
+      // Only checks during RUNNING_STABLE state with RPM-based dynamic thresholds
       if (thresholds.thresholds.oilPressure?.enabled !== false) {
-        checkOilPressure(row, time, thresholds.thresholds.oilPressure, columnMap, alerts, alertStartTimes, alertValues);
+        checkOilPressure(
+          row, time, thresholds.thresholds.oilPressure, columnMap,
+          alerts, alertStartTimes, alertValues,
+          engineStateTracker, oilPressureFilter, oilPressureAlertTracker, rpm
+        );
       }
 
       // RPM check
@@ -403,43 +895,123 @@ function checkCoolantTemp(row, time, config, columnMap, alerts, startTimes, valu
 
 /**
  * Oil pressure threshold check
+ * Uses comprehensive engine state tracking, RPM-based dynamic thresholds,
+ * signal filtering, and persistence/hysteresis to eliminate false warnings
+ * during normal startup and shutdown sequences.
+ *
+ * Key features:
+ * - Only evaluates warnings when engine is in RUNNING_STABLE state
+ * - Calculates minimum allowable pressure based on current RPM
+ * - Filters oil pressure signal to reduce noise
+ * - Requires persistence time before triggering/clearing alerts
+ * - Uses hysteresis to prevent alert chatter
  */
-function checkOilPressure(row, time, config, columnMap, alerts, startTimes, values) {
+function checkOilPressure(row, time, config, columnMap, alerts, startTimes, values,
+                          engineStateTracker, oilPressureFilter, oilPressureAlertTracker, rpm) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
-  const pressure = getParamValue(row, 'oilPressure', columnMap);
-  const rpm = getParamValue(row, 'rpm', columnMap);
-  if (pressure === undefined || isNaN(pressure)) return;
 
-  // Only check when RPM above threshold
-  const rpmThreshold = config.rpmThreshold || 500;
-  if (config.rpmDependent && (rpm === undefined || rpm < rpmThreshold)) return;
+  const rawPressure = getParamValue(row, 'oilPressure', columnMap);
+  if (rawPressure === undefined || isNaN(rawPressure)) return;
 
-  // Critical low
-  if (config.critical?.min && pressure < config.critical.min) {
-    const alertId = 'oil_pressure_critical_low';
-    handleAlertState(alertId, true, time, pressure, alerts, startTimes, values, {
-      name: 'Critical Low Oil Pressure',
-      severity: SEVERITY.CRITICAL,
-      category: CATEGORIES.PRESSURE,
-      threshold: config.critical.min,
-      unit: 'psi'
-    });
-  } else if (startTimes.has('oil_pressure_critical_low')) {
-    handleAlertState('oil_pressure_critical_low', false, time, pressure, alerts, startTimes, values, {});
+  // Apply low-pass filter to reduce noise (if filter available)
+  const filteredPressure = oilPressureFilter ? oilPressureFilter.filter(rawPressure) : rawPressure;
+
+  // Check engine state - only evaluate in RUNNING_STABLE state
+  if (engineStateTracker && config.rpmDependent !== false) {
+    if (!engineStateTracker.shouldCheckOilPressure()) {
+      // Not in stable running state - close any open alerts and return
+      // This suppresses false warnings during startup, shutdown, and cranking
+      if (startTimes.has('oil_pressure_critical_low')) {
+        handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
+      }
+      if (startTimes.has('oil_pressure_warning_low')) {
+        handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
+      }
+      return;
+    }
   }
 
-  // Warning low
-  if (config.warning?.min && pressure < config.warning.min) {
-    const alertId = 'oil_pressure_warning_low';
-    handleAlertState(alertId, true, time, pressure, alerts, startTimes, values, {
-      name: 'Low Oil Pressure',
-      severity: SEVERITY.WARNING,
-      category: CATEGORIES.PRESSURE,
-      threshold: config.warning.min,
-      unit: 'psi'
-    });
-  } else if (startTimes.has('oil_pressure_warning_low')) {
-    handleAlertState('oil_pressure_warning_low', false, time, pressure, alerts, startTimes, values, {});
+  // Calculate RPM-based minimum oil pressure threshold
+  // This makes thresholds dynamic based on engine speed
+  const rpmValue = rpm !== undefined ? rpm : (getParamValue(row, 'rpm', columnMap) || 0);
+  const minPressure = config.useDynamicThreshold !== false
+    ? calculateMinOilPressure(rpmValue, config.pressureMap)
+    : 0;
+
+  // Use the alert tracker for persistence and hysteresis (if available)
+  if (oilPressureAlertTracker && config.usePersistence !== false) {
+    const alertState = oilPressureAlertTracker.check(filteredPressure, minPressure, time);
+
+    // Handle critical alert
+    if (alertState.critical) {
+      if (!startTimes.has('oil_pressure_critical_low')) {
+        handleAlertState('oil_pressure_critical_low', true, time, filteredPressure, alerts, startTimes, values, {
+          name: 'Critical Low Oil Pressure',
+          severity: SEVERITY.CRITICAL,
+          category: CATEGORIES.PRESSURE,
+          threshold: alertState.criticalThreshold,
+          unit: 'psi',
+          minDuration: config.criticalPersistSeconds || 0.5
+        });
+      }
+    } else if (startTimes.has('oil_pressure_critical_low')) {
+      handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
+    }
+
+    // Handle warning alert
+    if (alertState.warning && !alertState.critical) {
+      if (!startTimes.has('oil_pressure_warning_low')) {
+        handleAlertState('oil_pressure_warning_low', true, time, filteredPressure, alerts, startTimes, values, {
+          name: 'Low Oil Pressure',
+          severity: SEVERITY.WARNING,
+          category: CATEGORIES.PRESSURE,
+          threshold: alertState.warningThreshold,
+          unit: 'psi',
+          minDuration: config.warnPersistSeconds || 1.5
+        });
+      }
+    } else if (startTimes.has('oil_pressure_warning_low') && !alertState.warning) {
+      handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
+    }
+  } else {
+    // Fallback to static threshold checks (legacy behavior)
+    // Still uses engine state gating but with fixed thresholds
+
+    // Critical low - use dynamic threshold if available, otherwise config value
+    const criticalThreshold = config.useDynamicThreshold !== false
+      ? minPressure + (config.criticalOffsetPsi || 0)
+      : (config.critical?.min || 10);
+
+    if (filteredPressure < criticalThreshold) {
+      const alertId = 'oil_pressure_critical_low';
+      handleAlertState(alertId, true, time, filteredPressure, alerts, startTimes, values, {
+        name: 'Critical Low Oil Pressure',
+        severity: SEVERITY.CRITICAL,
+        category: CATEGORIES.PRESSURE,
+        threshold: criticalThreshold,
+        unit: 'psi'
+      });
+    } else if (startTimes.has('oil_pressure_critical_low')) {
+      handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
+    }
+
+    // Warning low - use dynamic threshold if available, otherwise config value
+    const warningThreshold = config.useDynamicThreshold !== false
+      ? minPressure + (config.warningOffsetPsi || 5)
+      : (config.warning?.min || 20);
+
+    if (filteredPressure < warningThreshold) {
+      const alertId = 'oil_pressure_warning_low';
+      handleAlertState(alertId, true, time, filteredPressure, alerts, startTimes, values, {
+        name: 'Low Oil Pressure',
+        severity: SEVERITY.WARNING,
+        category: CATEGORIES.PRESSURE,
+        threshold: warningThreshold,
+        unit: 'psi'
+      });
+    } else if (startTimes.has('oil_pressure_warning_low')) {
+      handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
+    }
   }
 }
 

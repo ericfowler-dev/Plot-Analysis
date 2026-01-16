@@ -26,10 +26,46 @@ const FALLBACK_THRESHOLDS = {
     gracePeriod: 60
   },
   oilPressure: {
+    // Legacy static thresholds (used if useDynamicThreshold is false)
     critical: { min: 10 },
     warning: { min: 20 },
-    rpmDependent: true,
-    rpmThreshold: 500
+
+    // Engine state tracking - suppresses false warnings during startup/shutdown
+    rpmDependent: true,                    // Enable engine state tracking
+    rpmCrankingThreshold: 100,             // RPM to detect cranking
+    rpmThreshold: 500,                     // RPM to consider engine "running"
+    rpmStableThreshold: 800,               // RPM for stable operation
+
+    // Timing thresholds for state transitions (seconds)
+    startHoldoffSeconds: 3,                // Wait time after RPM > running before checking
+    stableHoldoffSeconds: 2,               // Wait time after RPM > stable before stable state
+    stopHoldoffSeconds: 2,                 // Time in stopping state before OFF
+    shutdownRpmRate: -300,                 // RPM/sec rate to detect shutdown
+
+    // Dynamic RPM-based thresholds
+    useDynamicThreshold: true,             // Use RPM-based minimum pressure calculation
+    pressureMap: [                         // RPM to minimum pressure map (psi)
+      { rpm: 0, pressure: 0 },
+      { rpm: 600, pressure: 8 },
+      { rpm: 1000, pressure: 15 },
+      { rpm: 1500, pressure: 25 },
+      { rpm: 2000, pressure: 35 },
+      { rpm: 3000, pressure: 45 }
+    ],
+    warningOffsetPsi: 5,                   // Warning threshold = minPressure + this offset
+    criticalOffsetPsi: 0,                  // Critical threshold = minPressure + this offset
+
+    // Persistence timers (seconds) - prevents momentary alerts
+    usePersistence: true,                  // Enable persistence timers
+    warnPersistSeconds: 1.5,               // Time below threshold before warning
+    criticalPersistSeconds: 0.5,           // Time below threshold before critical
+    clearPersistSeconds: 1.0,              // Time above threshold before clearing
+
+    // Hysteresis (psi) - prevents alert chatter
+    hysteresisPsi: 3,                      // Must recover above threshold + this to clear
+
+    // Signal filtering
+    filterWindowMs: 500                    // Low-pass filter window (milliseconds)
   },
   rpm: {
     warning: { max: 3200 },
