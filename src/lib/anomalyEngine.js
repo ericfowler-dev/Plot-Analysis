@@ -97,7 +97,25 @@ function getParamValue(row, paramKey, columnMap) {
 }
 
 function evaluateCondition(condition, row, columnMap) {
-  const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
+  // Try direct access first
+  let value = row[condition.param];
+
+  // If not found, try case-insensitive lookup
+  if (value === undefined) {
+    const paramLower = condition.param.toLowerCase();
+    for (const key of Object.keys(row)) {
+      if (key.toLowerCase() === paramLower) {
+        value = row[key];
+        break;
+      }
+    }
+  }
+
+  // Fall back to column map lookup
+  if (value === undefined) {
+    value = getParamValue(row, condition.param, columnMap);
+  }
+
   if (value === undefined) return false;
 
   switch (condition.operator) {
@@ -1148,13 +1166,11 @@ function checkCoolantTemp(row, time, config, columnMap, alerts, startTimes, valu
 
 /**
  * Oil pressure threshold check
- * Uses comprehensive engine state tracking, RPM-based dynamic thresholds,
- * signal filtering, and persistence/hysteresis to eliminate false warnings
- * during normal startup and shutdown sequences.
+ * Uses user-configured thresholds with optional engine state gating.
  *
  * Key features:
- * - Only evaluates warnings when engine is in RUNNING_STABLE state
- * - Calculates minimum allowable pressure based on current RPM
+ * - Uses configured Warning Min and Critical Min as the primary thresholds
+ * - When RPM Dependent is enabled, only checks when engine is in RUNNING_STABLE state
  * - Filters oil pressure signal to reduce noise
  * - Requires persistence time before triggering/clearing alerts
  * - Uses hysteresis to prevent alert chatter
@@ -1169,7 +1185,7 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   // Apply low-pass filter to reduce noise (if filter available)
   const filteredPressure = oilPressureFilter ? oilPressureFilter.filter(rawPressure) : rawPressure;
 
-  // Check engine state - only evaluate in RUNNING_STABLE state
+  // Check engine state - only evaluate in RUNNING_STABLE state when RPM dependent
   if (engineStateTracker && config.rpmDependent !== false) {
     if (!engineStateTracker.shouldCheckOilPressure()) {
       // Not in stable running state - close any open alerts and return
@@ -1184,87 +1200,44 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
     }
   }
 
-  // Calculate RPM-based minimum oil pressure threshold
-  // This makes thresholds dynamic based on engine speed
-  const rpmValue = rpm !== undefined ? rpm : (getParamValue(row, 'rpm', columnMap) || 0);
-  const minPressure = config.useDynamicThreshold !== false
-    ? calculateMinOilPressure(rpmValue, config.pressureMap)
-    : 0;
+  // Get user-configured thresholds (these are the primary thresholds)
+  const userWarningMin = config.warning?.min;
+  const userCriticalMin = config.critical?.min;
 
-  // Use the alert tracker for persistence and hysteresis (if available)
-  if (oilPressureAlertTracker && config.usePersistence !== false) {
-    const alertState = oilPressureAlertTracker.check(filteredPressure, minPressure, time);
+  // Use user-configured thresholds directly
+  // These are the values set in the UI (Warning Min, Critical Min)
+  const warningThreshold = userWarningMin !== undefined ? userWarningMin : 20;
+  const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 10;
 
-    // Handle critical alert
-    if (alertState.critical) {
-      if (!startTimes.has('oil_pressure_critical_low')) {
-        handleAlertState('oil_pressure_critical_low', true, time, filteredPressure, alerts, startTimes, values, {
-          name: 'Critical Low Oil Pressure',
-          severity: SEVERITY.CRITICAL,
-          category: CATEGORIES.PRESSURE,
-          threshold: alertState.criticalThreshold,
-          unit: 'psi',
-          minDuration: config.criticalPersistSeconds || 0.5
-        });
-      }
-    } else if (startTimes.has('oil_pressure_critical_low')) {
-      handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
-    }
-
-    // Handle warning alert
-    if (alertState.warning && !alertState.critical) {
-      if (!startTimes.has('oil_pressure_warning_low')) {
-        handleAlertState('oil_pressure_warning_low', true, time, filteredPressure, alerts, startTimes, values, {
-          name: 'Low Oil Pressure',
-          severity: SEVERITY.WARNING,
-          category: CATEGORIES.PRESSURE,
-          threshold: alertState.warningThreshold,
-          unit: 'psi',
-          minDuration: config.warnPersistSeconds || 1.5
-        });
-      }
-    } else if (startTimes.has('oil_pressure_warning_low') && !alertState.warning) {
-      handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
-    }
-  } else {
-    // Fallback to static threshold checks (legacy behavior)
-    // Still uses engine state gating but with fixed thresholds
-
-    // Critical low - use dynamic threshold if available, otherwise config value
-    const criticalThreshold = config.useDynamicThreshold !== false
-      ? minPressure + (config.criticalOffsetPsi || 0)
-      : (config.critical?.min || 10);
-
-    if (filteredPressure < criticalThreshold) {
-      const alertId = 'oil_pressure_critical_low';
-      handleAlertState(alertId, true, time, filteredPressure, alerts, startTimes, values, {
+  // Simple threshold comparison using user-configured values
+  // Critical low
+  if (filteredPressure < criticalThreshold) {
+    if (!startTimes.has('oil_pressure_critical_low')) {
+      handleAlertState('oil_pressure_critical_low', true, time, filteredPressure, alerts, startTimes, values, {
         name: 'Critical Low Oil Pressure',
         severity: SEVERITY.CRITICAL,
         category: CATEGORIES.PRESSURE,
         threshold: criticalThreshold,
         unit: 'psi'
       });
-    } else if (startTimes.has('oil_pressure_critical_low')) {
-      handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
     }
+  } else if (startTimes.has('oil_pressure_critical_low')) {
+    handleAlertState('oil_pressure_critical_low', false, time, filteredPressure, alerts, startTimes, values, {});
+  }
 
-    // Warning low - use dynamic threshold if available, otherwise config value
-    const warningThreshold = config.useDynamicThreshold !== false
-      ? minPressure + (config.warningOffsetPsi || 5)
-      : (config.warning?.min || 20);
-
-    if (filteredPressure < warningThreshold) {
-      const alertId = 'oil_pressure_warning_low';
-      handleAlertState(alertId, true, time, filteredPressure, alerts, startTimes, values, {
+  // Warning low (only if not already critical)
+  if (filteredPressure < warningThreshold && filteredPressure >= criticalThreshold) {
+    if (!startTimes.has('oil_pressure_warning_low')) {
+      handleAlertState('oil_pressure_warning_low', true, time, filteredPressure, alerts, startTimes, values, {
         name: 'Low Oil Pressure',
         severity: SEVERITY.WARNING,
         category: CATEGORIES.PRESSURE,
         threshold: warningThreshold,
         unit: 'psi'
       });
-    } else if (startTimes.has('oil_pressure_warning_low')) {
-      handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
     }
+  } else if (startTimes.has('oil_pressure_warning_low')) {
+    handleAlertState('oil_pressure_warning_low', false, time, filteredPressure, alerts, startTimes, values, {});
   }
 }
 
