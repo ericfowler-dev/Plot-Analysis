@@ -762,10 +762,15 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
             </button>
 
             {showTiming && (
-              <div className="px-3 pb-3 pt-2 border-t border-slate-600 space-y-3">
+              <div className="px-3 pb-3 pt-2 border-t border-slate-600 space-y-4">
+                {/* Help text */}
+                <p className="text-[10px] text-slate-500 bg-slate-700/50 p-2 rounded">
+                  These settings control when alerts trigger and clear. Use them to filter out brief spikes or transient conditions.
+                </p>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1" title="Condition must be true for this long before triggering">
+                    <label className="block text-xs text-slate-400 mb-1">
                       Trigger Persistence (s)
                     </label>
                     <input
@@ -777,9 +782,12 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                       placeholder="0"
                       className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                     />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Condition must be continuously true for this long before alert triggers. Prevents brief spikes from causing alerts.
+                    </p>
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1" title="Condition must be false for this long before clearing">
+                    <label className="block text-xs text-slate-400 mb-1">
                       Clear Persistence (s)
                     </label>
                     <input
@@ -791,12 +799,15 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                       placeholder="0"
                       className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                     />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      After alert triggers, condition must be false for this long before clearing. Prevents alert flickering.
+                    </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1" title="Skip evaluation for this long after engine starts">
+                    <label className="block text-xs text-slate-400 mb-1">
                       Start Delay (s)
                     </label>
                     <input
@@ -808,9 +819,12 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                       placeholder="0"
                       className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                     />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Ignore this rule for X seconds after engine starts. Use for startup transients (e.g., oil pressure building).
+                    </p>
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1" title="Skip evaluation for this long after engine stops">
+                    <label className="block text-xs text-slate-400 mb-1">
                       Stop Delay (s)
                     </label>
                     <input
@@ -822,11 +836,14 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                       placeholder="0"
                       className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                     />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Ignore this rule for X seconds after engine stops. Use for shutdown transients.
+                    </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1" title="Rolling time window for occurrence counting">
+                  <label className="block text-xs text-slate-400 mb-1">
                     Evaluation Window (s)
                   </label>
                   <input
@@ -835,11 +852,14 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                     min="0"
                     value={rule.windowSec || ''}
                     onChange={(e) => onUpdate({ ...rule, windowSec: parseFloat(e.target.value) || 0 })}
-                    placeholder="Optional"
+                    placeholder="Optional - leave empty for continuous"
                     className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-slate-200 text-sm"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">
-                    If set, counts total time condition is true within this window
+                    <strong>Rolling window mode:</strong> Instead of requiring the condition to be continuously true,
+                    this counts total time the condition was true within this window. If total time exceeds
+                    Trigger Persistence, alert fires. Example: Window=10s, Trigger=3s means if condition is
+                    true for 3+ seconds (total) within any 10-second period, the alert triggers.
                   </p>
                 </div>
               </div>
