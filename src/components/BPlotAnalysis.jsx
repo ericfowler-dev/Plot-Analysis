@@ -60,6 +60,16 @@ const StatRow = ({ label, value, unit }) => (
   </div>
 );
 
+const formatStatRange = (stats, decimals) => {
+  if (!stats || stats.min == null || stats.max == null) return '—';
+  return `${stats.min.toFixed(decimals)} - ${stats.max.toFixed(decimals)}`;
+};
+
+const safeToFixed = (value, decimals, fallback = '—') => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  return value.toFixed(decimals);
+};
+
 const AlertCard = ({ alert }) => {
   const bgColor = alert.severity === 'critical' ? 'bg-red-950/50 border-red-500/50' : 'bg-yellow-950/50 border-yellow-500/50';
   const iconColor = alert.severity === 'critical' ? 'text-red-400' : 'text-yellow-400';
@@ -431,28 +441,28 @@ const BPlotAnalysis = ({
                   {channelStats.ECT && (
                     <StatRow
                       label="Coolant Temp"
-                      value={`${channelStats.ECT.min.toFixed(0)} - ${channelStats.ECT.max.toFixed(0)}`}
+                      value={formatStatRange(channelStats.ECT, 0)}
                       unit="F"
                     />
                   )}
                   {channelStats.Vbat && (
                     <StatRow
                       label="Battery Voltage"
-                      value={`${channelStats.Vbat.min.toFixed(1)} - ${channelStats.Vbat.max.toFixed(1)}`}
+                      value={formatStatRange(channelStats.Vbat, 1)}
                       unit="V"
                     />
                   )}
                   {channelStats.MAP && (
                     <StatRow
                       label="MAP Range"
-                      value={`${channelStats.MAP.min.toFixed(1)} - ${channelStats.MAP.max.toFixed(1)}`}
+                      value={formatStatRange(channelStats.MAP, 1)}
                       unit="psia"
                     />
                   )}
                   {channelStats.TPS_pct && (
                     <StatRow
                       label="Throttle Range"
-                      value={`${channelStats.TPS_pct.min.toFixed(0)} - ${channelStats.TPS_pct.max.toFixed(0)}`}
+                      value={formatStatRange(channelStats.TPS_pct, 0)}
                       unit="%"
                     />
                   )}
@@ -474,9 +484,10 @@ const BPlotAnalysis = ({
                       type="number"
                       domain={['dataMin', 'dataMax']}
                       tickFormatter={(v) => {
-                        if (v < 60) return `${v.toFixed(0)}s`;
-                        if (v < 3600) return `${(v / 60).toFixed(1)}m`;
-                        return `${(v / 3600).toFixed(1)}h`;
+                        if (typeof v !== 'number' || Number.isNaN(v)) return '';
+                        if (v < 60) return `${safeToFixed(v, 0)}s`;
+                        if (v < 3600) return `${safeToFixed(v / 60, 1)}m`;
+                        return `${safeToFixed(v / 3600, 1)}h`;
                       }}
                     />
                     <YAxis yAxisId="rpm" stroke="#3b82f6" fontSize={12} domain={[0, 'auto']} />
@@ -487,9 +498,9 @@ const BPlotAnalysis = ({
                       labelFormatter={(v) => `Time: ${formatDuration(v)}`}
                       formatter={(value, name) => {
                         if (typeof value === 'number') {
-                          return [value.toFixed(1), name];
+                          return [safeToFixed(value, 1), name];
                         }
-                        return [value, name];
+                        return [value ?? '—', name];
                       }}
                     />
                     <Legend />
@@ -608,9 +619,10 @@ const BPlotAnalysis = ({
                       type="number"
                       domain={['dataMin', 'dataMax']}
                       tickFormatter={(v) => {
-                        if (v < 60) return `${v.toFixed(0)}s`;
-                        if (v < 3600) return `${(v / 60).toFixed(1)}m`;
-                        return `${(v / 3600).toFixed(1)}h`;
+                        if (typeof v !== 'number' || Number.isNaN(v)) return '';
+                        if (v < 60) return `${safeToFixed(v, 0)}s`;
+                        if (v < 3600) return `${safeToFixed(v / 60, 1)}m`;
+                        return `${safeToFixed(v / 3600, 1)}h`;
                       }}
                     />
                     {/* Dynamic Y-axes based on selected channels' unit types */}
@@ -621,7 +633,7 @@ const BPlotAnalysis = ({
                         orientation={axis.orientation}
                         stroke={index === 0 ? '#64748b' : '#94a3b8'}
                         fontSize={12}
-                        tickFormatter={(v) => v.toFixed(axis.decimals)}
+                        tickFormatter={(v) => safeToFixed(v, axis.decimals, '')}
                         label={{
                           value: axis.label,
                           angle: axis.orientation === 'left' ? -90 : 90,
@@ -650,7 +662,7 @@ const BPlotAnalysis = ({
                           return [displayText, param ? `${param.name}` : channelName];
                         }
                         return [
-                          typeof value === 'number' ? value.toFixed(decimals) : value,
+                          typeof value === 'number' ? safeToFixed(value, decimals) : value,
                           param ? `${param.name} (${param.unit})` : channelName
                         ];
                       }}
@@ -863,7 +875,7 @@ const BPlotAnalysis = ({
                         )}
                       </div>
                       <div className="text-sm font-mono text-slate-400">
-                        {event.rpm.toFixed(0)} RPM
+                        {safeToFixed(event.rpm, 0)} RPM
                       </div>
                     </div>
                   ))}
