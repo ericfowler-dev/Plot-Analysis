@@ -601,10 +601,10 @@ function generateSummary(timeInfo, engineEvents, operatingStats, alerts) {
     idlePercent: operatingStats.totalRuntime > 0
       ? `${((operatingStats.idleTime / operatingStats.totalRuntime) * 100).toFixed(1)}%`
       : 'N/A',
-    avgRPM: operatingStats.avgRPM.toFixed(0),
-    maxRPM: operatingStats.maxRPM.toFixed(0),
+    avgRPM: operatingStats.avgRPM != null ? operatingStats.avgRPM.toFixed(0) : 'N/A',
+    maxRPM: operatingStats.maxRPM != null ? operatingStats.maxRPM.toFixed(0) : 'N/A',
     // Display as MAP value (psia) when RPM > 900, not as percentage
-    avgLoad: operatingStats.avgMAP > 0 ? `${operatingStats.avgMAP.toFixed(1)} MAP` : 'N/A',
+    avgLoad: operatingStats.avgMAP != null && operatingStats.avgMAP > 0 ? `${operatingStats.avgMAP.toFixed(1)} MAP` : 'N/A',
     avgMAP: operatingStats.avgMAP,
     criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
     warnings: alerts.filter(a => a.severity === 'warning').length
