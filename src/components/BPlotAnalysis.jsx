@@ -369,9 +369,9 @@ const BPlotAnalysis = ({
 
       {/* Main Content - Full width for charts, constrained for other tabs */}
       <main className={`${activeTab === 'charts' ? 'px-6' : 'max-w-7xl mx-auto'} p-6`}>
-        {/* Alerts Section (non-overview tabs) */}
-        {activeTab !== 'overview' && alerts.length > 0 && (
-          <div className={`mb-6 space-y-2 ${activeTab === 'charts' ? 'max-w-7xl mx-auto' : ''}`}>
+        {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
+        {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
+          <div className="mb-6 space-y-2">
             {alerts.map((alert, i) => (
               <AlertCard key={i} alert={alert} />
             ))}
@@ -714,6 +714,14 @@ const BPlotAnalysis = ({
               </div>
             </div>
           </div>
+          {/* Alerts Section - Below charts */}
+          {alerts.length > 0 && (
+            <div className="mt-6 space-y-2 max-w-7xl mx-auto">
+              {alerts.map((alert, i) => (
+                <AlertCard key={i} alert={alert} />
+              ))}
+            </div>
+          )}
         )}
 
         {activeTab === 'channels' && (
