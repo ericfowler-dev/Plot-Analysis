@@ -129,6 +129,7 @@ export function combineTimelineData(files) {
   const firstProcessed = filesWithOffsets[0]?.processed || {};
   const combinedProcessed = {
     ...firstProcessed,
+    thresholdProfileId: firstProcessed?.thresholdProfileId || null,
     chartData: combinedChartData,
     rawData: combinedRawData,
     timeInfo: {
