@@ -9,10 +9,25 @@
   "version": "1.0.0",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-13T00:00:00Z",
+  "lastModified": "2026-01-16T12:48:56.565Z",
   "modifiedBy": "system",
-
-  "thresholds": {},
-
+  "thresholds": {
+    "oilPressure": {
+      "ignoreWhen": [
+        {
+          "param": "Vsw",
+          "operator": ">",
+          "value": 8
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "spark_shutoff_chk",
+          "operator": "==",
+          "value": 0
+        }
+      ]
+    }
+  },
   "anomalyRules": []
 }

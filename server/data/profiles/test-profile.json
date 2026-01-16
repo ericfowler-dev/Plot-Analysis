@@ -1,0 +1,15 @@
+{
+  "profileId": "test-profile",
+  "name": "Test Profile",
+  "description": "Testing Profile",
+  "parent": "global-defaults",
+  "engineFamily": "PSI Industrial",
+  "fuelType": "propane",
+  "application": null,
+  "version": "1.0.0",
+  "status": "draft",
+  "createdAt": "2026-01-16T13:06:10.630Z",
+  "thresholds": {},
+  "anomalyRules": [],
+  "lastModified": "2026-01-16T13:06:10.705Z"
+}

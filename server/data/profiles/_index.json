@@ -1,8 +1,7 @@
 {
   "version": "1.0.0",
   "description": "Index of all available threshold profiles",
-  "lastUpdated": "2026-01-13T00:00:00Z",
-
+  "lastUpdated": "2026-01-16T13:06:10.715Z",
   "engineFamilies": [
     {
       "id": "psi-hd",
@@ -17,7 +16,6 @@
       "baseProfile": "psi-industrial-base"
     }
   ],
-
   "fuelTypes": [
     {
       "id": "natural_gas",
@@ -44,7 +42,6 @@
       "description": "Diesel fuel"
     }
   ],
-
   "applications": [
     {
       "id": "generator",
@@ -67,10 +64,10 @@
       "description": "Vehicular applications"
     }
   ],
-
   "profiles": [
     "global-defaults",
     "psi-hd-base",
-    "psi-industrial-base"
+    "psi-industrial-base",
+    "test-profile"
   ]
 }

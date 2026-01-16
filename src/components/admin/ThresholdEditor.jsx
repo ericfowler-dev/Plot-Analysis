@@ -123,18 +123,41 @@ const THRESHOLD_CATEGORIES = [
   }
 ];
 
+const PARAMETER_ALIASES = {
+  RPM: 'rpm',
+  HM_RAM_seconds: 'HM_RAM',
+  Gov1_rpm: 'gov1_rpm',
+  Gov2_rpm: 'gov2_rpm',
+  Gov3_rpm: 'gov3_rpm'
+};
+
 // Signal parameters from BPLOT_PARAMETERS
-const SIGNAL_PARAMETER_OPTIONS = Object.entries(BPLOT_PARAMETERS).map(([key, info]) => ({
-  key,
-  label: info?.name || key,
-  unit: info?.unit || '',
-  description: info?.description || '',
-  category: 'signal'
-})).sort((a, b) => a.label.localeCompare(b.label));
+const SIGNAL_PARAMETER_OPTIONS = (() => {
+  const canonicalOptions = new Map();
+
+  for (const [key, info] of Object.entries(BPLOT_PARAMETERS)) {
+    const canonicalKey = PARAMETER_ALIASES[key] || key;
+    if (canonicalOptions.has(canonicalKey)) {
+      continue;
+    }
+
+    canonicalOptions.set(canonicalKey, {
+      key: canonicalKey,
+      canonicalKey,
+      label: info?.name || key,
+      unit: info?.unit || '',
+      description: info?.description || '',
+      category: 'signal'
+    });
+  }
+
+  return Array.from(canonicalOptions.values()).sort((a, b) => a.label.localeCompare(b.label));
+})();
 
 // Engine state predicates for conditions
 const ENGINE_STATE_OPTIONS = ENGINE_STATE_PREDICATE_OPTIONS.map(opt => ({
   key: opt.key,
+  canonicalKey: opt.key,
   label: opt.label,
   unit: '',
   description: opt.description,
@@ -145,8 +168,33 @@ const ENGINE_STATE_OPTIONS = ENGINE_STATE_PREDICATE_OPTIONS.map(opt => ({
 const PARAMETER_OPTIONS = [...SIGNAL_PARAMETER_OPTIONS];
 const ALL_CONDITION_OPTIONS = [...ENGINE_STATE_OPTIONS, ...SIGNAL_PARAMETER_OPTIONS];
 
-const PARAMETER_LOOKUP = new Map(PARAMETER_OPTIONS.map(option => [option.key, option]));
-const ALL_CONDITION_LOOKUP = new Map(ALL_CONDITION_OPTIONS.map(option => [option.key, option]));
+const PARAMETER_LOOKUP = (() => {
+  const lookup = new Map(PARAMETER_OPTIONS.map(option => [option.key, option]));
+
+  for (const [key] of Object.entries(BPLOT_PARAMETERS)) {
+    const canonicalKey = PARAMETER_ALIASES[key] || key;
+    const option = lookup.get(canonicalKey);
+    if (option) {
+      lookup.set(key, option);
+    }
+  }
+
+  return lookup;
+})();
+
+const ALL_CONDITION_LOOKUP = (() => {
+  const lookup = new Map(ALL_CONDITION_OPTIONS.map(option => [option.key, option]));
+
+  for (const [key] of Object.entries(BPLOT_PARAMETERS)) {
+    const canonicalKey = PARAMETER_ALIASES[key] || key;
+    const option = lookup.get(canonicalKey);
+    if (option) {
+      lookup.set(key, option);
+    }
+  }
+
+  return lookup;
+})();
 
 const CONDITION_OPERATORS = ['>', '<', '>=', '<=', '==', '!='];
 
@@ -902,7 +950,7 @@ function AnomalyRuleEditor({ rule, onUpdate, onDelete }) {
                   {(() => {
                     const paramMeta = ALL_CONDITION_LOOKUP.get(condition.param);
                     const isCustom = !paramMeta;
-                    const selectValue = isCustom ? '__custom__' : condition.param;
+                    const selectValue = isCustom ? '__custom__' : (paramMeta?.canonicalKey || condition.param);
                     const isPredicate = isEnginePredicate(condition.param);
 
                     return (
@@ -1119,7 +1167,7 @@ function ConditionListEditor({ title, conditions, onChange }) {
         {(activeConditions || []).map((condition, condIdx) => {
           const paramMeta = PARAMETER_LOOKUP.get(condition.param);
           const isCustom = !paramMeta;
-          const selectValue = isCustom ? '__custom__' : condition.param;
+          const selectValue = isCustom ? '__custom__' : (paramMeta?.canonicalKey || condition.param);
 
           return (
             <div key={condIdx} className="flex items-center gap-2">

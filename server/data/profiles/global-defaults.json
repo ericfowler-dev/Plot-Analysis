@@ -6,10 +6,10 @@
   "engineFamily": null,
   "fuelType": null,
   "application": null,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-15T18:06:58.117Z",
+  "lastModified": "2026-01-16T13:38:57.620Z",
   "modifiedBy": "system",
   "thresholds": {
     "battery": {
@@ -59,14 +59,28 @@
       "description": "Engine oil pressure monitoring",
       "unit": "psi",
       "critical": {
-        "min": 10
+        "min": 6
       },
       "warning": {
-        "min": 20
+        "min": 8
       },
       "rpmDependent": true,
-      "rpmThreshold": 500,
-      "rpmThresholdDescription": "Only check when RPM above this value"
+      "rpmThresholdDescription": "Only check when RPM above this value",
+      "ignoreWhen": [
+        {
+          "param": "Vsw",
+          "operator": "<",
+          "value": 8
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "spark_shutoff_chk",
+          "operator": "==",
+          "value": 0
+        }
+      ],
+      "rpmThreshold": 725
     },
     "manifoldPressure": {
       "enabled": true,
