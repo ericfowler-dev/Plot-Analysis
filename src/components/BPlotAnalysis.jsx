@@ -984,7 +984,7 @@ const BPlotAnalysis = ({
                         const showMaxOnly = param?.showMaxOnly;
                         const showTimeInState = param?.showTimeInState || TIME_IN_STATE_CHANNELS.includes(channel);
                         const stateStats = timeInStateStats?.[channel];
-                        const displayStateStats = channel === 'sync_state'
+                        const displayStateStats = channel === 'sync_state' || channel === 'OILP_state'
                           ? mergeTimeInStateByLabel(stateStats)
                           : stateStats;
                         const decimals = getDecimalPlaces(channel);
