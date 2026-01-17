@@ -721,7 +721,7 @@ export const BPLOT_PARAMETERS = {
   OILP_state: {
     name: 'Oil Pressure State',
     unit: '',
-    description: '0=OK; 1=Not OK',
+    description: '0=OK; 1=Not OK; 2=OK',
     category: 'system'
   },
   DERATE1_active: {
@@ -856,7 +856,8 @@ export const VALUE_MAPPINGS = {
   },
   OILP_state: {
     0: 'OK',
-    1: 'NOT OK'
+    1: 'NOT OK',
+    2: 'OK'
   },
   spark_shutoff_chk: {
     0: 'Off (spark enabled)',
