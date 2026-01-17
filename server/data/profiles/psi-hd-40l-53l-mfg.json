@@ -1,0 +1,473 @@
+{
+  "profileId": "psi-hd-40l-53l-mfg",
+  "name": "PSI HD 40L/53L with MFG Fuel System",
+  "description": "Configuration for PSI HD 40L and 53L engines equipped with Mass Flow Gas (MFG) valves. Includes fuel pressure and flow adequacy detection based on MFG valve diagnostics.",
+  "parent": "global-defaults",
+  "engineFamily": "PSI HD",
+  "fuelType": "natural_gas",
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-17T00:00:00Z",
+  "lastModified": "2026-01-17T00:00:00Z",
+  "modifiedBy": "system",
+  "thresholds": {
+    "mfgDeltaPressure": {
+      "enabled": true,
+      "description": "MFG differential pressure between upstream and downstream. Indicates fuel flow adequacy.",
+      "unit": "psi",
+      "warning": {
+        "min": 0.5
+      },
+      "critical": {
+        "min": 0.25
+      },
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        }
+      ],
+      "notes": "Ideal delta pressure is >0.5 PSI. Below 0.25 PSI indicates severe fuel starvation and throttle will saturate."
+    },
+    "mfgThrottlePosition": {
+      "enabled": true,
+      "description": "MFG throttle actual position. Max is 75% (newer cal) or 89% (older cal). High values indicate fuel system at capacity.",
+      "unit": "%",
+      "warning": {
+        "max": 65
+      },
+      "critical": {
+        "max": 74
+      },
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        },
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "notes": "Throttle hitting max (75% or 89%) indicates fuel starvation - system losing control."
+    },
+    "mfgFuelPressureGauge": {
+      "enabled": true,
+      "description": "Calculated fuel gauge pressure at MFG inlet. Formula: (MFG_USPress - BP) × 27 = inWC. Valid range: 20-30 inWC.",
+      "unit": "inWC",
+      "warning": {
+        "min": 20,
+        "max": 35
+      },
+      "critical": {
+        "min": 15,
+        "max": 45
+      },
+      "computedFrom": {
+        "formula": "(MFG_USPress - BP) * 27",
+        "params": ["MFG_USPress", "BP"]
+      },
+      "notes": "Requires preprocessing to calculate from MFG_USPress and barometric pressure. 20-30 inWC is optimal at full load."
+    },
+    "rpm": {
+      "enabled": true,
+      "description": "Engine speed monitoring - adjusted for large PSI HD engines",
+      "unit": "RPM",
+      "warning": {
+        "max": 1900
+      },
+      "critical": {
+        "max": 2000
+      },
+      "overspeed": 2100,
+      "idle": {
+        "min": 1500,
+        "max": 1550
+      }
+    }
+  },
+  "anomalyRules": [
+    {
+      "id": "mfg-low-delta-pressure",
+      "name": "MFG Low Delta Pressure",
+      "description": "MFG differential pressure dropping below safe threshold. Indicates fuel flow restriction or insufficient supply pressure.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_DPPress",
+          "operator": "<",
+          "value": 0.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 30
+        }
+      ],
+      "logic": "AND",
+      "duration": 5,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-critical-delta-pressure",
+      "name": "MFG Critical Delta Pressure",
+      "description": "MFG differential pressure critically low. Fuel starvation imminent - throttle will saturate.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_DPPress",
+          "operator": "<",
+          "value": 0.25
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
+      "logic": "AND",
+      "duration": 2,
+      "severity": "critical",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-throttle-saturation-warning",
+      "name": "MFG Throttle Position High",
+      "description": "MFG throttle position approaching maximum. Fuel system nearing capacity limit.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_TPS_act_pct",
+          "operator": ">",
+          "value": 60
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        }
+      ],
+      "logic": "AND",
+      "duration": 10,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-throttle-saturation-critical",
+      "name": "MFG Throttle Saturation",
+      "description": "MFG throttle at or near maximum position. Fuel system has lost control authority - indicates severe fuel starvation.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_TPS_act_pct",
+          "operator": ">=",
+          "value": 74
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
+      "logic": "AND",
+      "duration": 3,
+      "severity": "critical",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-fuel-starvation-combined",
+      "name": "MFG Fuel Starvation (Combined Indicators)",
+      "description": "Both throttle position elevated AND delta pressure low. Strong evidence of inadequate fuel supply.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_TPS_act_pct",
+          "operator": ">",
+          "value": 50
+        },
+        {
+          "param": "MFG_DPPress",
+          "operator": "<",
+          "value": 0.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        }
+      ],
+      "logic": "AND",
+      "duration": 5,
+      "severity": "critical",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-upstream-pressure-dropping",
+      "name": "MFG Upstream Pressure Dropping Under Load",
+      "description": "Upstream pressure decreasing as load increases - indicates insufficient regulator capacity or supply line restriction.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 70
+        },
+        {
+          "param": "MFG_DPPress",
+          "operator": "<",
+          "value": 0.6
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 1000
+        }
+      ],
+      "logic": "AND",
+      "duration": 10,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-throttle-command-deviation",
+      "name": "MFG Throttle Command vs Actual Deviation",
+      "description": "Significant difference between commanded and actual throttle position - may indicate MFG mechanical issue.",
+      "enabled": true,
+      "type": "computed_delta",
+      "config": {
+        "param1": "MFG_TPS_cmd_pct",
+        "param2": "MFG_TPS_act_pct",
+        "maxDelta": 10
+      },
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        }
+      ],
+      "duration": 5,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-fuel-pressure-low",
+      "name": "MFG Fuel Pressure Low",
+      "description": "Computed fuel gauge pressure below minimum specification (20 inWC). Check fuel supply, regulator, and piping.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_FuelPressure_inWC",
+          "operator": "<",
+          "value": 20
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        },
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "logic": "AND",
+      "duration": 10,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-fuel-pressure-critical-low",
+      "name": "MFG Fuel Pressure Critically Low",
+      "description": "Computed fuel gauge pressure dangerously low (< 15 inWC). Severe fuel supply issue - engine may lose power.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_FuelPressure_inWC",
+          "operator": "<",
+          "value": 15
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
+      "logic": "AND",
+      "duration": 3,
+      "severity": "critical",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-fuel-pressure-high",
+      "name": "MFG Fuel Pressure High",
+      "description": "Computed fuel gauge pressure above specification (> 35 inWC). Check regulator setting.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_FuelPressure_inWC",
+          "operator": ">",
+          "value": 35
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 800
+        },
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "logic": "AND",
+      "duration": 10,
+      "severity": "warning",
+      "category": "fuel"
+    },
+    {
+      "id": "mfg-fuel-pressure-excessive",
+      "name": "MFG Fuel Pressure Excessive",
+      "description": "Computed fuel gauge pressure dangerously high (> 45 inWC). Regulator malfunction suspected.",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "MFG_FuelPressure_inWC",
+          "operator": ">",
+          "value": 45
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
+      "logic": "AND",
+      "duration": 3,
+      "severity": "critical",
+      "category": "fuel"
+    }
+  ],
+  "metadata": {
+    "parameterMappings": {
+      "mfgDeltaPressure": ["MFG_DPPress", "mfg_dppress", "MFG_DP"],
+      "mfgUpstreamPressure": ["MFG_USPress", "mfg_uspress", "MFG_US"],
+      "mfgDownstreamPressure": ["MFG_DSPress", "mfg_dspress", "MFG_DS"],
+      "mfgThrottleActual": ["MFG_TPS_act_pct", "mfg_tps_act", "MFG_TPS_ACT"],
+      "mfgThrottleCommand": ["MFG_TPS_cmd_pct", "mfg_tps_cmd", "MFG_TPS_CMD"],
+      "barometricPressure": ["BP", "baro", "barometric_pressure", "BARO"]
+    },
+    "applicableEngines": ["40L", "53L"],
+    "applicableSystems": ["MFG"],
+    "documentReference": "PSIKO210015-2 MFG Valve Operation & Diagnostics"
+  },
+  "engineStateConfig": {
+    "rpmCrankingThreshold": 100,
+    "rpmRunningThreshold": 600,
+    "rpmStableThreshold": 800,
+    "startHoldoffSeconds": 4,
+    "stableHoldoffSeconds": 3,
+    "stopHoldoffSeconds": 2,
+    "shutdownRpmRate": -250
+  },
+  "validityConfig": {
+    "defaults": {
+      "rpmRunningThreshold": 500,
+      "rpmStableThreshold": 800,
+      "vswThreshold": 1,
+      "startupGraceSeconds": 4,
+      "shutdownGraceSeconds": 2
+    },
+    "channelPolicies": {
+      "MFG_DPPress": {
+        "statsPolicy": "ValidWhenEngineRunning",
+        "alertPolicy": "ValidWhenEngineStable",
+        "excludeNegative": true,
+        "excludeZero": false
+      },
+      "MFG_USPress": {
+        "statsPolicy": "ValidWhenEngineRunning",
+        "alertPolicy": "ValidWhenEngineRunning"
+      },
+      "MFG_DSPress": {
+        "statsPolicy": "ValidWhenEngineRunning",
+        "alertPolicy": "ValidWhenEngineRunning"
+      },
+      "MFG_TPS_act_pct": {
+        "statsPolicy": "ValidWhenEngineRunning",
+        "alertPolicy": "ValidWhenEngineStable"
+      },
+      "MFG_FuelPressure_inWC": {
+        "statsPolicy": "ValidWhenEngineStable",
+        "alertPolicy": "ValidWhenEngineStable",
+        "excludeNegative": true
+      },
+      "MFG_FuelPressure_psig": {
+        "statsPolicy": "ValidWhenEngineStable",
+        "alertPolicy": "ValidWhenEngineStable",
+        "excludeNegative": true
+      }
+    }
+  },
+  "diagnosticGuidance": {
+    "mfg-low-delta-pressure": {
+      "possibleCauses": [
+        "Undersized fuel supply piping (should be minimum 3\" NPT)",
+        "Regulator capacity insufficient (minimum 3\" NPT with 5psi at inlet)",
+        "Fuel supply restriction or blockage",
+        "Lockoff valve partially closed or stuck"
+      ],
+      "recommendedActions": [
+        "Verify fuel supply line sizing per PSI publication 56100051",
+        "Check regulator inlet pressure (minimum 5 psi required)",
+        "Inspect lockoff valves for proper operation",
+        "Verify 20-30 inWC at MFG inlet at full load using calculator"
+      ]
+    },
+    "mfg-throttle-saturation-critical": {
+      "possibleCauses": [
+        "Severe fuel starvation - supply cannot meet demand",
+        "Delta pressure dropped below 0.25 psi",
+        "Regulator failure or incorrect setting",
+        "Major fuel line restriction"
+      ],
+      "recommendedActions": [
+        "IMMEDIATE: Reduce engine load if possible",
+        "Check fuel supply pressure at regulator inlet",
+        "Verify piping between regulator and lockoff is 3\" NPT minimum",
+        "Review plot file for MFG_DPPress trend vs load"
+      ]
+    }
+  }
+}

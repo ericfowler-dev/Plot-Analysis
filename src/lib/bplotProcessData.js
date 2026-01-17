@@ -14,6 +14,58 @@ import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TI
 import { detectAnomalies, formatAlert } from './anomalyEngine.js';
 
 /**
+ * Compute derived MFG fuel pressure fields
+ * Based on PSI Knowledge Article PSIKO210015-2 "MFG Valve Operation & Diagnostics"
+ *
+ * Formula: (MFG_USPress - BP) × 27 = Fuel Pressure in inches of Water Column (inWC)
+ * Valid range: 20-30 inWC at MFG inlet while engine is at full operating load
+ *
+ * @param {Object} row - Data row containing MFG parameters
+ * @returns {Object} - Object with computed fields to merge into row
+ */
+function computeMfgDerivedFields(row) {
+  const computed = {};
+
+  // Get MFG upstream pressure (PSIA) and barometric pressure (PSIA)
+  const mfgUsPress = row.MFG_USPress ?? row.mfg_uspress ?? row.MFG_US;
+  const bp = row.BP ?? row.baro ?? row.BARO ?? row.barometric_pressure;
+
+  // Compute fuel gauge pressure in inches of water column (inWC)
+  // Only compute if both values are available and valid
+  if (mfgUsPress !== undefined && bp !== undefined &&
+      !isNaN(mfgUsPress) && !isNaN(bp) &&
+      mfgUsPress > 0 && bp > 0) {
+    // (MFG_USPress - BP) × 27 = inWC
+    computed.MFG_FuelPressure_inWC = (mfgUsPress - bp) * 27;
+
+    // Also compute in PSI gauge for convenience (simpler threshold checks)
+    computed.MFG_FuelPressure_psig = mfgUsPress - bp;
+  }
+
+  return computed;
+}
+
+/**
+ * Add computed/derived fields to data rows
+ * This includes MFG fuel pressure calculations and other derived values
+ *
+ * @param {Array} data - Array of data rows
+ * @returns {Array} - Data with computed fields added
+ */
+function addComputedFields(data) {
+  return data.map(row => {
+    // Compute MFG derived fields
+    const mfgFields = computeMfgDerivedFields(row);
+
+    // Merge computed fields into row
+    return {
+      ...row,
+      ...mfgFields
+    };
+  });
+}
+
+/**
  * Format duration - show seconds if < 1 minute, otherwise minutes
  */
 export function formatDuration(seconds) {
@@ -142,7 +194,7 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
 
   // Normalize time to start from 0 for charting
   const startTime = timeInfo ? timeInfo.startTime : 0;
-  const normalizedData = data.map(row => {
+  let normalizedData = data.map(row => {
     const rpmValue = row.rpm ?? row.RPM;
     const normalizedRow = {
       ...row,
@@ -155,6 +207,9 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
 
     return normalizedRow;
   });
+
+  // Add computed/derived fields (MFG fuel pressure, etc.)
+  normalizedData = addComputedFields(normalizedData);
 
   // Calculate stats for ALL channels (not just key channels)
   const channelStats = {};
