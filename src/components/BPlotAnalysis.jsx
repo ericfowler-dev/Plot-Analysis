@@ -104,6 +104,34 @@ const DiscreteStat = ({ label, value }) => (
   </div>
 );
 
+const mergeTimeInStateByLabel = (stateStats) => {
+  if (!stateStats || stateStats.length === 0) return stateStats;
+
+  const grouped = new Map();
+  let totalDuration = 0;
+
+  stateStats.forEach((entry) => {
+    totalDuration += entry.durationSeconds || 0;
+    const key = entry.displayName || String(entry.state);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        displayName: key,
+        durationSeconds: 0,
+        transitions: 0
+      });
+    }
+    const current = grouped.get(key);
+    current.durationSeconds += entry.durationSeconds || 0;
+    current.transitions += entry.transitions || 0;
+  });
+
+  return Array.from(grouped.values()).map((entry) => ({
+    ...entry,
+    percentage: totalDuration > 0 ? (entry.durationSeconds / totalDuration) * 100 : 0,
+    durationFormatted: formatDuration(entry.durationSeconds)
+  })).sort((a, b) => b.percentage - a.percentage);
+};
+
 const FUEL_TYPE_LABELS = {
   0: 'Gasoline',
   1: 'Propane',
@@ -947,6 +975,9 @@ const BPlotAnalysis = ({
                         const showMaxOnly = param?.showMaxOnly;
                         const showTimeInState = param?.showTimeInState || TIME_IN_STATE_CHANNELS.includes(channel);
                         const stateStats = timeInStateStats?.[channel];
+                        const displayStateStats = channel === 'sync_state'
+                          ? mergeTimeInStateByLabel(stateStats)
+                          : stateStats;
                         const decimals = getDecimalPlaces(channel);
 
                         return (
@@ -958,10 +989,10 @@ const BPlotAnalysis = ({
                             {param?.description && (
                               <div className="text-xs text-slate-500 mb-1">{param.description}</div>
                             )}
-                            {showTimeInState && stateStats && stateStats.length > 0 ? (
+                            {showTimeInState && displayStateStats && displayStateStats.length > 0 ? (
                               // Show time-in-state breakdown for categorical channels with progress bars
                               <div className="text-xs mt-2 space-y-2">
-                                {stateStats.map((s, i) => (
+                                {displayStateStats.map((s, i) => (
                                   <div key={i}>
                                     <div className="flex justify-between items-center mb-0.5">
                                       <span className="text-green-400">{s.displayName}</span>
