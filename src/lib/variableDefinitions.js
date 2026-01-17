@@ -67,10 +67,10 @@ export const VARIABLE_DEFINITIONS = {
   },
   OILP_state: {
     name: 'Oil Pressure State',
-    description: 'Oil pressure state (0=OK, 1=Not OK, 2=OK)',
+    description: 'Oil pressure state (0=OK, 1=Not OK)',
     unit: '',
     category: 'thermal',
-    values: { 0: 'OK', 1: 'NOT OK', 2: 'OK' }
+    values: { 0: 'OK', 1: 'NOT OK' }
   },
 
   // Temperature

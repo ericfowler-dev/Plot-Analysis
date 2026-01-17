@@ -70,15 +70,14 @@ export function calculateTimeInState(data, channelName) {
 
     const val = currentRow[channelName];
     if (val === undefined || val === null || isNaN(val)) continue;
-    if (channelName === 'OILP_state' && val !== 0 && val !== 1 && val !== 2) {
-      continue;
-    }
 
     // Calculate actual time delta
     const dt = currentRow.Time - prevRow.Time;
     if (dt <= 0 || dt > 10) continue;  // Skip invalid or stale samples (> 10s gap)
 
-    const stateKey = Math.round(val);
+    const stateKey = channelName === 'OILP_state'
+      ? (val >= 0.5 ? 1 : 0)
+      : Math.round(val);
 
     // Initialize state if first time seen
     if (stateAccum[stateKey] === undefined) {
