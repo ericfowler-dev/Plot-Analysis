@@ -1,0 +1,502 @@
+{
+  "source": "example_files/Baseline",
+  "tolerance": {
+    "strategy": "pad p05/p95 by 10% of observed range with min padding by channel, cap at 25% of observed range",
+    "min_padding": {
+      "rpm": 50.0,
+      "RPM": 50.0,
+      "ECT": 5.0,
+      "IAT": 5.0,
+      "OILT": 5.0,
+      "FT": 5.0,
+      "MAP": 0.5,
+      "BP": 0.5,
+      "TIP": 0.5,
+      "OILP_press": 1.0,
+      "Vbat": 0.2,
+      "Vsw": 0.2,
+      "TPS_pct": 2.0,
+      "eng_load": 2.0
+    },
+    "default_min_padding": 0.5,
+    "range_padding_pct": 0.1,
+    "range_padding_cap_pct": 0.25
+  },
+  "groups": {
+    "PSI HD": {
+      "22L": {
+        "Power Systems": {
+          "Time": {
+            "p05_mean": 613.9666,
+            "p95_mean": 2310.5014,
+            "p05_padded": 444.3131199999999,
+            "p95_padded": 2480.15488,
+            "files": 2
+          },
+          "rpm": {
+            "p05_mean": 1798.0399369360732,
+            "p95_mean": 1801.8857536775563,
+            "p05_padded": 1797.0784827507025,
+            "p95_padded": 1802.847207862927,
+            "files": 2
+          },
+          "MAP": {
+            "p05_mean": 8.804368714080455,
+            "p95_mean": 9.71763104655392,
+            "p05_padded": 8.576053130962089,
+            "p95_padded": 9.945946629672287,
+            "files": 2
+          },
+          "ECT": {
+            "p05_mean": 175.92188,
+            "p95_mean": 176.78125,
+            "p05_padded": 175.70703749999998,
+            "p95_padded": 176.9960925,
+            "files": 2
+          },
+          "IAT": {
+            "p05_mean": 74.91899992467286,
+            "p95_mean": 77.54685490353698,
+            "p05_padded": 74.26203617995682,
+            "p95_padded": 78.20381864825302,
+            "files": 2
+          },
+          "RMT_speed": {
+            "p05_mean": 0.0,
+            "p95_mean": 1800.0,
+            "p05_padded": -180.0,
+            "p95_padded": 1980.0,
+            "files": 2
+          },
+          "fuel_type": {
+            "p05_mean": 2.0,
+            "p95_mean": 2.0,
+            "p05_padded": 2.0,
+            "p95_padded": 2.0,
+            "files": 2
+          },
+          "fuel_ctl_mode": {
+            "p05_mean": 3.0,
+            "p95_mean": 3.0,
+            "p05_padded": 3.0,
+            "p95_padded": 3.0,
+            "files": 2
+          },
+          "Vbat": {
+            "p05_mean": 27.787309185878815,
+            "p95_mean": 27.851455446388,
+            "p05_padded": 27.771272620751517,
+            "p95_padded": 27.8674920115153,
+            "files": 2
+          },
+          "Vsw": {
+            "p05_mean": 27.512080915188033,
+            "p95_mean": 27.65358469978905,
+            "p05_padded": 27.47670496903778,
+            "p95_padded": 27.688960645939304,
+            "files": 2
+          },
+          "Engine Hours": {
+            "p05_mean": 27839.373046875,
+            "p95_mean": 27839.947265625,
+            "p05_padded": 27839.2294921875,
+            "p95_padded": 27840.0908203125,
+            "files": 2
+          },
+          "MAT": {
+            "p05_mean": 79.95576655321781,
+            "p95_mean": 82.55531208902055,
+            "p05_padded": 79.45576655321781,
+            "p95_padded": 83.05531208902055,
+            "files": 2
+          },
+          "TIP": {
+            "p05_mean": 17.58568093565089,
+            "p95_mean": 18.678900069014684,
+            "p05_padded": 17.312376152309938,
+            "p95_padded": 18.952204852355635,
+            "files": 2
+          },
+          "spk_adv": {
+            "p05_mean": 33.0625,
+            "p95_mean": 33.375,
+            "p05_padded": 32.984375,
+            "p95_padded": 33.453125,
+            "files": 2
+          },
+          "MJ_P_cmd": {
+            "p05_mean": -1.1760637046647053,
+            "p95_mean": 0.18721737836510566,
+            "p05_padded": -1.5168839754221581,
+            "p95_padded": 0.5280376491225585,
+            "files": 2
+          },
+          "MJ_P_act": {
+            "p05_mean": -1.1698522456726734,
+            "p95_mean": 0.18536135333354378,
+            "p05_padded": -1.5086556454242277,
+            "p95_padded": 0.5241647530850981,
+            "files": 2
+          },
+          "EGO1_volts": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "EGO2_volts": {
+            "p05_mean": 0.750732421875,
+            "p95_mean": 0.7663708077926252,
+            "p05_padded": 0.7468228253955937,
+            "p95_padded": 0.7702804042720315,
+            "files": 2
+          },
+          "rIAT": {
+            "p05_mean": 74.91578889021132,
+            "p95_mean": 77.54352906661853,
+            "p05_padded": 74.41578889021132,
+            "p95_padded": 78.04352906661853,
+            "files": 2
+          },
+          "BP": {
+            "p05_mean": 13.00390625,
+            "p95_mean": 13.01953125,
+            "p05_padded": 13.0,
+            "p95_padded": 13.0234375,
+            "files": 2
+          },
+          "rMAP": {
+            "p05_mean": 8.8046875,
+            "p95_mean": 9.716404839637612,
+            "p05_padded": 8.576758165090597,
+            "p95_padded": 9.944334174547015,
+            "files": 2
+          },
+          "CL_BM1": {
+            "p05_mean": -0.46342016959388743,
+            "p95_mean": -0.1678466796875,
+            "p05_padded": -0.5373135420704843,
+            "p95_padded": -0.09395330721090314,
+            "files": 2
+          },
+          "A_BM1": {
+            "p05_mean": -0.5900944725923483,
+            "p95_mean": 2.0904541015625,
+            "p05_padded": -1.0900944725923483,
+            "p95_padded": 2.5904541015625,
+            "files": 2
+          },
+          "PWe_avg": {
+            "p05_mean": 44.19627147766307,
+            "p95_mean": 50.844632634306905,
+            "p05_padded": 43.53143536199868,
+            "p95_padded": 51.50946874997129,
+            "files": 2
+          },
+          "FORCEIDLE_active": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "LOWREVLIM_active": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "OILP_state": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "MIL Staus": {
+            "p05_mean": 0.0,
+            "p95_mean": 1.0,
+            "p05_padded": -0.25,
+            "p95_padded": 1.25,
+            "files": 2
+          },
+          "OILP_press": {
+            "p05_mean": 91.25535702710535,
+            "p95_mean": 92.49759859913793,
+            "p05_padded": 90.9447966340972,
+            "p95_padded": 92.80815899214608,
+            "files": 2
+          },
+          "start_tmr": {
+            "p05_mean": 4.920000076293945,
+            "p95_mean": 4.920000076293945,
+            "p05_padded": 4.920000076293945,
+            "p95_padded": 4.920000076293945,
+            "files": 2
+          },
+          "fuel_shutoff_chk": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "spark_shutoff_chk": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "Phi1_post_delt": {
+            "p05_mean": 0.0043737091633103,
+            "p95_mean": 0.010009765625,
+            "p05_padded": 0.002964695047887875,
+            "p95_padded": 0.011418779740422425,
+            "files": 2
+          },
+          "Phi_UEGO": {
+            "p05_mean": 0.9857546689827555,
+            "p95_mean": 1.0495876611697965,
+            "p05_padded": 0.9697964209359953,
+            "p95_padded": 1.0655459092165567,
+            "files": 2
+          },
+          "TPS_pct": {
+            "p05_mean": 24.515318438718253,
+            "p95_mean": 25.709094944245653,
+            "p05_padded": 24.216874312336405,
+            "p95_padded": 26.0075390706275,
+            "files": 2
+          },
+          "TPS_cmd_pct": {
+            "p05_mean": 24.562486191141105,
+            "p95_mean": 25.672548533572904,
+            "p05_padded": 24.284970605533154,
+            "p95_padded": 25.950064119180855,
+            "files": 2
+          },
+          "rpmd_gov": {
+            "p05_mean": 1798.6971086191732,
+            "p95_mean": 1850.0,
+            "p05_padded": 1793.5668194810905,
+            "p95_padded": 1855.1302891380826,
+            "files": 2
+          },
+          "LoadLim_max": {
+            "p05_mean": 98.992919921875,
+            "p95_mean": 99.12403631524724,
+            "p05_padded": 98.96014082353194,
+            "p95_padded": 99.1568154135903,
+            "files": 2
+          },
+          "LoadLim_max_TPS": {
+            "p05_mean": 98.9959716796875,
+            "p95_mean": 98.9959716796875,
+            "p05_padded": 98.9959716796875,
+            "p95_padded": 98.9959716796875,
+            "files": 2
+          },
+          "gov_sw_state": {
+            "p05_mean": 0.0,
+            "p95_mean": 3.0,
+            "p05_padded": -0.5,
+            "p95_padded": 3.5,
+            "files": 2
+          },
+          "KNK_retard": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "gov_type": {
+            "p05_mean": 3.0,
+            "p95_mean": 5.0,
+            "p05_padded": 2.5,
+            "p95_padded": 5.5,
+            "files": 2
+          },
+          "sync_state": {
+            "p05_mean": -2.0,
+            "p95_mean": -2.0,
+            "p05_padded": -2.0,
+            "p95_padded": -2.0,
+            "files": 2
+          },
+          "OILT": {
+            "p05_mean": 189.125,
+            "p95_mean": 191.0,
+            "p05_padded": 188.65625,
+            "p95_padded": 191.46875,
+            "files": 2
+          },
+          "MFG_TPS_cmd_pct": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "MFG_TPS_act_pct": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "MFG_DPPress": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "MFG_USPress": {
+            "p05_mean": 8.52778148651123,
+            "p95_mean": 8.52778148651123,
+            "p05_padded": 8.52778148651123,
+            "p95_padded": 8.52778148651123,
+            "files": 2
+          },
+          "MFG_DSPress": {
+            "p05_mean": 8.52778148651123,
+            "p95_mean": 8.52778148651123,
+            "p05_padded": 8.52778148651123,
+            "p95_padded": 8.52778148651123,
+            "files": 2
+          },
+          "run_mode": {
+            "p05_mean": 3.0,
+            "p95_mean": 3.0,
+            "p05_padded": 3.0,
+            "p95_padded": 3.0,
+            "files": 2
+          },
+          "eng_load": {
+            "p05_mean": 26.975311521516886,
+            "p95_mean": 30.999337283946527,
+            "p05_padded": 25.969305080909475,
+            "p95_padded": 32.00534372455394,
+            "files": 2
+          },
+          "AUX_PD1_raw": {
+            "p05_mean": 1.936917345993196,
+            "p95_mean": 2.052502210821424,
+            "p05_padded": 1.9080211297861391,
+            "p95_padded": 2.081398427028481,
+            "files": 2
+          },
+          "AUX_PU1_raw": {
+            "p05_mean": 4.9983494854501735,
+            "p95_mean": 5.0,
+            "p05_padded": 4.997936856812717,
+            "p95_padded": 5.000412628637457,
+            "files": 2
+          },
+          "AUX_PU2_raw": {
+            "p05_mean": 0.0,
+            "p95_mean": 5.0,
+            "p05_padded": -0.5,
+            "p95_padded": 5.5,
+            "files": 2
+          },
+          "AUX_PU3_raw": {
+            "p05_mean": 1.664224624633789,
+            "p95_mean": 1.7005615440141792,
+            "p05_padded": 1.6551403947886916,
+            "p95_padded": 1.7096457738592767,
+            "files": 2
+          },
+          "AUX_PD2_raw": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.0,
+            "p05_padded": 0.0,
+            "p95_padded": 0.0,
+            "files": 2
+          },
+          "AUX_PD3_raw": {
+            "p05_mean": 0.0,
+            "p95_mean": 0.00021294188721889912,
+            "p05_padded": -5.323547180472478e-05,
+            "p95_padded": 0.0002661773590236239,
+            "files": 2
+          },
+          "AUX_DIG1_volt": {
+            "p05_mean": 2.83203125,
+            "p95_mean": 2.83984375,
+            "p05_padded": 2.830078125,
+            "p95_padded": 2.841796875,
+            "files": 2
+          },
+          "AUX_DIG2_volt": {
+            "p05_mean": 2.8125,
+            "p95_mean": 2.83984375,
+            "p05_padded": 2.8056640625,
+            "p95_padded": 2.8466796875,
+            "files": 2
+          },
+          "AUX_DIG3_volt": {
+            "p05_mean": 2.83203125,
+            "p95_mean": 2.838920195166553,
+            "p05_padded": 2.8303090137083617,
+            "p95_padded": 2.8406424314581913,
+            "files": 2
+          },
+          "min_gov_rpm": {
+            "p05_mean": 1000.0,
+            "p95_mean": 1000.0,
+            "p05_padded": 1000.0,
+            "p95_padded": 1000.0,
+            "files": 2
+          },
+          "max_gov_rpm": {
+            "p05_mean": 1850.0,
+            "p95_mean": 1850.0,
+            "p05_padded": 1850.0,
+            "p95_padded": 1850.0,
+            "files": 2
+          },
+          "Gov1_rpm": {
+            "p05_mean": 1800.0,
+            "p95_mean": 1800.0,
+            "p05_padded": 1800.0,
+            "p95_padded": 1800.0,
+            "files": 2
+          },
+          "Gov2_rpm": {
+            "p05_mean": 1500.0,
+            "p95_mean": 1500.0,
+            "p05_padded": 1500.0,
+            "p95_padded": 1500.0,
+            "files": 2
+          },
+          "Gov3_rpm": {
+            "p05_mean": 1800.0,
+            "p95_mean": 1800.0,
+            "p05_padded": 1800.0,
+            "p95_padded": 1800.0,
+            "files": 2
+          },
+          "gov_min_abslimit": {
+            "p05_mean": 1000.0,
+            "p95_mean": 1000.0,
+            "p05_padded": 1000.0,
+            "p95_padded": 1000.0,
+            "files": 2
+          },
+          "gov_max_abslimit": {
+            "p05_mean": 1850.0,
+            "p95_mean": 1850.0,
+            "p05_padded": 1850.0,
+            "p95_padded": 1850.0,
+            "files": 2
+          }
+        }
+      }
+    }
+  }
+}

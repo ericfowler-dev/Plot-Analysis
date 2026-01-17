@@ -60,12 +60,71 @@ const StatRow = ({ label, value, unit }) => (
   </div>
 );
 
-const formatStatRange = (stats, decimals) => {
-  if (!stats || stats.min == null || stats.max == null) return '—';
-  return `${stats.min.toFixed(decimals)} - ${stats.max.toFixed(decimals)}`;
+const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+
+const formatNumber = (value, decimals) => (
+  isFiniteNumber(value) ? value.toFixed(decimals) : '-'
+);
+
+const TelemetryRange = ({ label, stats, unit, decimals = 1 }) => {
+  if (!stats) return null;
+
+  const { min, max, avg } = stats;
+  const hasRange = isFiniteNumber(min) && isFiniteNumber(max) && isFiniteNumber(avg);
+  const fallbackValue = isFiniteNumber(avg)
+    ? avg
+    : isFiniteNumber(min)
+      ? min
+      : isFiniteNumber(max)
+        ? max
+        : null;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="text-sm text-slate-300 font-semibold leading-tight">{label}</div>
+      {hasRange ? (
+        <div className="text-sm font-mono text-slate-200 leading-tight">
+          Min: {formatNumber(min, decimals)} | Avg: {formatNumber(avg, decimals)} | Max: {formatNumber(max, decimals)}
+          {unit && <span className="text-xs text-slate-500 uppercase"> {unit}</span>}
+        </div>
+      ) : (
+        <div className="text-sm font-mono text-slate-200 leading-tight">
+          Value: {formatNumber(fallbackValue, decimals)}
+          {unit && <span className="text-xs text-slate-500 uppercase"> {unit}</span>}
+        </div>
+      )}
+    </div>
+  );
 };
 
-const safeToFixed = (value, decimals, fallback = '—') => {
+const DiscreteStat = ({ label, value }) => (
+  <div className="flex items-center justify-between text-sm leading-tight">
+    <span className="text-slate-500">{label}</span>
+    <span className="text-slate-200 font-semibold">{value ?? '-'}</span>
+  </div>
+);
+
+const FUEL_TYPE_LABELS = {
+  0: 'Gasoline',
+  1: 'Propane',
+  2: 'Natural Gas'
+};
+
+const normalizeFuelTypeValue = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+    return Math.round(Number(value));
+  }
+  return null;
+};
+
+const getFuelTypeLabel = (value) => {
+  const normalized = normalizeFuelTypeValue(value);
+  if (normalized === null) return 'Unknown';
+  return FUEL_TYPE_LABELS[normalized] ?? 'Unknown';
+};
+
+const safeToFixed = (value, decimals, fallback = '-') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
   return value.toFixed(decimals);
 };
@@ -183,6 +242,22 @@ const BPlotAnalysis = ({
     };
   }, [rawData]);
 
+  const engineHours = useMemo(() => {
+    const hourColumns = ['HM_RAM_seconds', 'Engine Hours', 'Hour Meter'];
+    for (const col of hourColumns) {
+      const hourData = rawData.filter(r => r[col] !== undefined && !isNaN(r[col]));
+      if (hourData.length > 0) {
+        const sorted = [...hourData].sort((a, b) => (a.Time || 0) - (b.Time || 0));
+        return {
+          column: col,
+          start: Math.floor(sorted[0][col]),
+          end: Math.floor(sorted[sorted.length - 1][col])
+        };
+      }
+    }
+    return null;
+  }, [rawData]);
+
   // Get ordered categories for display
   const orderedCategories = useMemo(() => {
     const result = {};
@@ -260,6 +335,10 @@ const BPlotAnalysis = ({
   const channelsWithFaultData = useMemo(() => {
     return getChannelsWithFaultData(ecmFaults);
   }, [ecmFaults]);
+
+  const rpmStats = channelStats.rpm || channelStats.RPM;
+  const fuelTypeValue = timeInStateStats?.fuel_type?.[0]?.state ?? channelStats.fuel_type?.avg;
+  const fuelTypeLabel = getFuelTypeLabel(fuelTypeValue);
 
   const toggleChannel = (channel) => {
     setSelectedChannels(prev => {
@@ -402,7 +481,7 @@ const BPlotAnalysis = ({
       )}
 
       {/* Main Content - Full width for overview and charts, constrained for other tabs */}
-      <main className={`${activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6'} py-6`}>
+      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6"}>
         {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
         {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
           <div className="mb-6 space-y-2">
@@ -419,8 +498,26 @@ const BPlotAnalysis = ({
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Engine Hours */}
+            {engineHours && (
+              <div className="grid grid-cols-2 gap-4">
+                <MetricCard
+                  icon={<Clock className="w-5 h-5 text-orange-400" />}
+                  label="Engine Hours Plot Start"
+                  value={engineHours.start}
+                  unit="hrs"
+                />
+                <MetricCard
+                  icon={<Clock className="w-5 h-5 text-orange-400" />}
+                  label="Engine Hours Plot End"
+                  value={engineHours.end}
+                  unit="hrs"
+                />
+              </div>
+            )}
+
             {/* Summary Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <MetricCard
                 icon={<Clock className="w-5 h-5 text-green-400" />}
                 label="Recording Duration"
@@ -431,70 +528,110 @@ const BPlotAnalysis = ({
                 label="Engine Runtime"
                 value={summary.totalRuntime}
               />
-              <MetricCard
-                icon={<Gauge className="w-5 h-5 text-blue-400" />}
-                label="Avg RPM"
-                value={summary.avgRPM}
-                unit="RPM"
-              />
-              <MetricCard
-                icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
-                label="Max RPM"
-                value={summary.maxRPM}
-                unit="RPM"
-              />
             </div>
 
-            {/* Operating Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-slate-400" />
-                  Operating Statistics
-                </h3>
-                <div className="space-y-2">
-                  <StatRow label="Idle Time" value={summary.idlePercent} />
-                  <StatRow label="Average Load" value={summary.avgLoad} />
-                  <StatRow label="Sample Rate" value={summary.sampleRate} />
-                  <StatRow label="Engine Starts" value={summary.engineStarts} />
-                  <StatRow label="Engine Stops" value={summary.engineStops} />
+            {/* Operating Stats and Key Parameters */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <div className="xl:col-span-3">
+                <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6 h-full">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-slate-400" />
+                    Operating Statistics
+                  </h3>
+                  <div className="space-y-2">
+                    <StatRow label="Idle Time" value={summary.idlePercent} />
+                    <StatRow label="Average Load" value={summary.avgLoad} />
+                    <StatRow label="Sample Rate" value={summary.sampleRate} />
+                    <StatRow label="Engine Starts" value={summary.engineStarts} />
+                    <StatRow label="Engine Stops" value={summary.engineStops} />
+                  </div>
                 </div>
               </div>
-
-              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-slate-400" />
-                  Key Parameters
-                </h3>
-                <div className="space-y-2">
-                  {channelStats.ECT && (
-                    <StatRow
-                      label="Coolant Temp"
-                      value={formatStatRange(channelStats.ECT, 0)}
-                      unit="F"
-                    />
-                  )}
-                  {channelStats.Vbat && (
-                    <StatRow
-                      label="Battery Voltage"
-                      value={formatStatRange(channelStats.Vbat, 1)}
-                      unit="V"
-                    />
-                  )}
-                  {channelStats.MAP && (
-                    <StatRow
-                      label="MAP Range"
-                      value={formatStatRange(channelStats.MAP, 1)}
-                      unit="psia"
-                    />
-                  )}
-                  {channelStats.TPS_pct && (
-                    <StatRow
-                      label="Throttle Range"
-                      value={formatStatRange(channelStats.TPS_pct, 0)}
-                      unit="%"
-                    />
-                  )}
+              <div className="xl:col-span-9">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-slate-400" />
+                    <h3 className="text-lg font-semibold">Key Parameters <span className="text-sm text-slate-500">BY SYSTEM</span></h3>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4 transition-colors hover:border-cyan-400/40 hover:shadow-[0_0_18px_rgba(34,211,238,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-cyan-400">Electrical System</h3>
+                    </div>
+                    <div className="divide-y divide-cyan-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Battery Voltage" stats={channelStats.Vbat} unit="V" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-green-400/20 p-4 transition-colors hover:border-green-400/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-green-400">Engine Speed & Load</h3>
+                    </div>
+                    <div className="divide-y divide-green-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="RPM" stats={rpmStats} unit="RPM" decimals={0} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4 transition-colors hover:border-cyan-400/40 hover:shadow-[0_0_18px_rgba(34,211,238,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-cyan-400">Air Intake</h3>
+                    </div>
+                    <div className="divide-y divide-cyan-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Manifold Absolute Pressure" stats={channelStats.MAP} unit="psia" decimals={1} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Intake Air Temperature" stats={channelStats.IAT} unit="F" decimals={1} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Throttle Inlet Pressure" stats={channelStats.TIP} unit="psia" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-orange-400/20 p-4 transition-colors hover:border-orange-400/40 hover:shadow-[0_0_18px_rgba(251,146,60,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-orange-400">Thermal Management</h3>
+                    </div>
+                    <div className="divide-y divide-orange-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Engine Coolant Temp" stats={channelStats.ECT} unit="F" decimals={0} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-yellow-400/20 p-4 transition-colors hover:border-yellow-400/40 hover:shadow-[0_0_18px_rgba(250,204,21,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-yellow-400">Lubrication</h3>
+                    </div>
+                    <div className="divide-y divide-yellow-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Oil Pressure" stats={channelStats.OILP_press} unit="psi" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-green-400/20 p-4 transition-colors hover:border-green-400/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-green-400">Fuel & Combustion</h3>
+                    </div>
+                    <div className="divide-y divide-emerald-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Phi UEGO" stats={channelStats.Phi_UEGO} decimals={2} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Closed Loop Fuel Correction" stats={channelStats.CL_BM1} unit="%" decimals={2} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Adaptive Learn Fuel Correction" stats={channelStats.A_BM1} unit="%" decimals={2} />
+                      </div>
+                    </div>
+                    {(timeInStateStats?.fuel_type?.length || channelStats.fuel_type) && (
+                      <div className="mt-4 border-t border-slate-800/80 pt-3">
+                        <DiscreteStat label="Fuel Type" value={fuelTypeLabel} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

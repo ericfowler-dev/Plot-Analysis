@@ -262,7 +262,7 @@ export const BPLOT_PARAMETERS = {
   fuel_type: {
     name: 'Fuel Type',
     unit: '',
-    description: '0=Gasoline; 1=Propane; 2=NG',
+    description: '0=Gasoline; 1=Propane; 2=Natural Gas',
     category: 'engine',
     hideAverage: true
   },
@@ -293,10 +293,10 @@ export const BPLOT_PARAMETERS = {
     description: 'Calculated engine load percentage',
     category: 'engine'
   },
-  sync_state: {
-    name: 'Sync State',
+  run_mode: {
+    name: 'System Run Mode',
     unit: '',
-    description: '>0=presync; 0=stopped; -1=crank syncd; -2=Crank and Cam Syncd',
+    description: '0=Stopped; 1=Cranking; 2=Warmup; 3=Engine Running',
     category: 'engine',
     hideAverage: true,
     showTimeInState: true
@@ -817,7 +817,7 @@ export const VALUE_MAPPINGS = {
   fuel_type: {
     0: 'Gasoline',
     1: 'Propane',
-    2: 'NG'
+    2: 'Natural Gas'
   },
   fuel_ctl_mode: {
     0: 'Open Loop',
@@ -852,6 +852,12 @@ export const VALUE_MAPPINGS = {
   spark_shutoff_chk: {
     0: 'Off (spark enabled)',
     1: 'On (Spark Disabled)'
+  },
+  run_mode: {
+    0: 'Stopped',
+    1: 'Cranking',
+    2: 'Warmup',
+    3: 'Engine Running'
   }
 };
 
@@ -891,7 +897,7 @@ export const TIME_IN_STATE_CHANNELS = [
   'MILout_mirror',
   'gov_sw_state',
   'gov_type',
-  'sync_state',
+  'run_mode',
   'fuel_shutoff_chk',
   'spark_shutoff_chk',
   'OILP_state'

@@ -1,6 +1,6 @@
 {
-  "version": 8,
-  "lastUpdated": "2026-01-16T20:03:22.259Z",
+  "version": 9,
+  "lastUpdated": "2026-01-17T15:25:37.593Z",
   "audit": [
     {
       "version": 2,
@@ -71,6 +71,15 @@
       "version": 8,
       "timestamp": "2026-01-16T20:03:22.259Z",
       "actor": "EF",
+      "action": "profile.update",
+      "details": {
+        "profileId": "global-defaults"
+      }
+    },
+    {
+      "version": 9,
+      "timestamp": "2026-01-17T15:25:37.593Z",
+      "actor": "admin",
       "action": "profile.update",
       "details": {
         "profileId": "global-defaults"

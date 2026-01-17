@@ -1,0 +1,42 @@
+{
+  "metadata_version": "1.0",
+  "description": "Metadata for PSI engine baseline CSV files",
+  "last_updated": "2026-01-17",
+  
+  "files": [
+    {
+      "filename": "1_22L_MLink_27839_HRs_Primary ECM.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "High hour engine - 27,839 hours",
+      "operating_conditions": {
+        "rpm_range": "1800",
+        "load_profile": "steady-state",
+        "fuel_control_mode": "Closed Loop + Adaptive"
+      },
+      "file_stats": {
+        "rows": 1127,
+        "columns": 67,
+        "hour_meter": 27839
+      }
+    }
+  ],
+
+  "_schema": {
+    "filename": "Exact CSV filename",
+    "product_group": "PSI HD | PSI Industrial",
+    "engine_size": "Displacement string (e.g., 22L, 17L, 8.8L, 5.7L)",
+    "application": "Power Systems | Generator | Pump | Compressor | Enclosure | Industrial",
+    "quality": "good | marginal | known_issue",
+    "notes": "Free text description",
+    "operating_conditions": {
+      "rpm_range": "idle | 1500 | 1800 | variable | idle to full",
+      "load_profile": "idle | steady-state | variable | transient | full-load",
+      "fuel_control_mode": "Open Loop | Closed Loop | CL + Adaptive"
+    }
+  },
+
+  "_instructions": "Add new file entries to the 'files' array as you upload more CSVs"
+}

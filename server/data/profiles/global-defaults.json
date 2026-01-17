@@ -6,10 +6,10 @@
   "engineFamily": null,
   "fuelType": null,
   "application": null,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-16T20:03:22.238Z",
+  "lastModified": "2026-01-17T15:25:37.577Z",
   "modifiedBy": "system",
   "thresholds": {
     "battery": {
@@ -274,7 +274,7 @@
       "id": "tip-map-delta",
       "name": "TIP/MAP Delta",
       "description": "TIP / MAP Delta Pressure Issue - Possible Wastegate Adjustment Issue",
-      "enabled": true,
+      "enabled": false,
       "conditions": [],
       "logic": "AND",
       "duration": 0,
