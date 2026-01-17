@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-17T21:05:18.538Z",
+  "groups": [
+    {
+      "name": "PSI HD",
+      "archived": false
+    },
+    {
+      "name": "PSI Industrial",
+      "archived": false
+    }
+  ],
+  "sizes": [
+    {
+      "group": "PSI HD",
+      "name": "17L",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "name": "22L",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "name": "32L",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "name": "53L",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "name": "2.4L",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "name": "5.7L",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "name": "6.0L",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "name": "8.8L",
+      "archived": false
+    }
+  ],
+  "applications": [
+    {
+      "group": "PSI HD",
+      "size": "17L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "size": "22L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "size": "32L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI HD",
+      "size": "53L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "2.4L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "5.7L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "6.0L",
+      "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "8.8L",
+      "name": "Power Systems",
+      "archived": false
+    }
+  ]
+}
