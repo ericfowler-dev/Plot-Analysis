@@ -14,7 +14,7 @@ import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultS
 import AppHeader from './AppHeader';
 
 // Maximum channels that can be selected for charting
-const MAX_CHART_CHANNELS = 8;
+const MAX_CHART_CHANNELS = 20;
 
 // =============================================================================
 // HELPER COMPONENTS
@@ -30,7 +30,7 @@ const MILStatusIndicator = ({ isActive }) => (
     <div
       className={`w-4 h-4 rounded-full transition-all duration-300 ${
         isActive
-          ? 'bg-red-500 shadow-[0_0_12px_4px_rgba(239,68,68,0.6)] animate-pulse'
+          ? 'bg-red-500 shadow-[0_0_12px_4px_rgba(239,68,68,0.2)] animate-pulse'
           : 'bg-slate-600'
       }`}
     />
@@ -70,12 +70,16 @@ const safeToFixed = (value, decimals, fallback = '—') => {
   return value.toFixed(decimals);
 };
 
-const AlertCard = ({ alert }) => {
+const AlertCard = ({ alert, onClick, isHighlighted }) => {
   const bgColor = alert.severity === 'critical' ? 'bg-red-950/50 border-red-500/50' : 'bg-yellow-950/50 border-yellow-500/50';
+  const hoverBg = alert.severity === 'critical' ? 'hover:bg-red-900/30' : 'hover:bg-amber-900/20';
   const iconColor = alert.severity === 'critical' ? 'text-red-400' : 'text-yellow-400';
 
   return (
-    <div className={`${bgColor} border rounded-lg p-4`}>
+    <div
+      className={`${bgColor} ${hoverBg} border rounded-lg p-4 cursor-pointer transition-colors ${isHighlighted ? 'ring-2 ring-white/50' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start gap-3">
         {alert.severity === 'critical' ?
           <AlertCircle className={`w-5 h-5 ${iconColor} mt-0.5`} /> :
@@ -119,6 +123,7 @@ const BPlotAnalysis = ({
   const [expandedCategories, setExpandedCategories] = useState({ engine: true });
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [showFileBoundaries, setShowFileBoundaries] = useState(true);
+  const [highlightedChannel, setHighlightedChannel] = useState(null);
 
   const {
     timeInfo,
@@ -273,6 +278,25 @@ const BPlotAnalysis = ({
     }));
   };
 
+  const handleAlertClick = (channel) => {
+    // Toggle highlight off if clicking same channel
+    if (highlightedChannel === channel) {
+      setHighlightedChannel(null);
+      return;
+    }
+    // Set highlight and ensure channel is selected
+    setHighlightedChannel(channel);
+    if (!selectedChannels.includes(channel)) {
+      setSelectedChannels(prev => {
+        if (prev.length >= MAX_CHART_CHANNELS) {
+          // Replace last channel if at max
+          return [...prev.slice(0, -1), channel];
+        }
+        return [...prev, channel];
+      });
+    }
+  };
+
   // =============================================================================
   // RENDER
   // =============================================================================
@@ -377,13 +401,18 @@ const BPlotAnalysis = ({
         </div>
       )}
 
-      {/* Main Content - Full width for charts, constrained for other tabs */}
-      <main className={`${activeTab === 'charts' ? 'px-6' : 'max-w-7xl mx-auto'} p-6`}>
+      {/* Main Content - Full width for overview and charts, constrained for other tabs */}
+      <main className={`${activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6'} py-6`}>
         {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
         {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
           <div className="mb-6 space-y-2">
             {alerts.map((alert, i) => (
-              <AlertCard key={i} alert={alert} />
+              <AlertCard
+                key={i}
+                alert={alert}
+                onClick={() => handleAlertClick(alert.channel)}
+                isHighlighted={highlightedChannel === alert.channel}
+              />
             ))}
           </div>
         )}
@@ -417,7 +446,7 @@ const BPlotAnalysis = ({
             </div>
 
             {/* Operating Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
               <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Settings className="w-5 h-5 text-slate-400" />
@@ -473,7 +502,7 @@ const BPlotAnalysis = ({
             {/* Quick Chart Preview - RPM & MAP */}
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
               <h3 className="text-lg font-semibold mb-4">RPM & MAP Over Time</h3>
-              <div className="h-72">
+              <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -537,7 +566,12 @@ const BPlotAnalysis = ({
             {alerts.length > 0 && (
               <div className="space-y-2">
                 {alerts.map((alert, i) => (
-                  <AlertCard key={i} alert={alert} />
+                  <AlertCard
+                    key={i}
+                    alert={alert}
+                    onClick={() => handleAlertClick(alert.channel)}
+                    isHighlighted={highlightedChannel === alert.channel}
+                  />
                 ))}
               </div>
             )}
@@ -548,7 +582,7 @@ const BPlotAnalysis = ({
           <>
           <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
             {/* Sidebar - Channel Selection */}
-            <aside className="w-full lg:w-64 max-h-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
+            <aside className="w-full lg:w-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
               <div className="p-4 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-slate-300">
@@ -676,8 +710,9 @@ const BPlotAnalysis = ({
                         dataKey={channel}
                         stroke={Object.values(CATEGORY_COLORS)[i % Object.values(CATEGORY_COLORS).length]}
                         dot={false}
-                        strokeWidth={2}
+                        strokeWidth={highlightedChannel === channel ? 4 : 2}
                         name={BPLOT_PARAMETERS[channel]?.name || channel}
+                        style={highlightedChannel === channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
                       />
                     ))}
                     {/* File boundary markers for multi-file view */}
@@ -731,7 +766,12 @@ const BPlotAnalysis = ({
           {alerts.length > 0 && (
             <div className="mt-6 space-y-2 max-w-7xl mx-auto">
               {alerts.map((alert, i) => (
-                <AlertCard key={i} alert={alert} />
+                <AlertCard
+                  key={i}
+                  alert={alert}
+                  onClick={() => handleAlertClick(alert.channel)}
+                  isHighlighted={highlightedChannel === alert.channel}
+                />
               ))}
             </div>
           )}
