@@ -2162,7 +2162,7 @@ const PlotAnalyzer = () => {
               </div>
               <div>
                 <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
-                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.2.5</p>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.3.0</p>
               </div>
             </div>
             <button
