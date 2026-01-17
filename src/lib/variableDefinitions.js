@@ -67,10 +67,10 @@ export const VARIABLE_DEFINITIONS = {
   },
   OILP_state: {
     name: 'Oil Pressure State',
-    description: 'Oil pressure state (0=OK, 2=LOW)',
+    description: 'Oil pressure state (0=OK, 1=Not OK, 2=OK)',
     unit: '',
     category: 'thermal',
-    values: { 0: 'OK', 2: 'LOW' }
+    values: { 0: 'OK', 1: 'NOT OK', 2: 'OK' }
   },
 
   // Temperature
@@ -114,9 +114,9 @@ export const VARIABLE_DEFINITIONS = {
   },
   Phi_UEGO: {
     name: 'UEGO Phi',
-    description: 'UEGO phi sensor 1 - Equivalence ratio',
-    unit: 'λ',
-    range: 'Stoichiometric (Φ=1), Lean (Φ<1), Rich (Φ>1)',
+    description: '1.0 = Stoich, <1 Rich | >1 Lean',
+    unit: '?',
+    range: '1.0 = Stoich, <1 Rich | >1 Lean',
     category: 'fuel'
   },
 
@@ -139,7 +139,7 @@ export const VARIABLE_DEFINITIONS = {
   rpmd_gov: { name: 'Governor Target', description: 'RPM trajectory target', unit: 'RPM', category: 'control' },
   spk_adv: { name: 'Spark Advance', description: 'Total final spark advance (°CAD BTDC)', unit: '°', category: 'timing' },
   run_tmr_sec: { name: 'Run Timer', description: 'Engine run time in seconds', unit: 'sec', category: 'timing' },
-  start_tmr: { name: 'Start Time', description: 'Time from crank speed to run speed', unit: 'sec', category: 'timing' },
+  start_tmr: { name: 'Start Time', description: 'Engine Start Time', unit: 'sec', category: 'timing' },
   HM_hours: { name: 'Hour Meter', description: 'Engine hour meter', unit: 'hours', category: 'timing' },
   HM_RAM_seconds: { name: 'Hour Meter (RAM)', description: 'Engine hour-meter including offset', unit: 'sec', category: 'timing' },
 
@@ -180,11 +180,11 @@ export const VARIABLE_DEFINITIONS = {
   MJ_P_cmd: { name: 'EPR Command Pressure', description: 'EPR pressure command', unit: 'psi', category: 'fuel' },
 
   // MFG (Mixer/Fuel Gas)
-  MFG_DPPress: { name: 'MFG Delta Pressure', description: 'Delta pressure between upstream and downstream MFG', unit: 'psi', category: 'fuel' },
-  MFG_DSPress: { name: 'MFG Downstream Pressure', description: 'Pressure downstream of MFG throttle blade', unit: 'psi', category: 'fuel' },
-  MFG_USPress: { name: 'MFG Upstream Pressure', description: 'Pressure upstream of MFG throttle blade', unit: 'psi', category: 'fuel' },
-  MFG_TPS_act_pct: { name: 'MFG Throttle Actual', description: 'MFG actual throttle position %', unit: '%', category: 'fuel' },
-  MFG_TPS_cmd_pct: { name: 'MFG Throttle Command', description: 'MFG commanded throttle position %', unit: '%', category: 'fuel' },
+  MFG_DPPress: { name: 'Mass Flow Gas Valve Delta Pressure', description: 'Mass Flow Gas Valve delta pressure', unit: 'psi', category: 'fuel' },
+  MFG_DSPress: { name: 'Mass Flow Gas Valve Downstream Pressure', description: 'Mass Flow Gas Valve downstream pressure', unit: 'psi', category: 'fuel' },
+  MFG_USPress: { name: 'Mass Flow Gas Valve Upstream Pressure', description: 'Mass Flow Gas Valve upstream pressure', unit: 'psi', category: 'fuel' },
+  MFG_TPS_act_pct: { name: 'MFG Throttle Actual', description: 'Mass Flow Gas Valve throttle percent', unit: '%', category: 'fuel' },
+  MFG_TPS_cmd_pct: { name: 'MFG Throttle Command', description: 'Mass Flow Gas Valve throttle percent', unit: '%', category: 'fuel' },
 
   // Electrical
   Vbat: { name: 'Battery Voltage', description: 'Battery voltage', unit: 'V', category: 'electrical' },
@@ -228,7 +228,7 @@ export const VARIABLE_DEFINITIONS = {
 
   // Load Limiting
   LoadLim_max_pct: { name: 'Load Limit Max %', description: 'Load limiting function maximum load', unit: '%', category: 'control' },
-  LoadLim_max_TPS: { name: 'Load Limit Max TPS', description: 'Load limiting function maximum allowed TPS', unit: '%', category: 'control' },
+  LoadLim_max_TPS: { name: 'Load Limit Max TPS', description: 'This value indicates the maximum allowable Throttle % based on ECM load limits', unit: '%', category: 'control' },
 
   // Status/Outputs
   FORCEIDLE_active: {
@@ -261,10 +261,10 @@ export const VARIABLE_DEFINITIONS = {
   },
   sync_state: {
     name: 'Sync State',
-    description: 'Engine synchronization state',
+    description: '0 or >0 = Pre-Sync; -1 = Crank Sync; -2 = Crank and Cam Sync\'d',
     unit: '',
     category: 'timing',
-    values: { '-2': 'Cam', '-1': 'Crank', '0': 'Stopped' }
+    values: { '-2': 'Crank and Cam Sync\'d', '-1': 'Crank Sync', '0': 'Pre-Sync' }
   },
 
   // VE Feedback

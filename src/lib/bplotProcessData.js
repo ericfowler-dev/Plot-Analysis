@@ -70,6 +70,9 @@ export function calculateTimeInState(data, channelName) {
 
     const val = currentRow[channelName];
     if (val === undefined || val === null || isNaN(val)) continue;
+    if (channelName === 'OILP_state' && val !== 0 && val !== 1 && val !== 2) {
+      continue;
+    }
 
     // Calculate actual time delta
     const dt = currentRow.Time - prevRow.Time;
