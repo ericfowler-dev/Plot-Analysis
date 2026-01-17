@@ -1,0 +1,15 @@
+{
+  "profileId": "psi-hd-22l-powersystems",
+  "name": "PSI HD 22L Power Systems",
+  "description": "PSI HD 22L for Power Systems applications, tuned from baseline data (high-hour steady-state ~1800 RPM)",
+  "parent": "psi-hd-base",
+  "engineFamily": "PSI HD 22L",
+  "fuelType": "natural_gas",
+  "application": "Power Systems",
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-17T00:00:00Z",
+  "lastModified": "2026-01-17T15:00:00Z",
+  "modifiedBy": "cline",
+  "thresholds": {
+    "oilPressure

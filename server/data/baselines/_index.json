@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-17T21:05:18.538Z",
+  "lastUpdated": "2026-01-16T19:44:41.011Z",
   "groups": [
     {
       "name": "PSI HD",
@@ -51,6 +51,11 @@
       "group": "PSI Industrial",
       "name": "8.8L",
       "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "name": "4.3L",
+      "archived": false
     }
   ],
   "applications": [
@@ -100,6 +105,36 @@
       "group": "PSI Industrial",
       "size": "8.8L",
       "name": "Power Systems",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "4.3L",
+      "name": "Power Gen - Prime",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "4.3L",
+      "name": "Power Gen - Standby",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "4.3L",
+      "name": "Mobile - LP Fuel",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "4.3L",
+      "name": "Mobile - Gasoline Fuel",
+      "archived": false
+    },
+    {
+      "group": "PSI Industrial",
+      "size": "8.8L",
+      "name": "Power Gen - Standby",
       "archived": false
     }
   ]

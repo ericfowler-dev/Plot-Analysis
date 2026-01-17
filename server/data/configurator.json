@@ -1,0 +1,89 @@
+{
+  "version": 9,
+  "lastUpdated": "2026-01-17T15:25:37.593Z",
+  "audit": [
+    {
+      "version": 2,
+      "timestamp": "2026-01-16T19:42:53.455Z",
+      "actor": "EF",
+      "action": "baseline.size.create",
+      "details": {
+        "group": "PSI Industrial",
+        "name": "4.3L"
+      }
+    },
+    {
+      "version": 3,
+      "timestamp": "2026-01-16T19:43:24.052Z",
+      "actor": "EF",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI Industrial",
+        "size": "4.3L",
+        "name": "Power Gen - Prime"
+      }
+    },
+    {
+      "version": 4,
+      "timestamp": "2026-01-16T19:43:33.069Z",
+      "actor": "EF",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI Industrial",
+        "size": "4.3L",
+        "name": "Power Gen - Standby"
+      }
+    },
+    {
+      "version": 5,
+      "timestamp": "2026-01-16T19:43:49.197Z",
+      "actor": "EF",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI Industrial",
+        "size": "4.3L",
+        "name": "Mobile - LP Fuel"
+      }
+    },
+    {
+      "version": 6,
+      "timestamp": "2026-01-16T19:43:57.260Z",
+      "actor": "EF",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI Industrial",
+        "size": "4.3L",
+        "name": "Mobile - Gasoline Fuel"
+      }
+    },
+    {
+      "version": 7,
+      "timestamp": "2026-01-16T19:44:41.025Z",
+      "actor": "EF",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI Industrial",
+        "size": "8.8L",
+        "name": "Power Gen - Standby"
+      }
+    },
+    {
+      "version": 8,
+      "timestamp": "2026-01-16T20:03:22.259Z",
+      "actor": "EF",
+      "action": "profile.update",
+      "details": {
+        "profileId": "global-defaults"
+      }
+    },
+    {
+      "version": 9,
+      "timestamp": "2026-01-17T15:25:37.593Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "global-defaults"
+      }
+    }
+  ]
+}

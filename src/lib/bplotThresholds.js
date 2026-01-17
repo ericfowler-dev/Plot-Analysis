@@ -262,7 +262,7 @@ export const BPLOT_PARAMETERS = {
   fuel_type: {
     name: 'Fuel Type',
     unit: '',
-    description: '0=Gasoline; 1=Propane; 2=NG',
+    description: '0=Gasoline; 1=Propane; 2=Natural Gas',
     category: 'engine',
     hideAverage: true
   },
@@ -283,9 +283,18 @@ export const BPLOT_PARAMETERS = {
   start_tmr: {
     name: 'Start Timer',
     unit: 's',
-    description: 'Time since engine start',
+    description: 'Engine Start Time',
     category: 'engine',
-    hideAverage: true
+    hideAverage: true,
+    showMaxOnly: true
+  },
+  sync_state: {
+    name: 'Sync State',
+    unit: '',
+    description: '0 or >0 = Pre-Sync; -1 = Crank Sync; -2 = Crank and Cam Sync\'d',
+    category: 'engine',
+    hideAverage: true,
+    showTimeInState: true
   },
   eng_load: {
     name: 'Engine Load',
@@ -293,10 +302,10 @@ export const BPLOT_PARAMETERS = {
     description: 'Calculated engine load percentage',
     category: 'engine'
   },
-  sync_state: {
-    name: 'Sync State',
+  run_mode: {
+    name: 'System Run Mode',
     unit: '',
-    description: '>0=presync; 0=stopped; -1=crank syncd; -2=Crank and Cam Syncd',
+    description: '0=Stopped; 1=Cranking; 2=Warmup; 3=Engine Running',
     category: 'engine',
     hideAverage: true,
     showTimeInState: true
@@ -418,7 +427,7 @@ export const BPLOT_PARAMETERS = {
   LoadLim_max_TPS: {
     name: 'Load Limit Max TPS',
     unit: '%',
-    description: 'Load limit maximum TPS',
+    description: 'This value indicates the maximum allowable Throttle % based on ECM load limits',
     category: 'speed_control'
   },
   gov_max_abslimit: {
@@ -490,7 +499,7 @@ export const BPLOT_PARAMETERS = {
   Phi_UEGO: {
     name: 'UEGO Phi',
     unit: '',
-    description: 'UEGO sensor equivalence ratio',
+    description: '1.0 = Stoich, <1 Rich | >1 Lean',
     category: 'fuel'
   },
   Phi1_post_delt: {
@@ -501,40 +510,40 @@ export const BPLOT_PARAMETERS = {
   },
   // MFG Fuel-related items
   MFG_DPPress: {
-    name: 'MFG Delta Press - DP',
+    name: 'Mass Flow Gas Valve Delta Pressure',
     unit: 'psi',
-    description: 'Manufacturing differential pressure (Flag if < 0.5 during run)',
+    description: 'Mass Flow Gas Valve differential pressure (Flag if < 0.5 during run)',
     category: 'fuel',
     warningThreshold: 0.5
   },
   MFG_DSPress: {
-    name: 'MFG Downstream Pressure',
+    name: 'Mass Flow Gas Valve Downstream Pressure',
     unit: 'psi',
-    description: 'Manufacturing downstream pressure',
+    description: 'Mass Flow Gas Valve downstream pressure',
     category: 'fuel'
   },
   MFG_DSPressdt: {
-    name: 'MFG Downstream Pressure',
+    name: 'Mass Flow Gas Valve Downstream Pressure',
     unit: 'psi',
-    description: 'Manufacturing downstream pressure (dt variant)',
+    description: 'Mass Flow Gas Valve downstream pressure (dt variant)',
     category: 'fuel'
   },
   MFG_USPress: {
-    name: 'MFG Upstream Pressure',
+    name: 'Mass Flow Gas Valve Upstream Pressure',
     unit: 'psi',
-    description: 'Manufacturing upstream pressure',
+    description: 'Mass Flow Gas Valve upstream pressure',
     category: 'fuel'
   },
   MFG_TPS_act_pct: {
     name: 'MFG Throttle Actual %',
     unit: '%',
-    description: 'Manufacturing throttle actual percent',
+    description: 'Mass Flow Gas Valve throttle percent',
     category: 'fuel'
   },
   MFG_TPS_cmd_pct: {
     name: 'MFG Throttle Command %',
     unit: '%',
-    description: 'Manufacturing throttle command percent',
+    description: 'Mass Flow Gas Valve throttle percent',
     category: 'fuel'
   },
   FT: {
@@ -712,7 +721,7 @@ export const BPLOT_PARAMETERS = {
   OILP_state: {
     name: 'Oil Pressure State',
     unit: '',
-    description: 'Oil pressure monitoring state',
+    description: '0/1/2 = OK',
     category: 'system'
   },
   DERATE1_active: {
@@ -817,7 +826,7 @@ export const VALUE_MAPPINGS = {
   fuel_type: {
     0: 'Gasoline',
     1: 'Propane',
-    2: 'NG'
+    2: 'Natural Gas'
   },
   fuel_ctl_mode: {
     0: 'Open Loop',
@@ -847,11 +856,18 @@ export const VALUE_MAPPINGS = {
   },
   OILP_state: {
     0: 'OK',
-    2: 'LOW'
+    1: 'OK',
+    2: 'OK'
   },
   spark_shutoff_chk: {
     0: 'Off (spark enabled)',
     1: 'On (Spark Disabled)'
+  },
+  run_mode: {
+    0: 'Stopped',
+    1: 'Cranking',
+    2: 'Warmup',
+    3: 'Engine Running'
   }
 };
 
@@ -859,10 +875,9 @@ export const VALUE_MAPPINGS = {
  * Special mapping for sync_state (uses ranges, not exact values)
  */
 export function getSyncStateDisplay(value) {
-  if (value > 0) return 'presync';
-  if (value === 0) return 'stopped';
-  if (value === -1) return 'crank';
-  if (value === -2) return 'Crank and Cam Syncd';
+  if (value >= 0) return 'Pre-Sync';
+  if (value === -1) return 'Crank Sync';
+  if (value === -2) return 'Crank and Cam Sync\'d';
   return String(value);
 }
 
@@ -891,7 +906,7 @@ export const TIME_IN_STATE_CHANNELS = [
   'MILout_mirror',
   'gov_sw_state',
   'gov_type',
-  'sync_state',
+  'run_mode',
   'fuel_shutoff_chk',
   'spark_shutoff_chk',
   'OILP_state'

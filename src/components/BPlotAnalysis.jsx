@@ -9,12 +9,13 @@ import {
   ChevronDown, ChevronRight, Droplets, Settings, FileText, Eye, EyeOff, Upload
 } from 'lucide-react';
 import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
+import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
 import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
 import AppHeader from './AppHeader';
 
 // Maximum channels that can be selected for charting
-const MAX_CHART_CHANNELS = 8;
+const MAX_CHART_CHANNELS = 20;
 
 // =============================================================================
 // HELPER COMPONENTS
@@ -30,7 +31,7 @@ const MILStatusIndicator = ({ isActive }) => (
     <div
       className={`w-4 h-4 rounded-full transition-all duration-300 ${
         isActive
-          ? 'bg-red-500 shadow-[0_0_12px_4px_rgba(239,68,68,0.6)] animate-pulse'
+          ? 'bg-red-500 shadow-[0_0_12px_4px_rgba(239,68,68,0.2)] animate-pulse'
           : 'bg-slate-600'
       }`}
     />
@@ -60,22 +61,119 @@ const StatRow = ({ label, value, unit }) => (
   </div>
 );
 
-const formatStatRange = (stats, decimals) => {
-  if (!stats || stats.min == null || stats.max == null) return '—';
-  return `${stats.min.toFixed(decimals)} - ${stats.max.toFixed(decimals)}`;
+const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+
+const formatNumber = (value, decimals) => (
+  isFiniteNumber(value) ? value.toFixed(decimals) : '-'
+);
+
+const TelemetryRange = ({ label, stats, unit, decimals = 1 }) => {
+  if (!stats) return null;
+
+  const { min, max, avg } = stats;
+  const hasRange = isFiniteNumber(min) && isFiniteNumber(max) && isFiniteNumber(avg);
+  const fallbackValue = isFiniteNumber(avg)
+    ? avg
+    : isFiniteNumber(min)
+      ? min
+      : isFiniteNumber(max)
+        ? max
+        : null;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="text-sm text-slate-300 font-semibold leading-tight">{label}</div>
+      {hasRange ? (
+        <div className="text-sm font-mono text-slate-200 leading-tight">
+          Min: {formatNumber(min, decimals)} | Avg: {formatNumber(avg, decimals)} | Max: {formatNumber(max, decimals)}
+          {unit && <span className="text-xs text-slate-500 uppercase"> {unit}</span>}
+        </div>
+      ) : (
+        <div className="text-sm font-mono text-slate-200 leading-tight">
+          Value: {formatNumber(fallbackValue, decimals)}
+          {unit && <span className="text-xs text-slate-500 uppercase"> {unit}</span>}
+        </div>
+      )}
+    </div>
+  );
 };
 
-const safeToFixed = (value, decimals, fallback = '—') => {
+const DiscreteStat = ({ label, value }) => (
+  <div className="flex items-center justify-between text-sm leading-tight">
+    <span className="text-slate-500">{label}</span>
+    <span className="text-slate-200 font-semibold">{value ?? '-'}</span>
+  </div>
+);
+
+const PARAMETER_DEFINITIONS_4G = new Map(
+  (parameterDefinitions4g?.parameters || []).map((param) => [param.name, param.definition])
+);
+
+const get4GDefinition = (channelName) => PARAMETER_DEFINITIONS_4G.get(channelName);
+
+const mergeTimeInStateByLabel = (stateStats) => {
+  if (!stateStats || stateStats.length === 0) return stateStats;
+
+  const grouped = new Map();
+  let totalDuration = 0;
+
+  stateStats.forEach((entry) => {
+    totalDuration += entry.durationSeconds || 0;
+    const key = entry.displayName || String(entry.state);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        displayName: key,
+        durationSeconds: 0,
+        transitions: 0
+      });
+    }
+    const current = grouped.get(key);
+    current.durationSeconds += entry.durationSeconds || 0;
+    current.transitions += entry.transitions || 0;
+  });
+
+  return Array.from(grouped.values()).map((entry) => ({
+    ...entry,
+    percentage: totalDuration > 0 ? (entry.durationSeconds / totalDuration) * 100 : 0,
+    durationFormatted: formatDuration(entry.durationSeconds)
+  })).sort((a, b) => b.percentage - a.percentage);
+};
+
+const FUEL_TYPE_LABELS = {
+  0: 'Gasoline',
+  1: 'Propane',
+  2: 'Natural Gas'
+};
+
+const normalizeFuelTypeValue = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+    return Math.round(Number(value));
+  }
+  return null;
+};
+
+const getFuelTypeLabel = (value) => {
+  const normalized = normalizeFuelTypeValue(value);
+  if (normalized === null) return 'Unknown';
+  return FUEL_TYPE_LABELS[normalized] ?? 'Unknown';
+};
+
+const safeToFixed = (value, decimals, fallback = '-') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
   return value.toFixed(decimals);
 };
 
-const AlertCard = ({ alert }) => {
+const AlertCard = ({ alert, onClick, isHighlighted }) => {
   const bgColor = alert.severity === 'critical' ? 'bg-red-950/50 border-red-500/50' : 'bg-yellow-950/50 border-yellow-500/50';
+  const hoverBg = alert.severity === 'critical' ? 'hover:bg-red-900/30' : 'hover:bg-amber-900/20';
   const iconColor = alert.severity === 'critical' ? 'text-red-400' : 'text-yellow-400';
 
   return (
-    <div className={`${bgColor} border rounded-lg p-4`}>
+    <div
+      className={`${bgColor} ${hoverBg} border rounded-lg p-4 cursor-pointer transition-colors ${isHighlighted ? 'ring-2 ring-white/50' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start gap-3">
         {alert.severity === 'critical' ?
           <AlertCircle className={`w-5 h-5 ${iconColor} mt-0.5`} /> :
@@ -119,6 +217,7 @@ const BPlotAnalysis = ({
   const [expandedCategories, setExpandedCategories] = useState({ engine: true });
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [showFileBoundaries, setShowFileBoundaries] = useState(true);
+  const [highlightedChannel, setHighlightedChannel] = useState(null);
 
   const {
     timeInfo,
@@ -176,6 +275,22 @@ const BPlotAnalysis = ({
       percentage: ((activeCount / engineRunningData.length) * 100).toFixed(1),
       duration: totalMilDuration.toFixed(1)
     };
+  }, [rawData]);
+
+  const engineHours = useMemo(() => {
+    const hourColumns = ['HM_RAM_seconds', 'Engine Hours', 'Hour Meter'];
+    for (const col of hourColumns) {
+      const hourData = rawData.filter(r => r[col] !== undefined && !isNaN(r[col]));
+      if (hourData.length > 0) {
+        const sorted = [...hourData].sort((a, b) => (a.Time || 0) - (b.Time || 0));
+        return {
+          column: col,
+          start: Math.floor(sorted[0][col]),
+          end: Math.floor(sorted[sorted.length - 1][col])
+        };
+      }
+    }
+    return null;
   }, [rawData]);
 
   // Get ordered categories for display
@@ -256,6 +371,10 @@ const BPlotAnalysis = ({
     return getChannelsWithFaultData(ecmFaults);
   }, [ecmFaults]);
 
+  const rpmStats = channelStats.rpm || channelStats.RPM;
+  const fuelTypeValue = timeInStateStats?.fuel_type?.[0]?.state ?? channelStats.fuel_type?.avg;
+  const fuelTypeLabel = getFuelTypeLabel(fuelTypeValue);
+
   const toggleChannel = (channel) => {
     setSelectedChannels(prev => {
       if (prev.includes(channel)) {
@@ -271,6 +390,25 @@ const BPlotAnalysis = ({
       ...prev,
       [category]: !prev[category]
     }));
+  };
+
+  const handleAlertClick = (channel) => {
+    // Toggle highlight off if clicking same channel
+    if (highlightedChannel === channel) {
+      setHighlightedChannel(null);
+      return;
+    }
+    // Set highlight and ensure channel is selected
+    setHighlightedChannel(channel);
+    if (!selectedChannels.includes(channel)) {
+      setSelectedChannels(prev => {
+        if (prev.length >= MAX_CHART_CHANNELS) {
+          // Replace last channel if at max
+          return [...prev.slice(0, -1), channel];
+        }
+        return [...prev, channel];
+      });
+    }
   };
 
   // =============================================================================
@@ -377,21 +515,44 @@ const BPlotAnalysis = ({
         </div>
       )}
 
-      {/* Main Content - Full width for charts, constrained for other tabs */}
-      <main className={`${activeTab === 'charts' ? 'px-6' : 'max-w-7xl mx-auto'} p-6`}>
+      {/* Main Content - Full width for overview and charts, constrained for other tabs */}
+      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6"}>
         {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
         {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
           <div className="mb-6 space-y-2">
             {alerts.map((alert, i) => (
-              <AlertCard key={i} alert={alert} />
+              <AlertCard
+                key={i}
+                alert={alert}
+                onClick={() => handleAlertClick(alert.channel)}
+                isHighlighted={highlightedChannel === alert.channel}
+              />
             ))}
           </div>
         )}
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Engine Hours */}
+            {engineHours && (
+              <div className="grid grid-cols-2 gap-4">
+                <MetricCard
+                  icon={<Clock className="w-5 h-5 text-orange-400" />}
+                  label="Engine Hours Plot Start"
+                  value={engineHours.start}
+                  unit="hrs"
+                />
+                <MetricCard
+                  icon={<Clock className="w-5 h-5 text-orange-400" />}
+                  label="Engine Hours Plot End"
+                  value={engineHours.end}
+                  unit="hrs"
+                />
+              </div>
+            )}
+
             {/* Summary Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <MetricCard
                 icon={<Clock className="w-5 h-5 text-green-400" />}
                 label="Recording Duration"
@@ -402,70 +563,110 @@ const BPlotAnalysis = ({
                 label="Engine Runtime"
                 value={summary.totalRuntime}
               />
-              <MetricCard
-                icon={<Gauge className="w-5 h-5 text-blue-400" />}
-                label="Avg RPM"
-                value={summary.avgRPM}
-                unit="RPM"
-              />
-              <MetricCard
-                icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
-                label="Max RPM"
-                value={summary.maxRPM}
-                unit="RPM"
-              />
             </div>
 
-            {/* Operating Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-slate-400" />
-                  Operating Statistics
-                </h3>
-                <div className="space-y-2">
-                  <StatRow label="Idle Time" value={summary.idlePercent} />
-                  <StatRow label="Average Load" value={summary.avgLoad} />
-                  <StatRow label="Sample Rate" value={summary.sampleRate} />
-                  <StatRow label="Engine Starts" value={summary.engineStarts} />
-                  <StatRow label="Engine Stops" value={summary.engineStops} />
+            {/* Operating Stats and Key Parameters */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <div className="xl:col-span-3">
+                <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6 h-full">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-slate-400" />
+                    Operating Statistics
+                  </h3>
+                  <div className="space-y-2">
+                    <StatRow label="Idle Time" value={summary.idlePercent} />
+                    <StatRow label="Average Load" value={summary.avgLoad} />
+                    <StatRow label="Sample Rate" value={summary.sampleRate} />
+                    <StatRow label="Engine Starts" value={summary.engineStarts} />
+                    <StatRow label="Engine Stops" value={summary.engineStops} />
+                  </div>
                 </div>
               </div>
-
-              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-slate-400" />
-                  Key Parameters
-                </h3>
-                <div className="space-y-2">
-                  {channelStats.ECT && (
-                    <StatRow
-                      label="Coolant Temp"
-                      value={formatStatRange(channelStats.ECT, 0)}
-                      unit="F"
-                    />
-                  )}
-                  {channelStats.Vbat && (
-                    <StatRow
-                      label="Battery Voltage"
-                      value={formatStatRange(channelStats.Vbat, 1)}
-                      unit="V"
-                    />
-                  )}
-                  {channelStats.MAP && (
-                    <StatRow
-                      label="MAP Range"
-                      value={formatStatRange(channelStats.MAP, 1)}
-                      unit="psia"
-                    />
-                  )}
-                  {channelStats.TPS_pct && (
-                    <StatRow
-                      label="Throttle Range"
-                      value={formatStatRange(channelStats.TPS_pct, 0)}
-                      unit="%"
-                    />
-                  )}
+              <div className="xl:col-span-9">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-slate-400" />
+                    <h3 className="text-lg font-semibold">Key Parameters <span className="text-sm text-slate-500">BY SYSTEM</span></h3>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4 transition-colors hover:border-cyan-400/40 hover:shadow-[0_0_18px_rgba(34,211,238,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-cyan-400">Electrical System</h3>
+                    </div>
+                    <div className="divide-y divide-cyan-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Battery Voltage" stats={channelStats.Vbat} unit="V" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-green-400/20 p-4 transition-colors hover:border-green-400/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-green-400">Engine Speed & Load</h3>
+                    </div>
+                    <div className="divide-y divide-green-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="RPM" stats={rpmStats} unit="RPM" decimals={0} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4 transition-colors hover:border-cyan-400/40 hover:shadow-[0_0_18px_rgba(34,211,238,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-cyan-400">Air Intake</h3>
+                    </div>
+                    <div className="divide-y divide-cyan-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Manifold Absolute Pressure" stats={channelStats.MAP} unit="psia" decimals={1} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Intake Air Temperature" stats={channelStats.IAT} unit="F" decimals={1} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Throttle Inlet Pressure" stats={channelStats.TIP} unit="psia" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-orange-400/20 p-4 transition-colors hover:border-orange-400/40 hover:shadow-[0_0_18px_rgba(251,146,60,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-orange-400">Thermal Management</h3>
+                    </div>
+                    <div className="divide-y divide-orange-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Engine Coolant Temp" stats={channelStats.ECT} unit="F" decimals={0} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-yellow-400/20 p-4 transition-colors hover:border-yellow-400/40 hover:shadow-[0_0_18px_rgba(250,204,21,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-yellow-400">Lubrication</h3>
+                    </div>
+                    <div className="divide-y divide-yellow-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Oil Pressure" stats={channelStats.OILP_press} unit="psi" decimals={1} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl border border-green-400/20 p-4 transition-colors hover:border-green-400/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.18)] h-full flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-green-400">Fuel & Combustion</h3>
+                    </div>
+                    <div className="divide-y divide-emerald-400/30">
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Phi UEGO" stats={channelStats.Phi_UEGO} decimals={2} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Closed Loop Fuel Correction" stats={channelStats.CL_BM1} unit="%" decimals={2} />
+                      </div>
+                      <div className="py-2.5 first:pt-0 last:pb-0">
+                        <TelemetryRange label="Adaptive Learn Fuel Correction" stats={channelStats.A_BM1} unit="%" decimals={2} />
+                      </div>
+                    </div>
+                    {(timeInStateStats?.fuel_type?.length || channelStats.fuel_type) && (
+                      <div className="mt-4 border-t border-slate-800/80 pt-3">
+                        <DiscreteStat label="Fuel Type" value={fuelTypeLabel} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -473,7 +674,7 @@ const BPlotAnalysis = ({
             {/* Quick Chart Preview - RPM & MAP */}
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
               <h3 className="text-lg font-semibold mb-4">RPM & MAP Over Time</h3>
-              <div className="h-72">
+              <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -537,7 +738,12 @@ const BPlotAnalysis = ({
             {alerts.length > 0 && (
               <div className="space-y-2">
                 {alerts.map((alert, i) => (
-                  <AlertCard key={i} alert={alert} />
+                  <AlertCard
+                    key={i}
+                    alert={alert}
+                    onClick={() => handleAlertClick(alert.channel)}
+                    isHighlighted={highlightedChannel === alert.channel}
+                  />
                 ))}
               </div>
             )}
@@ -548,7 +754,7 @@ const BPlotAnalysis = ({
           <>
           <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
             {/* Sidebar - Channel Selection */}
-            <aside className="w-full lg:w-64 max-h-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
+            <aside className="w-full lg:w-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
               <div className="p-4 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-slate-300">
@@ -676,8 +882,9 @@ const BPlotAnalysis = ({
                         dataKey={channel}
                         stroke={Object.values(CATEGORY_COLORS)[i % Object.values(CATEGORY_COLORS).length]}
                         dot={false}
-                        strokeWidth={2}
+                        strokeWidth={highlightedChannel === channel ? 4 : 2}
                         name={BPLOT_PARAMETERS[channel]?.name || channel}
+                        style={highlightedChannel === channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
                       />
                     ))}
                     {/* File boundary markers for multi-file view */}
@@ -731,7 +938,12 @@ const BPlotAnalysis = ({
           {alerts.length > 0 && (
             <div className="mt-6 space-y-2 max-w-7xl mx-auto">
               {alerts.map((alert, i) => (
-                <AlertCard key={i} alert={alert} />
+                <AlertCard
+                  key={i}
+                  alert={alert}
+                  onClick={() => handleAlertClick(alert.channel)}
+                  isHighlighted={highlightedChannel === alert.channel}
+                />
               ))}
             </div>
           )}
@@ -765,10 +977,16 @@ const BPlotAnalysis = ({
                       {channels.map(channel => {
                         const stats = channelStats[channel];
                         const param = BPLOT_PARAMETERS[channel];
+                        const fallbackDescription = !param ? get4GDefinition(channel) : null;
+                        const description = param?.description || fallbackDescription;
                         const hideAvg = param?.hideAverage;
                         const showMinOnly = param?.showMinOnly;
+                        const showMaxOnly = param?.showMaxOnly;
                         const showTimeInState = param?.showTimeInState || TIME_IN_STATE_CHANNELS.includes(channel);
                         const stateStats = timeInStateStats?.[channel];
+                        const displayStateStats = channel === 'sync_state' || channel === 'OILP_state'
+                          ? mergeTimeInStateByLabel(stateStats)
+                          : stateStats;
                         const decimals = getDecimalPlaces(channel);
 
                         return (
@@ -777,13 +995,13 @@ const BPlotAnalysis = ({
                             className="bg-slate-800/50 rounded-lg p-3"
                           >
                             <div className="font-medium text-sm">{param?.name || channel}</div>
-                            {param?.description && (
-                              <div className="text-xs text-slate-500 mb-1">{param.description}</div>
+                            {description && (
+                              <div className="text-xs text-slate-500 mb-1">{description}</div>
                             )}
-                            {showTimeInState && stateStats && stateStats.length > 0 ? (
+                            {showTimeInState && displayStateStats && displayStateStats.length > 0 ? (
                               // Show time-in-state breakdown for categorical channels with progress bars
                               <div className="text-xs mt-2 space-y-2">
-                                {stateStats.map((s, i) => (
+                                {displayStateStats.map((s, i) => (
                                   <div key={i}>
                                     <div className="flex justify-between items-center mb-0.5">
                                       <span className="text-green-400">{s.displayName}</span>
@@ -809,23 +1027,17 @@ const BPlotAnalysis = ({
                             ) : stats && (
                               <div className="text-xs text-slate-400 mt-1 space-y-0.5">
                                 {showMinOnly ? (
-                                  // Show only Min value for specific channels
-                                  <div>Min: {stats.min?.toFixed(decimals) ?? '—'} {param?.unit}</div>
+                                  <div>Min: {stats.min?.toFixed(decimals) ?? '-'} {param?.unit}</div>
+                                ) : showMaxOnly ? (
+                                  <div>Max: {stats.max?.toFixed(decimals) ?? '-'} {param?.unit}</div>
                                 ) : (
                                   <>
-                                    <div>Min: {stats.min?.toFixed(decimals) ?? '—'} {param?.unit}</div>
-                                    <div>Max: {stats.max?.toFixed(decimals) ?? '—'} {param?.unit}</div>
+                                    <div>Min: {stats.min?.toFixed(decimals) ?? '-'} {param?.unit}</div>
+                                    <div>Max: {stats.max?.toFixed(decimals) ?? '-'} {param?.unit}</div>
                                     {!hideAvg && (
-                                      <div>Avg: {stats.avg?.toFixed(decimals) ?? '—'} {param?.unit}</div>
+                                      <div>Avg: {stats.avg?.toFixed(decimals) ?? '-'} {param?.unit}</div>
                                     )}
                                   </>
-                                )}
-                                {/* Show valid sample count if different from total */}
-                                {stats.validCount !== undefined && stats.totalCount !== undefined &&
-                                 stats.validCount < stats.totalCount && (
-                                  <div className="text-slate-500 text-[10px] mt-1">
-                                    ({stats.validCount}/{stats.totalCount} valid samples)
-                                  </div>
                                 )}
                               </div>
                             )}
