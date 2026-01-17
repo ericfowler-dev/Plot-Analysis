@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, Droplets, Settings, FileText, Eye, EyeOff, Upload
 } from 'lucide-react';
 import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
+import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
 import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
 import AppHeader from './AppHeader';
@@ -103,6 +104,12 @@ const DiscreteStat = ({ label, value }) => (
     <span className="text-slate-200 font-semibold">{value ?? '-'}</span>
   </div>
 );
+
+const PARAMETER_DEFINITIONS_4G = new Map(
+  (parameterDefinitions4g?.parameters || []).map((param) => [param.name, param.definition])
+);
+
+const get4GDefinition = (channelName) => PARAMETER_DEFINITIONS_4G.get(channelName);
 
 const mergeTimeInStateByLabel = (stateStats) => {
   if (!stateStats || stateStats.length === 0) return stateStats;
@@ -970,6 +977,8 @@ const BPlotAnalysis = ({
                       {channels.map(channel => {
                         const stats = channelStats[channel];
                         const param = BPLOT_PARAMETERS[channel];
+                        const fallbackDescription = !param ? get4GDefinition(channel) : null;
+                        const description = param?.description || fallbackDescription;
                         const hideAvg = param?.hideAverage;
                         const showMinOnly = param?.showMinOnly;
                         const showMaxOnly = param?.showMaxOnly;
@@ -986,8 +995,8 @@ const BPlotAnalysis = ({
                             className="bg-slate-800/50 rounded-lg p-3"
                           >
                             <div className="font-medium text-sm">{param?.name || channel}</div>
-                            {param?.description && (
-                              <div className="text-xs text-slate-500 mb-1">{param.description}</div>
+                            {description && (
+                              <div className="text-xs text-slate-500 mb-1">{description}</div>
                             )}
                             {showTimeInState && displayStateStats && displayStateStats.length > 0 ? (
                               // Show time-in-state breakdown for categorical channels with progress bars
