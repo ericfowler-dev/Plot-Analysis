@@ -19,6 +19,20 @@ export const VARIABLE_DEFINITIONS = {
     range: '-35% to +35%',
     category: 'fuel'
   },
+  A_BM2: {
+    name: 'Adaptive Fuel Trim Bank 2',
+    description: 'Adaptive Learn Correction 2 - interpolated from Gasoline Adaptive Table Bank 2',
+    unit: '%',
+    range: '-35% to +35%',
+    category: 'fuel'
+  },
+  CL_BM2: {
+    name: 'Closed Loop Fuel Trim Bank 2',
+    description: 'Closed Loop Block Multiplier - bank 2',
+    unit: '%',
+    range: '-35% to +35%',
+    category: 'fuel'
+  },
 
   // Auxiliary Inputs
   AUX_DIG1_volt: { name: 'Aux Dig 1', description: 'AUX Digital Input 1 header voltage', unit: 'V', category: 'electrical' },
@@ -67,20 +81,24 @@ export const VARIABLE_DEFINITIONS = {
   },
   OILP_state: {
     name: 'Oil Pressure State',
-    description: 'Oil pressure state (0/1/2 = OK)',
+    description: 'Oil pressure state (0=OK, 2=LOW)',
     unit: '',
     category: 'thermal',
-    values: { 0: 'OK', 1: 'OK', 2: 'OK' }
+    values: { 0: 'OK', 2: 'LOW' }
   },
 
   // Temperature
   ECT: { name: 'Engine Coolant Temp', description: 'Engine Coolant Temperature', unit: '°F', category: 'thermal' },
-  rECT: { name: 'Engine Coolant Temp', description: 'Engine Coolant Temperature (resolved)', unit: '°F', category: 'thermal' },
+  rECT: { name: 'Engine Coolant Temp', description: 'Engine Coolant Temperature', unit: '°F', category: 'thermal' },
+  ECTdt: { name: 'ECT Change Rate', description: 'Engine Coolant Temperature change rate', unit: '°F/s', category: 'thermal' },
+  ECTs: { name: 'ECT Standard Operating', description: 'Standard operating Engine Coolant Temperature', unit: '°F', category: 'thermal' },
   IAT: { name: 'Intake Air Temp', description: 'Intake Air Temperature measured by TMAP thermistor', unit: '°F', category: 'thermal' },
-  rIAT: { name: 'Intake Air Temp', description: 'Intake Air Temperature (resolved)', unit: '°F', category: 'thermal' },
+  rIAT: { name: 'Intake Air Temp', description: 'Intake Air Temperature', unit: '°F', category: 'thermal' },
   MAT: { name: 'Manifold Temperature', description: 'Intake manifold runner temperature', unit: '°F', category: 'thermal' },
   FT: { name: 'Fuel Temperature', description: 'Fuel Temperature', unit: '°F', category: 'thermal' },
   OILT: { name: 'Oil Temperature', description: 'Oil temperature', unit: '°F', category: 'thermal' },
+  AAT: { name: 'Ambient Air Temp', description: 'Ambient Air Temperature', unit: '°F', category: 'thermal' },
+  ACT: { name: 'Auxiliary Coolant Temp', description: 'Auxiliary coolant temperature', unit: '°F', category: 'thermal' },
   UEGO_Tsensor: { name: 'UEGO Sensor Temp', description: 'UEGO sensor temperature actual', unit: '°F', category: 'thermal' },
 
   // Oxygen Sensors
@@ -114,15 +132,30 @@ export const VARIABLE_DEFINITIONS = {
   },
   Phi_UEGO: {
     name: 'UEGO Phi',
-    description: '1.0 = Stoich, <1 Rich | >1 Lean',
-    unit: '?',
-    range: '1.0 = Stoich, <1 Rich | >1 Lean',
+    description: 'UEGO phi sensor 1 - Equivalence ratio',
+    unit: 'λ',
+    range: 'Stoichiometric (Φ=1), Lean (Φ<1), Rich (Φ>1)',
     category: 'fuel'
   },
+  Phi_UEGO2: { name: 'UEGO Phi 2', description: 'UEGO phi - sensor 2', unit: 'λ', category: 'fuel' },
+  Phi_UEGO3: { name: 'UEGO Phi 3', description: 'UEGO phi - sensor 3', unit: 'λ', category: 'fuel' },
+  Phi_UEGO4: { name: 'UEGO Phi 4', description: 'UEGO phi - sensor 4', unit: 'λ', category: 'fuel' },
+  Phi_cmd: { name: 'Commanded Phi', description: 'Commanded equivalence ratio', unit: 'λ', category: 'fuel' },
+  Phi_base: { name: 'Base Phi', description: 'Base lookup value commanded equivalence ratio', unit: 'λ', category: 'fuel' },
+  EGO3_volts: { name: 'EGO 3 Voltage', description: 'Exhaust Gas Oxygen Sensor 3', unit: 'V', category: 'fuel' },
+  EGO4_volts: { name: 'EGO 4 Voltage', description: 'Exhaust Gas Oxygen Sensor 4', unit: 'V', category: 'fuel' },
+  EGO3Z_ohms: { name: 'EGO 3 Impedance', description: 'EGO3 measured impedance in ohms', unit: 'Ω', category: 'fuel' },
+  EGO4Z_ohms: { name: 'EGO 4 Impedance', description: 'EGO4 measured impedance in ohms', unit: 'Ω', category: 'fuel' },
+  EGO1_phiFB: { name: 'EGO1 Phi Feedback', description: 'EGO1 current phi', unit: 'λ', category: 'fuel' },
+  EGO2_phiFB: { name: 'EGO2 Phi Feedback', description: 'EGO2 current phi', unit: 'λ', category: 'fuel' },
 
   // Throttle and Pedal
   TPS_pct: { name: 'TPS Position', description: 'DBW TPS position percent', unit: '%', category: 'air' },
   TPS_cmd_pct: { name: 'TPS Command', description: 'DBW TPS command percent', unit: '%', category: 'air' },
+  TPS1_pct: { name: 'TPS1 Percent', description: 'DBW TPS1 percent', unit: '%', category: 'air' },
+  TPS2_pct: { name: 'TPS2 Percent', description: 'DBW TPS2 percent', unit: '%', category: 'air' },
+  TPS1_raw: { name: 'TPS1 Raw Voltage', description: 'Throttle position sensor 1 feedback', unit: 'V', category: 'air' },
+  TPS2_raw: { name: 'TPS2 Raw Voltage', description: 'Throttle position sensor 2 feedback', unit: 'V', category: 'air' },
   FPP_pct: { name: 'FPP Position', description: 'Foot Pedal Position Actual', unit: '%', category: 'control' },
   FPP_cmd_pct: { name: 'FPP Command', description: 'Foot Pedal Position Command', unit: '%', category: 'control' },
   FPP1_pct: { name: 'FPP1 Percent', description: 'FPP1 percent', unit: '%', category: 'control' },
@@ -139,9 +172,12 @@ export const VARIABLE_DEFINITIONS = {
   rpmd_gov: { name: 'Governor Target', description: 'RPM trajectory target', unit: 'RPM', category: 'control' },
   spk_adv: { name: 'Spark Advance', description: 'Total final spark advance (°CAD BTDC)', unit: '°', category: 'timing' },
   run_tmr_sec: { name: 'Run Timer', description: 'Engine run time in seconds', unit: 'sec', category: 'timing' },
-  start_tmr: { name: 'Start Time', description: 'Engine Start Time', unit: 'sec', category: 'timing' },
+  start_tmr: { name: 'Start Time', description: 'Time from crank speed to run speed', unit: 'sec', category: 'timing' },
   HM_hours: { name: 'Hour Meter', description: 'Engine hour meter', unit: 'hours', category: 'timing' },
   HM_RAM_seconds: { name: 'Hour Meter (RAM)', description: 'Engine hour-meter including offset', unit: 'sec', category: 'timing' },
+  HM_RAM_starts: { name: 'Cumulative Starts', description: 'Total number of engine starts', unit: '', category: 'timing' },
+  HM_MIL_hours: { name: 'MIL On-Time', description: 'MIL on-time in hours', unit: 'hours', category: 'timing' },
+  eng_load: { name: 'Engine Load', description: 'Fractional current engine load', unit: '%', category: 'timing' },
 
   // Fuel System
   fuel_type: {
@@ -178,13 +214,23 @@ export const VARIABLE_DEFINITIONS = {
   // EPR / MegaJector
   MJ_P_act: { name: 'EPR Actual Pressure', description: 'EPR feedback pressure', unit: 'psi', category: 'fuel' },
   MJ_P_cmd: { name: 'EPR Command Pressure', description: 'EPR pressure command', unit: 'psi', category: 'fuel' },
+  EPR_cmd: { name: 'EPR Command', description: 'Electronic Pressure Regulator command', unit: 'psi', category: 'fuel' },
+  EPR_actual: { name: 'EPR Actual', description: 'Electronic Pressure Regulator actual pressure', unit: 'psi', category: 'fuel' },
+  EPR_DC_act: { name: 'EPR Duty Cycle', description: 'EPR duty cycle % feedback', unit: '%', category: 'fuel' },
 
   // MFG (Mixer/Fuel Gas)
-  MFG_DPPress: { name: 'Mass Flow Gas Valve Delta Pressure', description: 'Mass Flow Gas Valve delta pressure', unit: 'psi', category: 'fuel' },
-  MFG_DSPress: { name: 'Mass Flow Gas Valve Downstream Pressure', description: 'Mass Flow Gas Valve downstream pressure', unit: 'psi', category: 'fuel' },
-  MFG_USPress: { name: 'Mass Flow Gas Valve Upstream Pressure', description: 'Mass Flow Gas Valve upstream pressure', unit: 'psi', category: 'fuel' },
-  MFG_TPS_act_pct: { name: 'MFG Throttle Actual', description: 'Mass Flow Gas Valve throttle percent', unit: '%', category: 'fuel' },
-  MFG_TPS_cmd_pct: { name: 'MFG Throttle Command', description: 'Mass Flow Gas Valve throttle percent', unit: '%', category: 'fuel' },
+  MFG_DPPress: { name: 'MFG Delta Pressure', description: 'Delta pressure between upstream and downstream MFG', unit: 'psi', category: 'fuel' },
+  MFG_DSPress: { name: 'MFG Downstream Pressure', description: 'Pressure downstream of MFG throttle blade', unit: 'psi', category: 'fuel' },
+  MFG_USPress: { name: 'MFG Upstream Pressure', description: 'Pressure upstream of MFG throttle blade', unit: 'psi', category: 'fuel' },
+  MFG_TPS_act_pct: { name: 'MFG Throttle Actual', description: 'MFG actual throttle position %', unit: '%', category: 'fuel' },
+  MFG_TPS_cmd_pct: { name: 'MFG Throttle Command', description: 'MFG commanded throttle position %', unit: '%', category: 'fuel' },
+  MFG_mdot_act: { name: 'MFG Fuel Flow Actual', description: 'MFG reported mdot fuel flow', unit: 'g/s', category: 'fuel' },
+  MFG_mdot_cmd: { name: 'MFG Fuel Flow Command', description: 'MFG commanded mdot fuel flow', unit: 'g/s', category: 'fuel' },
+  MFG_mdot_act_pct: { name: 'MFG Flow Actual %', description: 'MFG reported mdot fuel flow percentage of MFG Full scale', unit: '%', category: 'fuel' },
+  MFG_mdot_cmd_pct: { name: 'MFG Flow Command %', description: 'MFG commanded mdot fuel flow percentage of MFG Full scale', unit: '%', category: 'fuel' },
+  MFG_status: { name: 'MFG Status', description: 'The overall status of the MFG', unit: '', category: 'fuel' },
+  MFG_FTemp: { name: 'MFG Fuel Temperature', description: 'MFG fuel temperature', unit: '°F', category: 'fuel' },
+  MFG_DPPress_final: { name: 'MFG Final Delta Pressure', description: 'MFG final dP used for mass-flow calculations', unit: 'psi', category: 'fuel' },
 
   // Electrical
   Vbat: { name: 'Battery Voltage', description: 'Battery voltage', unit: 'V', category: 'electrical' },
@@ -225,10 +271,14 @@ export const VARIABLE_DEFINITIONS = {
 
   // Knock
   KNK_retard: { name: 'Knock Retard', description: 'Current knock retard command in CAD', unit: '°', category: 'timing' },
+  KNKF_retard: { name: 'Knock Faulted Retard', description: 'Faulted KNK spark retard (CAD retard)', unit: '°', category: 'timing' },
+  KNK_control_status: { name: 'Knock Control Status', description: 'Knock control system status', unit: '', category: 'timing' },
 
   // Load Limiting
   LoadLim_max_pct: { name: 'Load Limit Max %', description: 'Load limiting function maximum load', unit: '%', category: 'control' },
-  LoadLim_max_TPS: { name: 'Load Limit Max TPS', description: 'This value indicates the maximum allowable Throttle % based on ECM load limits', unit: '%', category: 'control' },
+  LoadLim_max_TPS: { name: 'Load Limit Max TPS', description: 'Load limiting function maximum allowed TPS', unit: '%', category: 'control' },
+  LoadLim_dmd_pct: { name: 'Load Limit Demand %', description: 'Load limiting function maximum load fraction - does not include derates', unit: '%', category: 'control' },
+  LoadLim_max_gov_actv: { name: 'Load Limit Max Gov Active', description: 'Indicator for load limiting override of the Max Governor', unit: '', category: 'control' },
 
   // Status/Outputs
   FORCEIDLE_active: {
@@ -244,6 +294,25 @@ export const VARIABLE_DEFINITIONS = {
     unit: '',
     category: 'control',
     values: { 0: 'Off', 1: 'On' }
+  },
+  SD_active: {
+    name: 'Shutdown Active',
+    description: 'Shutdown derate is active',
+    unit: '',
+    category: 'control',
+    values: { 0: 'Off', 1: 'On' }
+  },
+  derate1: {
+    name: 'Derate 1 TPS',
+    description: 'Maximum TPS % when derate 1 is active',
+    unit: '%',
+    category: 'control'
+  },
+  derate2: {
+    name: 'Derate 2 TPS',
+    description: 'Maximum TPS % when derate 2 is active',
+    unit: '%',
+    category: 'control'
   },
   MILout_mirror: {
     name: 'MIL Status',
@@ -261,16 +330,41 @@ export const VARIABLE_DEFINITIONS = {
   },
   sync_state: {
     name: 'Sync State',
-    description: '0 or >0 = Pre-Sync; -1 = Crank Sync; -2 = Crank and Cam Sync\'d',
+    description: 'Engine synchronization state',
     unit: '',
     category: 'timing',
-    values: { '-2': 'Crank and Cam Sync\'d', '-1': 'Crank Sync', '0': 'Pre-Sync' }
+    values: { '-2': 'Cam', '-1': 'Crank', '0': 'Stopped' }
   },
 
   // VE Feedback
   VE5a_FB_raw: { name: 'VE Feedback Raw', description: 'VE feedback raw value', unit: '', category: 'fuel' },
   Phi1_post_delt: { name: 'Post Cat CL Offset', description: 'Post-catalyst phi target offset – sensor 1', unit: '', category: 'fuel' },
-  TRIM_DC: { name: 'Trim Duty Cycle', description: 'Fuel trim duty cycle', unit: '%', category: 'fuel' }
+  TRIM_DC: { name: 'Trim Duty Cycle', description: 'Fuel trim duty cycle', unit: '%', category: 'fuel' },
+  TRIM_BM: { name: 'Trim Block Multiplier', description: 'TRIM (fast) DC equivalent change from nominal Phi', unit: '%', category: 'fuel' },
+
+  // CFV (Constant Flow Valve)
+  CFV_cmd: { name: 'CFV Command', description: 'CFV flow command', unit: '', category: 'fuel' },
+  CFV_FB: { name: 'CFV Feedback', description: 'CFV feedback position', unit: '', category: 'fuel' },
+
+  // Additional Pressure Parameters
+  MAPdt: { name: 'MAP Rate of Change', description: 'Rate of change of manifold absolute pressure', unit: 'psia/s', category: 'air' },
+
+  // Boost Control
+  Bst_cmd: { name: 'Boost Command', description: 'Boost pressure command', unit: 'psia', category: 'air' },
+  Bst_act: { name: 'Boost Actual', description: 'Boost pressure actual', unit: 'psia', category: 'air' },
+  WG_DC: { name: 'Wastegate Duty Cycle', description: 'Wastegate solenoid duty cycle', unit: '%', category: 'air' },
+
+  // EGR
+  EGR_pct: { name: 'EGR Percentage', description: 'EGR valve position percentage', unit: '%', category: 'air' },
+  EGR_cmd_pct: { name: 'EGR Command', description: 'EGR valve command percentage', unit: '%', category: 'air' },
+
+  // IAC (Idle Air Control)
+  IAC_pct: { name: 'IAC Position', description: 'Idle Air Control valve position percentage', unit: '%', category: 'air' },
+  IAC_cmd_pct: { name: 'IAC Command', description: 'Idle Air Control valve command percentage', unit: '%', category: 'air' },
+
+  // Misc Timing
+  CAD: { name: 'Crank Angle Degrees', description: 'Current crank angle degrees', unit: '°', category: 'timing' },
+  cyl_fire: { name: 'Cylinder Fire', description: 'Current cylinder firing event', unit: '', category: 'timing' }
 };
 
 // Category display names and order

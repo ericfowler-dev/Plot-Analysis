@@ -6,7 +6,7 @@ import {
   VALIDITY_POLICY,
   DEFAULT_VALIDITY_CONFIG,
   getChannelValidityPolicy
-} from './bplotThresholds';
+} from './bplotThresholds.js';
 
 // =============================================================================
 // VALIDITY MASK SYSTEM

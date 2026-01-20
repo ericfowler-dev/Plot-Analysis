@@ -177,6 +177,41 @@
       "critical": {
         "max": 1600
       }
+    },
+    "signalQuality": {
+      "enabled": true,
+      "description": "Detect signal dropouts (missing data) during engine operation",
+      "alertSeverity": "info",
+      "suppressRelatedAlerts": true,
+      "defaults": {
+        "dropoutGapSec": 0.5
+      },
+      "channels": {
+        "OILP_press": {
+          "enabled": true,
+          "dropoutGapSec": 0.5,
+          "suppressAlerts": ["oil_pressure_warning_low", "oil_pressure_critical_low"]
+        },
+        "ECT": {
+          "enabled": true,
+          "dropoutGapSec": 0.5,
+          "suppressAlerts": ["coolant_critical_high", "coolant_warning_high"]
+        },
+        "Vbat": {
+          "enabled": true,
+          "dropoutGapSec": 0.5,
+          "suppressAlerts": ["battery_critical_low", "battery_warning_low", "battery_critical_high"]
+        },
+        "MAP": {
+          "enabled": true,
+          "dropoutGapSec": 0.5
+        },
+        "rpm": {
+          "enabled": true,
+          "dropoutGapSec": 0.5,
+          "suppressAlerts": ["rpm_overspeed", "rpm_critical_high", "rpm_warning_high"]
+        }
+      }
     }
   },
   "anomalyRules": [

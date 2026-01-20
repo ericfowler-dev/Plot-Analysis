@@ -6,10 +6,10 @@
   "engineFamily": "PSI HD",
   "fuelType": "natural_gas",
   "application": null,
-  "version": "1.0.1",
+  "version": "1.0.5",
   "status": "active",
   "createdAt": "2026-01-17T00:00:00Z",
-  "lastModified": "2026-01-20T01:23:24.017Z",
+  "lastModified": "2026-01-20T12:50:06.960Z",
   "modifiedBy": "system",
   "thresholds": {
     "mfgDeltaPressure": {
@@ -151,14 +151,14 @@
         {
           "param": "MFG_TPS_act_pct",
           "operator": ">",
-          "value": 60
+          "value": 70
         }
       ],
       "requireWhen": [
         {
-          "param": "rpm",
-          "operator": ">=",
-          "value": 800
+          "param": "EngineRunning",
+          "operator": "==",
+          "value": 1
         }
       ],
       "logic": "AND",
@@ -226,21 +226,21 @@
       "enabled": true,
       "conditions": [
         {
-          "param": "eng_load",
-          "operator": ">",
-          "value": 70
-        },
-        {
           "param": "MFG_DPPress",
           "operator": "<",
           "value": 0.6
+        },
+        {
+          "param": "MAP",
+          "operator": ">",
+          "value": 20
         }
       ],
       "requireWhen": [
         {
-          "param": "rpm",
-          "operator": ">=",
-          "value": 1000
+          "param": "EngineRunning",
+          "operator": "==",
+          "value": 1
         }
       ],
       "logic": "AND",
@@ -252,7 +252,7 @@
       "id": "mfg-throttle-command-deviation",
       "name": "MFG Throttle Command vs Actual Deviation",
       "description": "Significant difference between commanded and actual throttle position - may indicate MFG mechanical issue.",
-      "enabled": true,
+      "enabled": false,
       "type": "computed_delta",
       "config": {
         "param1": "MFG_TPS_cmd_pct",
@@ -261,9 +261,9 @@
       },
       "requireWhen": [
         {
-          "param": "rpm",
-          "operator": ">=",
-          "value": 800
+          "param": "EngineRunning",
+          "operator": "==",
+          "value": 1
         }
       ],
       "duration": 5,

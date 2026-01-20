@@ -90,7 +90,7 @@ const FALLBACK_THRESHOLDS = {
 
 export function ThresholdProvider({ children }) {
   // Currently selected profile ID
-  const [selectedProfileId, setSelectedProfileId] = useState('global-defaults');
+  const [selectedProfileId, setSelectedProfileId] = useState('psi-hd-40l-53l-mfg');
   const [baselineSelection, setBaselineSelection] = useState({
     group: '',
     size: '',

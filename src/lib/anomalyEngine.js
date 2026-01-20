@@ -47,7 +47,8 @@ export const CATEGORIES = {
   FUEL: 'fuel',
   KNOCK: 'knock',
   FAULT: 'fault',
-  CUSTOM: 'custom'
+  CUSTOM: 'custom',
+  SIGNAL_QUALITY: 'signal_quality'
 };
 
 /**
@@ -822,6 +823,166 @@ class RuleTimingTracker {
 }
 
 /**
+ * Channel dropout tracker for detecting signal loss
+ * Only detects dropouts (NaN/undefined values) during engine operation
+ */
+class ChannelDropoutTracker {
+  constructor(channelName, config = {}) {
+    this.channelName = channelName;
+    this.dropoutGapSec = config.dropoutGapSec ?? 0.5;
+    this.suppressAlerts = config.suppressAlerts ?? [];
+
+    // Detection state
+    this.dropoutStart = null;
+    this.hasDropout = false;
+  }
+
+  /**
+   * Check for dropout (NaN, null, undefined values)
+   * @param {number|null|undefined} value - The current value
+   * @param {number} time - Current timestamp in seconds
+   * @param {boolean} engineRunning - Whether engine is currently running
+   * @returns {Object|null} Dropout issue if detected, null otherwise
+   */
+  update(value, time, engineRunning) {
+    // Only check during engine operation
+    if (!engineRunning) {
+      this.dropoutStart = null;
+      this.hasDropout = false;
+      return null;
+    }
+
+    // Check for dropout (NaN, null, undefined)
+    const isDropout = value === undefined || value === null || Number.isNaN(value);
+
+    if (isDropout) {
+      if (this.dropoutStart === null) {
+        this.dropoutStart = time;
+      }
+      const dropoutDuration = time - this.dropoutStart;
+
+      if (dropoutDuration >= this.dropoutGapSec) {
+        this.hasDropout = true;
+        return {
+          type: 'dropout',
+          channel: this.channelName,
+          duration: dropoutDuration
+        };
+      }
+    } else {
+      // Valid value - reset dropout tracking
+      this.dropoutStart = null;
+      this.hasDropout = false;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get the list of alert IDs that should be suppressed when dropout detected
+   */
+  getSuppressedAlerts() {
+    if (this.hasDropout) {
+      return this.suppressAlerts;
+    }
+    return [];
+  }
+
+  reset() {
+    this.dropoutStart = null;
+    this.hasDropout = false;
+  }
+}
+
+/**
+ * Signal dropout analyzer - coordinates per-channel dropout tracking
+ * Only detects signal loss (NaN/null values) during engine operation
+ */
+class SignalQualityAnalyzer {
+  constructor(config = {}) {
+    this.enabled = config.enabled !== false;
+    this.alertSeverity = config.alertSeverity ?? SEVERITY.INFO;
+    this.suppressRelatedAlerts = config.suppressRelatedAlerts !== false;
+
+    // Default dropout threshold
+    this.defaultDropoutGapSec = config.defaults?.dropoutGapSec ?? 0.5;
+
+    // Per-channel configuration
+    this.channelConfigs = config.channels ?? {};
+
+    // Channel trackers (created on demand)
+    this.trackers = new Map();
+  }
+
+  /**
+   * Get or create a tracker for a channel
+   */
+  getTracker(channelName) {
+    if (!this.trackers.has(channelName)) {
+      const channelConfig = this.channelConfigs[channelName] || {};
+
+      // Skip if explicitly disabled
+      if (channelConfig.enabled === false) {
+        return null;
+      }
+
+      const config = {
+        dropoutGapSec: channelConfig.dropoutGapSec ?? this.defaultDropoutGapSec,
+        suppressAlerts: channelConfig.suppressAlerts ?? []
+      };
+
+      this.trackers.set(channelName, new ChannelDropoutTracker(channelName, config));
+    }
+
+    return this.trackers.get(channelName);
+  }
+
+  /**
+   * Process a data row and return any dropout issues
+   * @param {Object} row - Data row with channel values
+   * @param {number} time - Current timestamp
+   * @param {boolean} engineRunning - Whether engine is running
+   * @returns {Object} { issues: Array, suppressedAlertIds: Set }
+   */
+  processRow(row, time, engineRunning) {
+    if (!this.enabled) {
+      return { issues: [], suppressedAlertIds: new Set() };
+    }
+
+    const allIssues = [];
+    const suppressedAlertIds = new Set();
+
+    // Check configured channels
+    for (const channelName of Object.keys(this.channelConfigs)) {
+      const tracker = this.getTracker(channelName);
+      if (!tracker) continue;
+
+      const value = row[channelName];
+      const issue = tracker.update(value, time, engineRunning);
+
+      if (issue) {
+        allIssues.push(issue);
+      }
+
+      // Collect suppressed alerts
+      if (this.suppressRelatedAlerts) {
+        for (const alertId of tracker.getSuppressedAlerts()) {
+          suppressedAlertIds.add(alertId);
+        }
+      }
+    }
+
+    return { issues: allIssues, suppressedAlertIds };
+  }
+
+  reset() {
+    for (const tracker of this.trackers.values()) {
+      tracker.reset();
+    }
+  }
+}
+
+/**
  * Evaluate an engine state predicate
  * @param {string} predicate - The predicate name (e.g., 'EngineRunning')
  * @param {Object} engineState - Current engine state from tracker
@@ -892,7 +1053,9 @@ export function detectAnomalies(data, thresholds, options = {}) {
   const {
     gracePeriod = 5, // seconds to ignore at start
     sampleRate = 1,  // samples per second (estimated if not provided)
-    minDuration = 0  // minimum alert duration in seconds
+    minDuration = 0,  // minimum alert duration in seconds
+    debug = false,    // when true, return debug traces for engine state/params
+    debugParams = []  // additional param keys to capture in debug traces
   } = options;
 
   if (!data || data.length === 0) {
@@ -922,6 +1085,9 @@ export function detectAnomalies(data, thresholds, options = {}) {
   // Track alert durations
   const alertStartTimes = new Map();
   const alertValues = new Map();
+
+  // Optional debug trace capture for troubleshooting engine state/inputs
+  const debugTrace = debug ? [] : null;
 
   // Get oil pressure configuration
   const oilPressureConfig = thresholds.thresholds?.oilPressure || {};
@@ -970,6 +1136,16 @@ export function detectAnomalies(data, thresholds, options = {}) {
   // Initialize rule timing tracker for custom rules with persistence/delay
   const ruleTimingTracker = new RuleTimingTracker();
 
+  // Initialize signal quality analyzer for sensor fault detection
+  const signalQualityConfig = thresholds.thresholds?.signalQuality || {};
+  const signalQualityAnalyzer = new SignalQualityAnalyzer(signalQualityConfig);
+  const signalQualitySeverity = signalQualityConfig.alertSeverity === 'warning'
+    ? SEVERITY.WARNING
+    : SEVERITY.INFO;
+
+  // Track suppressed alerts due to signal quality issues (accumulated across all rows)
+  const allSuppressedAlertIds = new Set();
+
   // Process each data row
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -996,6 +1172,19 @@ export function detectAnomalies(data, thresholds, options = {}) {
 
     // Skip grace period
     if (i < graceSamples) continue;
+
+    // Check for signal dropouts - only during engine operation
+    if (signalQualityConfig.enabled !== false) {
+      const suppressedThisRow = checkSignalQuality(
+        row, time, signalQualityAnalyzer,
+        alerts, alertStartTimes, alertValues,
+        signalQualitySeverity, isRunning
+      );
+      // Accumulate suppressed alert IDs
+      for (const alertId of suppressedThisRow) {
+        allSuppressedAlertIds.add(alertId);
+      }
+    }
 
     // Run threshold checks
     if (thresholds.thresholds) {
@@ -1043,6 +1232,32 @@ export function detectAnomalies(data, thresholds, options = {}) {
         engineState, ruleTimingTracker
       );
     }
+
+    // Capture debug trace if enabled (lightweight subset to avoid bloat)
+    if (debugTrace) {
+      const base = {
+        idx: i,
+        time,
+        engineState: engineState.state,
+        rpm,
+        vsw: row.Vsw ?? row.vsw ?? row.VSW,
+        mfgDelta: row.MFG_DPPress ?? getParamValue(row, 'MFG_DPPress', columnMap),
+        mfgUpstream: row.MFG_USPress ?? getParamValue(row, 'MFG_USPress', columnMap),
+        mfgDownstream: row.MFG_DSPress ?? getParamValue(row, 'MFG_DSPress', columnMap),
+        throttleActual: row.MFG_TPS_act_pct ?? getParamValue(row, 'MFG_TPS_act_pct', columnMap),
+        throttleCommand: row.MFG_TPS_cmd_pct ?? getParamValue(row, 'MFG_TPS_cmd_pct', columnMap),
+        engLoad: row.eng_load ?? getParamValue(row, 'eng_load', columnMap)
+      };
+
+      // Attach any caller-requested params
+      if (Array.isArray(debugParams) && debugParams.length > 0) {
+        for (const key of debugParams) {
+          base[key] = row[key] ?? getParamValue(row, key, columnMap);
+        }
+      }
+
+      debugTrace.push(base);
+    }
   }
 
   // Finalize any open alerts
@@ -1062,15 +1277,24 @@ export function detectAnomalies(data, thresholds, options = {}) {
   }
 
   // Filter alerts by minimum duration (use per-alert minDuration if set, otherwise global)
+  // Also filter out alerts that should be suppressed due to signal quality issues
   const filteredAlerts = alerts.filter(a => {
     const requiredDuration = a.minDuration || minDuration;
-    return (a.duration || 0) >= requiredDuration;
+    if ((a.duration || 0) < requiredDuration) return false;
+
+    // Check if this alert should be suppressed due to signal quality
+    if (signalQualityConfig.suppressRelatedAlerts && allSuppressedAlertIds.has(a.id)) {
+      return false;
+    }
+
+    return true;
   });
 
   return {
     alerts: filteredAlerts,
     statistics,
-    events
+    events,
+    debugTrace
   };
 }
 
@@ -1548,6 +1772,58 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
       }
     }
   }
+}
+
+/**
+ * Check for signal dropouts on configured channels
+ * Called per-row from detectAnomalies(), follows same pattern as other check functions
+ *
+ * @param {Object} row - Current data row
+ * @param {number} time - Current timestamp
+ * @param {SignalQualityAnalyzer} analyzer - Signal quality analyzer instance
+ * @param {Array} alerts - Alerts array (mutated)
+ * @param {Map} startTimes - Alert start times (mutated)
+ * @param {Map} values - Alert values (mutated)
+ * @param {string} severity - Alert severity level
+ * @param {boolean} engineRunning - Whether engine is currently running
+ * @returns {Set} Set of alert IDs to suppress due to signal loss
+ */
+function checkSignalQuality(row, time, analyzer, alerts, startTimes, values, severity, engineRunning) {
+  if (!analyzer || !analyzer.enabled) {
+    return new Set();
+  }
+
+  const { issues, suppressedAlertIds } = analyzer.processRow(row, time, engineRunning);
+
+  // Process dropout issues into alerts
+  for (const issue of issues) {
+    const alertId = `signal_dropout_${issue.channel}`;
+
+    handleAlertState(alertId, true, time, null, alerts, startTimes, values, {
+      name: `${issue.channel} signal lost`,
+      description: `No valid data for ${issue.duration?.toFixed(1)}s while engine running - check sensor connection`,
+      severity: severity,
+      category: CATEGORIES.SIGNAL_QUALITY,
+      channel: issue.channel,
+      minDuration: 0
+    });
+  }
+
+  // Close alerts for channels that no longer have dropouts
+  for (const [alertId] of startTimes.entries()) {
+    if (alertId.startsWith('signal_dropout_')) {
+      const channel = alertId.replace('signal_dropout_', '');
+
+      // Check if there's still a dropout for this channel
+      const stillHasDropout = issues.some(i => i.channel === channel);
+
+      if (!stillHasDropout) {
+        handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
+      }
+    }
+  }
+
+  return suppressedAlertIds;
 }
 
 /**
