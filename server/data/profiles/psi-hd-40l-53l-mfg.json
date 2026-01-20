@@ -6,10 +6,10 @@
   "engineFamily": "PSI HD",
   "fuelType": "natural_gas",
   "application": null,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "status": "active",
   "createdAt": "2026-01-17T00:00:00Z",
-  "lastModified": "2026-01-17T00:00:00Z",
+  "lastModified": "2026-01-20T01:23:24.017Z",
   "modifiedBy": "system",
   "thresholds": {
     "mfgDeltaPressure": {
@@ -57,7 +57,7 @@
     },
     "mfgFuelPressureGauge": {
       "enabled": true,
-      "description": "Calculated fuel gauge pressure at MFG inlet. Formula: (MFG_USPress - BP) × 27 = inWC. Valid range: 20-30 inWC.",
+      "description": "Calculated fuel gauge pressure at MFG inlet. Formula: (MFG_USPress - BP) x 27 = inWC. Valid range: 20-30 inWC.",
       "unit": "inWC",
       "warning": {
         "min": 20,
@@ -69,7 +69,10 @@
       },
       "computedFrom": {
         "formula": "(MFG_USPress - BP) * 27",
-        "params": ["MFG_USPress", "BP"]
+        "params": [
+          "MFG_USPress",
+          "BP"
+        ]
       },
       "notes": "Requires preprocessing to calculate from MFG_USPress and barometric pressure. 20-30 inWC is optimal at full load."
     },
@@ -108,11 +111,6 @@
           "param": "rpm",
           "operator": ">=",
           "value": 800
-        },
-        {
-          "param": "eng_load",
-          "operator": ">",
-          "value": 30
         }
       ],
       "logic": "AND",
@@ -381,15 +379,45 @@
   ],
   "metadata": {
     "parameterMappings": {
-      "mfgDeltaPressure": ["MFG_DPPress", "mfg_dppress", "MFG_DP"],
-      "mfgUpstreamPressure": ["MFG_USPress", "mfg_uspress", "MFG_US"],
-      "mfgDownstreamPressure": ["MFG_DSPress", "mfg_dspress", "MFG_DS"],
-      "mfgThrottleActual": ["MFG_TPS_act_pct", "mfg_tps_act", "MFG_TPS_ACT"],
-      "mfgThrottleCommand": ["MFG_TPS_cmd_pct", "mfg_tps_cmd", "MFG_TPS_CMD"],
-      "barometricPressure": ["BP", "baro", "barometric_pressure", "BARO"]
+      "mfgDeltaPressure": [
+        "MFG_DPPress",
+        "mfg_dppress",
+        "MFG_DP"
+      ],
+      "mfgUpstreamPressure": [
+        "MFG_USPress",
+        "mfg_uspress",
+        "MFG_US"
+      ],
+      "mfgDownstreamPressure": [
+        "MFG_DSPress",
+        "mfg_dspress",
+        "MFG_DS"
+      ],
+      "mfgThrottleActual": [
+        "MFG_TPS_act_pct",
+        "mfg_tps_act",
+        "MFG_TPS_ACT"
+      ],
+      "mfgThrottleCommand": [
+        "MFG_TPS_cmd_pct",
+        "mfg_tps_cmd",
+        "MFG_TPS_CMD"
+      ],
+      "barometricPressure": [
+        "BP",
+        "baro",
+        "barometric_pressure",
+        "BARO"
+      ]
     },
-    "applicableEngines": ["40L", "53L"],
-    "applicableSystems": ["MFG"],
+    "applicableEngines": [
+      "40L",
+      "53L"
+    ],
+    "applicableSystems": [
+      "MFG"
+    ],
     "documentReference": "PSIKO210015-2 MFG Valve Operation & Diagnostics"
   },
   "engineStateConfig": {
