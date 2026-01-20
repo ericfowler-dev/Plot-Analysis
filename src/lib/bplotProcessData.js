@@ -414,6 +414,7 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     alerts,
     summary,
     thresholdProfileId: thresholdProfile?.profileId || null,
+    thresholdProfileVersion: thresholdProfile?.version || null,
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,

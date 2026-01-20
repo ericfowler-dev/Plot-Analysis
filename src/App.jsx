@@ -1570,13 +1570,22 @@ const PlotAnalyzer = () => {
     }
   }, []);
 
-  // Reprocess B-Plot anomalies when threshold profile changes
+  // Reprocess B-Plot anomalies when threshold profile changes (ID or version)
   useEffect(() => {
     if (!hasBplt || !activeThresholdProfile) return;
     const profileId = activeThresholdProfile.profileId;
+    const profileVersion = activeThresholdProfile.version;
+
+    // Check if profile ID or version changed - reprocess if either is different
+    const profileChanged = (processed) => {
+      if (!processed) return true;
+      if (processed.thresholdProfileId !== profileId) return true;
+      if (processed.thresholdProfileVersion !== profileVersion) return true;
+      return false;
+    };
 
     if (bplotFiles.length > 0) {
-      if (combinedBplotProcessed?.thresholdProfileId === profileId) return;
+      if (!profileChanged(combinedBplotProcessed)) return;
       const updatedFiles = bplotFiles.map(file => ({
         ...file,
         processed: processBPlotData(file.data, activeThresholdProfile)
@@ -1594,7 +1603,7 @@ const PlotAnalyzer = () => {
       return;
     }
 
-    if (!bplotData || bplotProcessed?.thresholdProfileId === profileId) return;
+    if (!bplotData || !profileChanged(bplotProcessed)) return;
     const updatedProcessed = processBPlotData(bplotData, activeThresholdProfile);
     dispatch({
       type: 'BPLOT_REPROCESSED',

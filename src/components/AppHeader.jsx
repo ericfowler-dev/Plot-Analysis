@@ -170,7 +170,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                DATA ANALYSIS v1.4.0
+                DATA ANALYSIS v1.4.1
               </span>
             </div>
           </div>

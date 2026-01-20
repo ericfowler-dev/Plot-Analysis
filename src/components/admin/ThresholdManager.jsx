@@ -34,8 +34,11 @@ import {
 } from '../../lib/thresholdService';
 import { getConfiguratorState } from '../../lib/configuratorService';
 import ThresholdEditor from './ThresholdEditor';
+import { useThresholds } from '../../contexts/ThresholdContext';
 
 export default function ThresholdManager({ onClose }) {
+  // Get refreshProfiles from context to update main app after changes
+  const { refreshProfiles } = useThresholds();
   // Data state
   const [profiles, setProfiles] = useState([]);
   const [index, setIndex] = useState(null);
@@ -203,6 +206,8 @@ export default function ThresholdManager({ onClose }) {
       showMessage(`Profile saved (v${updatedProfile.version})`, 'success');
       setEditingProfile(null);
       await loadData();
+      // Refresh the main app's profile context to trigger reprocessing
+      await refreshProfiles();
     } catch (err) {
       showMessage(`Failed to save: ${err.message}`, 'error');
     } finally {
