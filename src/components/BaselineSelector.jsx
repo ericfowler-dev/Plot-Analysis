@@ -18,18 +18,19 @@ function mapSelectionToProfile(group, size, application) {
   const groupLower = group.toLowerCase();
   const sizeLower = (size || '').toLowerCase();
 
-  // PSI HD 40L/53L with MFG fuel system
+  // PSI HD engines
   if (groupLower.includes('psi hd') || groupLower.includes('psi-hd')) {
+    // 40L/53L with MFG fuel system get special profile
     if (sizeLower.includes('40l') || sizeLower.includes('53l') || sizeLower.includes('mfg')) {
       return 'psi-hd-40l-53l-mfg';
     }
-    // Other PSI HD sizes use base profile
-    return 'global-defaults';
+    // Other PSI HD sizes use HD base profile
+    return 'psi-hd-base';
   }
 
-  // PSI Industrial uses global defaults for now
+  // PSI Industrial engines
   if (groupLower.includes('industrial')) {
-    return 'global-defaults';
+    return 'psi-industrial-base';
   }
 
   // Default fallback
