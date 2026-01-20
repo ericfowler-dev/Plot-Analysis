@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Categorized Key Parameters Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Inter:wght@400;600;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#00FF9D", // Neon Green
+                        secondary: "#00F0FF", // Cyan
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#020617", // Deeper dark for high contrast
+                        "card-dark": "#0B1120",
+                        "accent-red": "#FF4B4B"
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "4px",
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tech-border {
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.05);
+        }
+        .neon-text-green {
+            text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
+        .data-grid-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .data-grid-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 min-h-screen">
+<header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 sticky top-0 z-50">
+<div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-primary/20 rounded flex items-center justify-center border border-primary/50">
+<span class="material-icons text-primary">analytics</span>
+</div>
+<div>
+<h1 class="text-sm font-black tracking-tighter text-primary neon-text-green leading-none">PLOT ANALYZER</h1>
+<p class="text-[10px] font-mono text-slate-500 dark:text-slate-400">DATA ANALYSIS v1.2.5</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex flex-col">
+<span class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Stream Source</span>
+<span class="text-xs font-mono"><span class="text-primary font-bold">BPLT</span> 22L_MLink_27839_HRs_...</span>
+</div>
+<nav class="flex gap-1">
+<button class="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-primary/10 border border-primary/40 text-primary">Overview</button>
+<button class="px-3 py-1 text-xs font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800">Charts</button>
+<button class="px-3 py-1 text-xs font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800">Channels</button>
+<button class="px-3 py-1 text-xs font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800">Events</button>
+</nav>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase">
+<span class="material-icons text-sm">download</span> Export
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 border border-accent-red/50 text-accent-red bg-accent-red/10 text-[11px] font-bold uppercase">
+<span class="material-icons text-sm">bug_report</span> Report Issue
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 bg-primary text-slate-950 text-[11px] font-bold uppercase">
+<span class="material-icons text-sm">upload_file</span> Import New Files
+                </button>
+</div>
+</div>
+</header>
+<main class="p-6 max-w-[1600px] mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="bg-card-dark tech-border p-4 rounded">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-icons text-orange-500 text-sm">schedule</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engine Hours Plot Start</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black font-mono tracking-tight">27839</span>
+<span class="text-slate-500 font-mono text-sm">hrs</span>
+</div>
+</div>
+<div class="bg-card-dark tech-border p-4 rounded">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-icons text-orange-500 text-sm">schedule</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engine Hours Plot End</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black font-mono tracking-tight">27839</span>
+<span class="text-slate-500 font-mono text-sm">hrs</span>
+</div>
+</div>
+<div class="bg-card-dark tech-border p-4 rounded border-primary/20">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-icons text-primary text-sm">timer</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recording Duration</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black font-mono tracking-tight">10.8</span>
+<span class="text-slate-500 font-mono text-sm">minutes</span>
+</div>
+</div>
+<div class="bg-card-dark tech-border p-4 rounded border-secondary/20">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-icons text-secondary text-sm">show_chart</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engine Runtime</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black font-mono tracking-tight">10.8</span>
+<span class="text-slate-500 font-mono text-sm">minutes</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+<div class="xl:col-span-3">
+<div class="bg-card-dark tech-border p-6 rounded h-full">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-icons text-primary text-xl">settings</span>
+<h2 class="text-sm font-black uppercase tracking-widest text-slate-200">Operating Statistics</h2>
+</div>
+<div class="space-y-3 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-400">Idle Time</span>
+<span class="text-primary font-bold">0.0%</span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-400">Average Load</span>
+<span class="font-bold">9.3 <span class="text-[10px]">MAP</span></span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-400">Sample Rate</span>
+<span class="font-bold">1.74 <span class="text-[10px]">Hz</span></span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-400">Engine Starts</span>
+<span class="font-bold">1</span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-400">Engine Stops</span>
+<span class="font-bold">0</span>
+</div>
+</div>
+</div>
+</div>
+<div class="xl:col-span-9">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-icons text-secondary text-xl">insights</span>
+<h2 class="text-sm font-black uppercase tracking-widest text-slate-200">Key Parameters <span class="text-[10px] text-slate-500 ml-2">BY SYSTEM</span></h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_8px_rgba(0,255,157,0.6)]"></div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-slate-400">MIL OFF</span>
+</div>
+<button class="bg-slate-800 text-[10px] px-2 py-0.5 font-bold flex items-center gap-1 border border-slate-700">
+<span class="material-icons text-[12px]">warning</span> ADD ECM DATA
+                        </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="bg-card-dark p-4 tech-border rounded hover:border-secondary/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-secondary neon-text-cyan">Electrical System</h3>
+<span class="material-icons text-secondary text-sm">bolt</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">Battery Voltage</span>
+<span class="font-bold text-slate-200">27.8 - 27.9 <span class="text-[10px] text-slate-500">V</span></span>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 tech-border rounded hover:border-primary/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-primary neon-text-green">Engine Speed &amp; Load</h3>
+<span class="material-icons text-primary text-sm">speed</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">RPM Range</span>
+<span class="font-bold text-slate-200">1800 - 1804 <span class="text-[10px] text-slate-500">RPM</span></span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-500">Throttle Range</span>
+<span class="font-bold text-slate-200">24 - 27 <span class="text-[10px] text-slate-500">%</span></span>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 tech-border rounded hover:border-secondary/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-secondary neon-text-cyan">Air Intake</h3>
+<span class="material-icons text-secondary text-sm">air</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">MAP Range</span>
+<span class="font-bold text-slate-200">8.7 - 9.9 <span class="text-[10px] text-slate-500">psia</span></span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-500">IAT</span>
+<span class="font-bold text-slate-200">74.8 - 75.5 (75.1) <span class="text-[10px] text-slate-500">F</span></span>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 tech-border rounded hover:border-orange-400/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-orange-400">Thermal Management</h3>
+<span class="material-icons text-orange-400 text-sm">thermostat</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">Coolant Temp</span>
+<span class="font-bold text-slate-200">176 - 177 <span class="text-[10px] text-slate-500">F</span></span>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 tech-border rounded hover:border-yellow-400/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-yellow-400">Lubrication</h3>
+<span class="material-icons text-yellow-400 text-sm">oil_barrel</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">OILP_press</span>
+<span class="font-bold text-slate-200">90.9 - 92.2 (91.5) <span class="text-[10px] text-slate-500">psi</span></span>
+</div>
+</div>
+</div>
+<div class="bg-card-dark p-4 tech-border rounded hover:border-primary/50 transition-colors">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-black uppercase tracking-widest text-primary neon-text-green">Fuel &amp; Combustion</h3>
+<span class="material-icons text-primary text-sm">local_gas_station</span>
+</div>
+<div class="space-y-2 font-mono text-xs">
+<div class="data-grid-row">
+<span class="text-slate-500">Phi_UEGO</span>
+<span class="font-bold text-slate-200">1.90 - 2.03 (1.99)</span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-500">CL_BM1</span>
+<span class="font-bold text-slate-200">-0.50 - -0.20 (-0.36)</span>
+</div>
+<div class="data-grid-row">
+<span class="text-slate-500">A_BM1</span>
+<span class="font-bold text-slate-200">2.05 - 2.10 (2.08)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-4 py-1.5 flex justify-between items-center z-50">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+<span class="text-[9px] font-mono uppercase text-slate-400 tracking-tighter">System Ready</span>
+</div>
+<div class="h-3 w-[1px] bg-slate-700"></div>
+<span class="text-[9px] font-mono text-slate-500">PID: 8842-1</span>
+</div>
+<div class="flex items-center gap-4 text-[9px] font-mono text-slate-500 uppercase tracking-tighter">
+<span>MEM: 2.4GB / 8GB</span>
+<span>CPU: 12%</span>
+<span class="text-slate-400">LATENCY: 14MS</span>
+</div>
+</footer>
+
+</body></html>

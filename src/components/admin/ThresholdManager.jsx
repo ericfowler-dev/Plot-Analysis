@@ -16,6 +16,7 @@ import {
   ChevronDown,
   AlertCircle,
   Check,
+  ShieldAlert,
   X,
   RefreshCw,
   ArrowLeft,
@@ -31,6 +32,7 @@ import {
   exportProfiles,
   importProfiles
 } from '../../lib/thresholdService';
+import { getConfiguratorState } from '../../lib/configuratorService';
 import ThresholdEditor from './ThresholdEditor';
 
 export default function ThresholdManager({ onClose }) {
@@ -39,6 +41,9 @@ export default function ThresholdManager({ onClose }) {
   const [index, setIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configuratorState, setConfiguratorState] = useState(null);
+  const [adminToken, setAdminToken] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
 
   // UI state
   const [expandedFamilies, setExpandedFamilies] = useState({});
@@ -64,6 +69,13 @@ export default function ThresholdManager({ onClose }) {
       ]);
       setProfiles(profilesList);
       setIndex(indexData);
+      try {
+        const configurator = await getConfiguratorState();
+        setConfiguratorState(configurator);
+      } catch (configError) {
+        console.warn('Failed to load configurator state:', configError);
+        setConfiguratorState(null);
+      }
 
       // Auto-expand all families
       const expanded = {};
@@ -82,6 +94,13 @@ export default function ThresholdManager({ onClose }) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    const user = localStorage.getItem('adminUser') || localStorage.getItem('adminActor');
+    setAdminToken(token);
+    setAdminUser(user);
+  }, []);
 
   /**
    * Group profiles by engine family
@@ -284,6 +303,30 @@ export default function ThresholdManager({ onClose }) {
     setTimeout(() => setActionMessage(null), 5000);
   };
 
+  const handleAdminLogin = () => {
+    const token = prompt('Enter admin token:');
+    if (!token) return;
+    const user = prompt('Enter admin name (optional):');
+    localStorage.setItem('adminToken', token);
+    if (user) {
+      localStorage.setItem('adminUser', user);
+    } else {
+      localStorage.removeItem('adminUser');
+    }
+    setAdminToken(token);
+    setAdminUser(user || null);
+    showMessage('Admin token set', 'success');
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    localStorage.removeItem('adminActor');
+    setAdminToken(null);
+    setAdminUser(null);
+    showMessage('Admin token cleared', 'info');
+  };
+
   /**
    * Toggle family expansion
    */
@@ -335,6 +378,9 @@ export default function ThresholdManager({ onClose }) {
                   <p className="text-sm text-slate-400">
                     Configure anomaly detection thresholds by engine type
                   </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Configurator Version: {configuratorState?.version ?? '—'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -347,6 +393,24 @@ export default function ThresholdManager({ onClose }) {
                 >
                   <Upload className="w-4 h-4" />
                   Upload New Files
+                </button>
+              )}
+              {adminToken ? (
+                <button
+                  onClick={handleAdminLogout}
+                  className="flex items-center gap-2 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded-lg text-sm transition-colors"
+                  title={`Admin ${adminUser ? `(${adminUser})` : ''}`}
+                >
+                  <Check className="w-4 h-4" />
+                  Admin Enabled
+                </button>
+              ) : (
+                <button
+                  onClick={handleAdminLogin}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  Admin Login
                 </button>
               )}
               <button

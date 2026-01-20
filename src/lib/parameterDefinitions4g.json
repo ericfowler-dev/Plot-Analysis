@@ -1,0 +1,1422 @@
+{
+  "document_info": {
+    "title": "4G Parameter Definitions",
+    "version": "661B",
+    "last_updated": "11/18/2024",
+    "status": "Work in progress"
+  },
+  "parameters": [
+    {
+      "name": "AAT",
+      "definition": "Ambient Air Temp"
+    },
+    {
+      "name": "AAT_def",
+      "definition": "AAT default value"
+    },
+    {
+      "name": "AAT_source",
+      "definition": "Source input selector switch for ambient air temperature measurement"
+    },
+    {
+      "name": "AAT_UEGO_PHstart",
+      "definition": "Ambient air temperature at preheat start"
+    },
+    {
+      "name": "abs_5V_supply",
+      "definition": "5V supply absolute voltage - part of EOL Parameter Burn Mode; computed from a 5V ratiometric A/D conversion during EOL burn."
+    },
+    {
+      "name": "accel_flt",
+      "definition": "Filtered crankshaft acceleration"
+    },
+    {
+      "name": "accel_flt_thd",
+      "definition": "Threshold for filtered crankshaft acceleration to signify an expansion stroke has occurred during engine cranking"
+    },
+    {
+      "name": "accel_instant",
+      "definition": "Instantaneous engine acceleration, valid after crank synchronization."
+    },
+    {
+      "name": "ACLT_EGRclr_Lmin",
+      "definition": "Estimated auxiliary coolant flow through the EGR cooler (equal to the intercooler bypass flow)."
+    },
+    {
+      "name": "ACLT_EGRclr_min_Lmin",
+      "definition": "Minimum heat exchanger flow rate required to avoid thermal shock / damage to the heat exchangers."
+    },
+    {
+      "name": "ACLT_intby_dT_halt",
+      "definition": "If the actual temperature is within +/- this amount of the target temperature, the valve command is frozen until the temperature error exceeds the 'resume' deadzone below."
+    },
+    {
+      "name": "ACLT_intby_dT_res",
+      "definition": "If control updates are halted and the difference between the actual and target temperatures exceed this amount (+ or -), control updates will resume."
+    },
+    {
+      "name": "ACLT_intby_ena",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split output channel."
+    },
+    {
+      "name": "ACLT_intby_I_accum",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split integral accumulator."
+    },
+    {
+      "name": "ACLT_intby_Ki",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split CL Ki gain."
+    },
+    {
+      "name": "ACLT_intby_Kp",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split CL Kp gain."
+    },
+    {
+      "name": "ACLT_intby_Lmin_CL",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split total closed-loop correction."
+    },
+    {
+      "name": "ACLT_intby_T_cmd",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split temperature target. This is calculated as the maximum of the auxiliary coolant temperature and the post-intercooler dew point, plus the temperature target offset."
+    },
+    {
+      "name": "ACLT_intby_T_error",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split temperature error."
+    },
+    {
+      "name": "ACLT_intby_T_ofs",
+      "definition": "Offset added to the auxiliary coolant control intercooler/EGR cooler flow split temperature target"
+    },
+    {
+      "name": "ACLT_intby_vlv_act",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split valve actual position."
+    },
+    {
+      "name": "ACLT_intby_vlv_cmd",
+      "definition": "Auxiliary coolant control intercooler/EGR cooler flow split valve command."
+    },
+    {
+      "name": "ACLT_intby_vlv_def",
+      "definition": "This position is commanded to the intercooler/EGR valve prior to engine shutdown to guarantee operation following a cold shutdown. 0% = no intercooler bypass; 100% = full radiator bypass."
+    },
+    {
+      "name": "ACLT_intby_vlv_halt",
+      "definition": "Indicates the intercooler/EGR valve control is halted due to a temperature error within the calibrated deadzone."
+    },
+    {
+      "name": "ACLT_intby_vlv_max",
+      "definition": "Maximum intercooler bypass valve position."
+    },
+    {
+      "name": "ACLT_intby_vlv_min",
+      "definition": "Minimum intercooler bypass valve position."
+    },
+    {
+      "name": "ACLT_intclr_dTh",
+      "definition": "Intake air temperature drop (actual) through the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_dTh_ff",
+      "definition": "Intake air temperature drop (desired, used for feedforward) through the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_dTi",
+      "definition": "Air-water temperature difference at the inlet to the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_eff",
+      "definition": "Intercooler (actual) effectiveness."
+    },
+    {
+      "name": "ACLT_intclr_eff_ff",
+      "definition": "Intercooler (desired, used for feedforward) effectiveness."
+    },
+    {
+      "name": "ACLT_intclr_Lmin",
+      "definition": "Total control intercooler volumetric flow rate."
+    },
+    {
+      "name": "ACLT_intclr_Lmin_ff",
+      "definition": "Feedforward control intercooler volumetric flow rate."
+    },
+    {
+      "name": "ACLT_intclr_mdotx",
+      "definition": "Actual ratio of air mixture to water flow in the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_Q",
+      "definition": "Estimated heat rejection to the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_Qff",
+      "definition": "Requested heat rejection to the intercooler for feedforward control."
+    },
+    {
+      "name": "ACLT_intclr_Qmax",
+      "definition": "Maximum possible heat rejection from the intercooler."
+    },
+    {
+      "name": "ACLT_intclr_Q_dT_max",
+      "definition": "Intercooler heat transfer per degree of coolant thermal margin"
+    },
+    {
+      "name": "ACLT_intTlim_Amin",
+      "definition": "Absolute minimum intercooler coolant flow."
+    },
+    {
+      "name": "ACLT_intTlim_crct",
+      "definition": "Flow correction factor for intercooler coolant flow required to limit outlet temperature."
+    },
+    {
+      "name": "ACLT_intTlim_crctdcy",
+      "definition": "Minimum intercooler coolant flow correction factor decay rate"
+    },
+    {
+      "name": "ACLT_intTlim_crctini",
+      "definition": "Initial minimum intercooler coolant flow correction factor"
+    },
+    {
+      "name": "ACLT_intTlim_crctmin",
+      "definition": "Minimum intercooler coolant flow correction factor."
+    },
+    {
+      "name": "ACLT_intTlim_crct_Kp",
+      "definition": "Kp gain for the intercooler coolant flow correction applied after each excursion above max outlet temperature."
+    },
+    {
+      "name": "ACLT_intTlim_I_accum",
+      "definition": "Intercooler coolant over-temperature flow correction integral."
+    },
+    {
+      "name": "ACLT_intTlim_I_decay",
+      "definition": "Intercooler coolant over-temperature flow correction integral decay rate."
+    },
+    {
+      "name": "ACLT_intTlim_Ki",
+      "definition": "Ki gain for correcting intercooler coolant outlet temperature when it exceeds the maximum."
+    },
+    {
+      "name": "ACLT_intTlim_Kp",
+      "definition": "Kp gain for correcting intercooler coolant outlet temperature when it exceeds the maximum."
+    },
+    {
+      "name": "ACLT_intTlim_maxLmin",
+      "definition": "Maximum allowed flow rate to the intercooler for coolant outlet temperature limiting."
+    },
+    {
+      "name": "ACLT_intTlim_minLmin",
+      "definition": "Intercooler coolant flow required to prevent outlet temperature from exceeding the maximum."
+    },
+    {
+      "name": "ACLT_intTlim_OOA_dT",
+      "definition": "Degrees above the limit to latch the 'Intercooler temperature limiting out of authority' diagnostic."
+    },
+    {
+      "name": "ACLT_intTlim_pctmax",
+      "definition": "Maximum flow authority for outlet temperature limiting as a percentage of potential flow."
+    },
+    {
+      "name": "ACLT_intTlim_trst_th",
+      "definition": "Threshold of heat transfer per thermal margin for confidence in flow correction."
+    },
+    {
+      "name": "ACLT_intTlim_trust",
+      "definition": "Confidence level that the flow correction factor can be reduced."
+    },
+    {
+      "name": "ACLT_intTlim_trust_d",
+      "definition": "Time for flow correction confidence to decrease to 0%."
+    },
+    {
+      "name": "ACLT_intTlim_trust_i",
+      "definition": "Time for flow correction confidence to increase to 100%."
+    },
+    {
+      "name": "ACLT_intTlim_T_max",
+      "definition": "Maximum intercooler coolant outlet temperature."
+    },
+    {
+      "name": "ACLT_pump_Lmin",
+      "definition": "Coolant flow through the auxiliary cooling loop."
+    },
+    {
+      "name": "ACLT_pump_max_Lmin",
+      "definition": "Effective coolant flow through auxiliary loop limited by restrictions."
+    },
+    {
+      "name": "ACLT_radby_dT_halt",
+      "definition": "Deadzone threshold where radiator bypass valve command is frozen."
+    },
+    {
+      "name": "ACLT_radby_dT_res",
+      "definition": "Threshold for radiator bypass control updates to resume after being halted."
+    },
+    {
+      "name": "ACLT_radby_ena",
+      "definition": "Auxiliary coolant control radiator bypass output channel."
+    },
+    {
+      "name": "ACLT_radby_I_accum",
+      "definition": "Auxiliary coolant control radiator bypass integral accumulator."
+    },
+    {
+      "name": "ACLT_radby_Ki",
+      "definition": "Auxiliary coolant control radiator bypass CL Ki gain."
+    },
+    {
+      "name": "ACLT_radby_Kp",
+      "definition": "Auxiliary coolant control radiator bypass CL Kp gain."
+    },
+    {
+      "name": "ACLT_radby_Lmin_CL",
+      "definition": "Auxiliary coolant control radiator bypass total closed-loop correction."
+    },
+    {
+      "name": "ACLT_radby_T_cmd",
+      "definition": "Auxiliary coolant control radiator bypass temperature target."
+    },
+    {
+      "name": "ACLT_radby_T_error",
+      "definition": "Auxiliary coolant control radiator bypass temperature error."
+    },
+    {
+      "name": "ACLT_radby_vlv_act",
+      "definition": "Auxiliary coolant control radiator bypass valve actual position."
+    },
+    {
+      "name": "ACLT_radby_vlv_cmd",
+      "definition": "Auxiliary coolant control radiator bypass valve command."
+    },
+    {
+      "name": "ACLT_radby_vlv_def",
+      "definition": "Shutdown command position for radiator bypass valve. 0% = full radiator flow; 100% = full radiator bypass."
+    },
+    {
+      "name": "ACLT_radby_vlv_halt",
+      "definition": "Indicates radiator bypass valve control is halted due to temperature error deadzone."
+    },
+    {
+      "name": "ACLT_radby_vlv_max",
+      "definition": "Maximum radiator bypass valve position."
+    },
+    {
+      "name": "ACLT_radby_vlv_min",
+      "definition": "Minimum radiator bypass valve position."
+    },
+    {
+      "name": "ACLT_rad_Lmin",
+      "definition": "Total control radiator volumetric flow rate."
+    },
+    {
+      "name": "ACLT_rad_Lmin_ff",
+      "definition": "Feedforward control radiator volumetric flow rate."
+    },
+    {
+      "name": "ACSB_APSdelta",
+      "definition": "Delta voltage to initiate closed-stop braking; values above this will not trigger braking."
+    },
+    {
+      "name": "ACSB_ena",
+      "definition": "H-Bridge A Closed Stop Braking (CSB) Elimination enable switch"
+    },
+    {
+      "name": "ACSB_Kd",
+      "definition": "Gain multiplied by the difference between actual dPS/dt and limits to contribute to braking force."
+    },
+    {
+      "name": "ACSB_max_APSdt",
+      "definition": "dPS/dt value at max PS position above which no braking action occurs."
+    },
+    {
+      "name": "ACSB_min_APSdt",
+      "definition": "dPS/dt value at min PS position above which no braking action occurs."
+    },
+    {
+      "name": "ACT",
+      "definition": "Auxiliary coolant temperature (ACT)."
+    },
+    {
+      "name": "active_FPP_mode",
+      "definition": "Current FPP mode (FPP_mode or FPP2_mode) based on dual pedal and brake status."
+    },
+    {
+      "name": "active_fuel_device",
+      "definition": "Current fuel device (Injection, EPR, CFV, PWM)"
+    },
+    {
+      "name": "active_fuel_loc",
+      "definition": "Current active fuel device location"
+    },
+    {
+      "name": "ACT_ena",
+      "definition": "Auxiliary coolant temperature (ACT) channel."
+    },
+    {
+      "name": "ACT_hi_RPMmin",
+      "definition": "Minimum engine speed fault condition for 'ACT temperature high' diagnostic"
+    },
+    {
+      "name": "ACT_hi_Tmax",
+      "definition": "Temperature threshold for 'ACT temperature high' diagnostic"
+    },
+    {
+      "name": "ACT_hi_wait",
+      "definition": "Minimum engine run time for 'ACT temperature high' diagnostic"
+    },
+    {
+      "name": "ACT_Taux_cal",
+      "definition": "Auxiliary coolant temperature (ACT) temperature calibration table."
+    },
+    {
+      "name": "ACT_vdr",
+      "definition": "Auxiliary coolant temperature (ACT) pullup resistor value."
+    },
+    {
+      "name": "AC_ctl_chan",
+      "definition": "AC clutch relay output channel AUX_PWM"
+    },
+    {
+      "name": "AC_ctl_max_RPM",
+      "definition": "Max RPM for AC clutch relay to be ON"
+    },
+    {
+      "name": "AC_ctl_min_ECT",
+      "definition": "Min ECT for AC clutch relay to be ON"
+    },
+    {
+      "name": "AC_ctl_min_RPM",
+      "definition": "Min RPM for AC clutch relay to be ON"
+    },
+    {
+      "name": "AC_ctl_mode",
+      "definition": "Determines if Boost TEI events temporarily disable the AC clutch relay"
+    },
+    {
+      "name": "AC_ctl_mode_t",
+      "definition": "Minimum time AC remains off"
+    },
+    {
+      "name": "AC_ctl_state",
+      "definition": "Current state of the clutch relay output PWM"
+    },
+    {
+      "name": "AC_hi_pres_cfg",
+      "definition": "A/C high pressure switch Aux DIG input configuration."
+    },
+    {
+      "name": "AC_hi_pres_chan",
+      "definition": "Input channel for the A/C high pressure switch."
+    },
+    {
+      "name": "AC_idle_rpm",
+      "definition": "Idle RPM elevation when AC is ON"
+    },
+    {
+      "name": "AC_sw_chan",
+      "definition": "AC request switch input channel (supports CAN PGNs)."
+    },
+    {
+      "name": "AC_sw_chan_cfg",
+      "definition": "Determines active logic states for Aux DIG inputs (e.g., Gnd or +V/Gnd)."
+    },
+    {
+      "name": "AC_sw_stat",
+      "definition": "AC request switch input status (Inactive, Active, Error, Not Configured)."
+    },
+    {
+      "name": "Adapt1_valid_cnt",
+      "definition": "Valid adaptive counts (Bank 1)"
+    },
+    {
+      "name": "Adapt2_valid_cnt",
+      "definition": "Valid adaptive counts (Gasoline Bank 2)"
+    },
+    {
+      "name": "AdaptMAP",
+      "definition": "2D interpolation table MAP (X-axis) input values"
+    },
+    {
+      "name": "AdaptMAPNG",
+      "definition": "2D interpolation table MAP (NG engines) (X-axis) input values"
+    },
+    {
+      "name": "AdaptMAPP",
+      "definition": "2D interpolation table MAP (LP engines) (X-axis) input values"
+    },
+    {
+      "name": "AdaptRPM",
+      "definition": "2D interpolation table rpm (y-axis) input values"
+    },
+    {
+      "name": "AdaptRPMNG",
+      "definition": "2D interpolation table rpm (NG engines) (y-axis) input values"
+    },
+    {
+      "name": "AdaptRPMP",
+      "definition": "2D interpolation table rpm (LPG engines) (y-axis) input values"
+    },
+    {
+      "name": "AdaptTbl1",
+      "definition": "2D Interpolation Table: Gasoline Adaptive Learn Bank 1"
+    },
+    {
+      "name": "AdaptTbl2",
+      "definition": "2D Interpolation Table: Gasoline Adaptive Learn Bank 2"
+    },
+    {
+      "name": "AdaptTblNG",
+      "definition": "2D Interpolation Table: NG Adaptive Learn"
+    },
+    {
+      "name": "AdaptTblP",
+      "definition": "2D Interpolation Table: LPG Adaptive Learn"
+    },
+    {
+      "name": "Adapt_dzone",
+      "definition": "Gasoline: Adaptive Learn Dead Zone Limit"
+    },
+    {
+      "name": "adapt_ena",
+      "definition": "Enables normal 'Adaptive Learn' mode when proper conditions exist."
+    },
+    {
+      "name": "adapt_fuel_rpm_dz",
+      "definition": "Adaptive learn update disable threshold for discrete governors based on RPM difference."
+    },
+    {
+      "name": "adapt_fuel_rpm_src",
+      "definition": "Determines if Actual RPM or Desired RPM is used for fuel adaptive table lookups."
+    },
+    {
+      "name": "Adapt_neg_lim",
+      "definition": "Gasoline: Adaptive Learn BM minimum (negative) allowed"
+    },
+    {
+      "name": "Adapt_pos_lim",
+      "definition": "Gasoline: Adaptive Learn BM maximum (positive) allowed"
+    },
+    {
+      "name": "Adapt_start_wait",
+      "definition": "Time from start until adaptive mode is enabled; must be longer than 'EGO start wait'."
+    },
+    {
+      "name": "Adapt_stepmax",
+      "definition": "Gasoline: Adaptive Learn Step Maximum"
+    },
+    {
+      "name": "adapt_store_EE",
+      "definition": "Switch for storing adaptive tables in battery-supported or permanent memory."
+    },
+    {
+      "name": "Adapt_valid",
+      "definition": "Error tolerance between actual and commanded equivalence ratio for adaptive updates."
+    },
+    {
+      "name": "Adapt_wait",
+      "definition": "Valid closed loop update cycles required before adaptive updates begin."
+    },
+    {
+      "name": "ADDRCLAIM2_cnt",
+      "definition": "Address claiming activity (counts) - CAN channel 2"
+    },
+    {
+      "name": "ADDRCLAIM3_cnt",
+      "definition": "Address claiming activity (counts) - CAN channel 3"
+    },
+    {
+      "name": "ADDRCLAIM_cnt",
+      "definition": "Address claiming activity (counts) - CAN channel 1"
+    },
+    {
+      "name": "ADIG10_max",
+      "definition": "AUX digital 10 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG10_min",
+      "definition": "AUX digital 10 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG11_max",
+      "definition": "AUX digital 11 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG11_min",
+      "definition": "AUX digital 11 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG12_max",
+      "definition": "AUX digital 12 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG12_min",
+      "definition": "AUX digital 12 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG13_max",
+      "definition": "AUX digital 13 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG13_min",
+      "definition": "AUX digital 13 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG14_max",
+      "definition": "AUX digital 14 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG14_min",
+      "definition": "AUX digital 14 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG15_max",
+      "definition": "AUX digital 15 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG15_min",
+      "definition": "AUX digital 15 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG16_max",
+      "definition": "AUX digital 16 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG16_min",
+      "definition": "AUX digital 16 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG17_max",
+      "definition": "AUX digital 17 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG17_min",
+      "definition": "AUX digital 17 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG18_max",
+      "definition": "AUX digital 18 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG18_min",
+      "definition": "AUX digital 18 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG19_max",
+      "definition": "AUX digital 19 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG19_min",
+      "definition": "AUX digital 19 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG1_max",
+      "definition": "AUX digital 1 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG1_min",
+      "definition": "AUX digital 1 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG20_max",
+      "definition": "AUX digital 20 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG20_min",
+      "definition": "AUX digital 20 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG21_max",
+      "definition": "AUX digital 21 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG21_min",
+      "definition": "AUX digital 21 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG22_max",
+      "definition": "AUX digital 22 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG22_min",
+      "definition": "AUX digital 22 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG23_max",
+      "definition": "AUX digital 23 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG23_min",
+      "definition": "AUX digital 23 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG24_max",
+      "definition": "AUX digital 24 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG24_min",
+      "definition": "AUX digital 24 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG25_max",
+      "definition": "AUX digital 25 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG25_min",
+      "definition": "AUX digital 25 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG2_max",
+      "definition": "AUX digital 2 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG2_min",
+      "definition": "AUX digital 2 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG3_max",
+      "definition": "AUX digital 3 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG3_min",
+      "definition": "AUX digital 3 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG4_max",
+      "definition": "AUX digital 4 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG4_min",
+      "definition": "AUX digital 4 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG5_max",
+      "definition": "AUX digital 5 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG5_min",
+      "definition": "AUX digital 5 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG6_max",
+      "definition": "AUX digital 6 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG6_min",
+      "definition": "AUX digital 6 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG7_max",
+      "definition": "AUX digital 7 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG7_min",
+      "definition": "AUX digital 7 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG8_max",
+      "definition": "AUX digital 8 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG8_min",
+      "definition": "AUX digital 8 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "ADIG9_max",
+      "definition": "AUX digital 9 high voltage fault - max voltage entry condition"
+    },
+    {
+      "name": "ADIG9_min",
+      "definition": "AUX digital 9 low voltage fault - min voltage entry condition"
+    },
+    {
+      "name": "AEM_hard_Ilim",
+      "definition": "Actuator hardware current limit - HBA"
+    },
+    {
+      "name": "AEM_I",
+      "definition": "Estimated current - HBA"
+    },
+    {
+      "name": "AEM_Kv",
+      "definition": "Actuator Kv constant - HBA"
+    },
+    {
+      "name": "AEM_L",
+      "definition": "Actuator loop L - HBA"
+    },
+    {
+      "name": "AEM_R",
+      "definition": "Actuator loop R - HBA"
+    },
+    {
+      "name": "AEM_V_diode",
+      "definition": "Actuator voltage supply diode - HBA"
+    },
+    {
+      "name": "AFBdt",
+      "definition": "H-Bridge A (HBA) position sensor feedback derivative term"
+    },
+    {
+      "name": "AFBdt_n",
+      "definition": "PSdt calculation PS linear least-squares window size."
+    },
+    {
+      "name": "AFBdt_xLP",
+      "definition": "Post interpolation low-pass filter constant for PSdt."
+    },
+    {
+      "name": "AFILTdP",
+      "definition": "Air filter final filtered delta-P"
+    },
+    {
+      "name": "AFILTdP_cyl_events",
+      "definition": "Number of cylinder events for AFILTdP measurement windowing."
+    },
+    {
+      "name": "AFILTdP_Dz",
+      "definition": "Cutoff for cubic deadzone on air filter delta-P sensor."
+    },
+    {
+      "name": "AFILTdP_ena",
+      "definition": "Air filter delta pressure sensor input channel"
+    },
+    {
+      "name": "AFILTdP_inst",
+      "definition": "Air filter raw delta-P"
+    },
+    {
+      "name": "AFILTdP_Paux_cal",
+      "definition": "Air filter delta-P sensor transfer function"
+    },
+    {
+      "name": "AFILTdP_tau",
+      "definition": "Low-pass time constant for air filter delta-P filter."
+    },
+    {
+      "name": "AFILT_dP_C",
+      "definition": "Air Filter Model: AF flow rate delta P scaling"
+    },
+    {
+      "name": "AFILT_dP_chan",
+      "definition": "Digital input channel for an air filter differential pressure sensor."
+    },
+    {
+      "name": "AFILT_dP_chan_cfg",
+      "definition": "Active logic state configuration for air filter differential pressure input."
+    },
+    {
+      "name": "afs_crkdly_cycs",
+      "definition": "Number of engine cycles fuel/spark is inhibited during start on alternate fuels within ECT range."
+    },
+    {
+      "name": "afs_crkdly_ECT",
+      "definition": "Upper ECT bound for inhibiting fuel/spark during start on alternate fuels."
+    },
+    {
+      "name": "afs_crkdly_ECTlo",
+      "definition": "Lower ECT bound for inhibiting fuel/spark during start on alternate fuels."
+    },
+    {
+      "name": "afs_crkdly_fs",
+      "definition": "Enables ECT range based fuel/spark inhibition for alternate fuel starts."
+    },
+    {
+      "name": "AFT_dewpt_CL1pre",
+      "definition": "Tx Bank 1 pre dew point indication"
+    },
+    {
+      "name": "AFT_dewpt_CL1pst",
+      "definition": "Tx Bank 1 post dew point"
+    },
+    {
+      "name": "AFT_dewpt_CL2pre",
+      "definition": "Tx Bank 2 pre dew point indication"
+    },
+    {
+      "name": "AFT_dewpt_CL2pst",
+      "definition": "Tx Bank 2 post dew point"
+    },
+    {
+      "name": "AF_UEGO",
+      "definition": "Calculated Air/Fuel Ratio (UEGO1 sensor)"
+    },
+    {
+      "name": "AF_UEGO2",
+      "definition": "Calculated Air/Fuel Ratio (UEGO2 sensor)"
+    },
+    {
+      "name": "AF_UEGO3",
+      "definition": "Calculated Air/Fuel Ratio (UEGO3 sensor)"
+    },
+    {
+      "name": "AF_UEGO4",
+      "definition": "Calculated Air/Fuel Ratio (UEGO4 sensor)"
+    },
+    {
+      "name": "AGS_req1",
+      "definition": "Current position of grille #1."
+    },
+    {
+      "name": "ALfltG_MAPmax",
+      "definition": "Gasoline: Adaptive Learn Fault maximum MAP boundary"
+    },
+    {
+      "name": "ALfltG_MAPmin",
+      "definition": "Gasoline: Adaptive Learn Fault minimum MAP boundary"
+    },
+    {
+      "name": "ALfltG_RPMmax",
+      "definition": "Gasoline: Adaptive Learn Fault maximum RPM boundary"
+    },
+    {
+      "name": "ALfltG_RPMmin",
+      "definition": "Gasoline: Adaptive Learn Fault minimum RPM boundary"
+    },
+    {
+      "name": "ALfltN_MAPmax",
+      "definition": "NG: Adaptive Learn Fault maximum MAP boundary"
+    },
+    {
+      "name": "ALfltN_MAPmin",
+      "definition": "NG: Adaptive Learn Fault minimum MAP boundary"
+    },
+    {
+      "name": "ALfltN_RPMmax",
+      "definition": "NG: Adaptive Learn Fault maximum RPM boundary"
+    },
+    {
+      "name": "ALfltN_RPMmin",
+      "definition": "NG: Adaptive Learn Fault minimum RPM boundary"
+    },
+    {
+      "name": "ALfltP_MAPmax",
+      "definition": "LPG: Adaptive Learn Fault maximum MAP boundary"
+    },
+    {
+      "name": "ALfltP_MAPmin",
+      "definition": "LPG: Adaptive Learn Fault minimum MAP boundary"
+    },
+    {
+      "name": "ALfltP_RPMmax",
+      "definition": "LPG: Adaptive Learn Fault maximum RPM boundary"
+    },
+    {
+      "name": "ALfltP_RPMmin",
+      "definition": "LPG: Adaptive Learn Fault minimum RPM boundary"
+    },
+    {
+      "name": "ALLP_dzone",
+      "definition": "LPG: Adaptive Learn Dead Zone Limit"
+    },
+    {
+      "name": "ALLP_hi",
+      "definition": "LPG: Adaptive Learn BM maximum (positive) allowed"
+    },
+    {
+      "name": "ALLP_K",
+      "definition": "LPG: Adaptive Learn Gain"
+    },
+    {
+      "name": "ALLP_lo",
+      "definition": "LPG: Adaptive Learn BM minimum (negative) allowed"
+    },
+    {
+      "name": "ALLP_stepmax",
+      "definition": "LPG: Adaptive Learn Step Maximum"
+    },
+    {
+      "name": "ALLP_valid",
+      "definition": "Error tolerance for LPG adaptive updates."
+    },
+    {
+      "name": "ALLP_wait",
+      "definition": "Required closed loop cycles before LPG adaptive updates."
+    },
+    {
+      "name": "allspeed_rpm",
+      "definition": "Final FPP engine speed command for all-speed control mode."
+    },
+    {
+      "name": "ALNG_dzone",
+      "definition": "NG: Adaptive Learn Dead Zone Limit"
+    },
+    {
+      "name": "ALNG_hi",
+      "definition": "NG: Adaptive Learn BM maximum (positive) allowed"
+    },
+    {
+      "name": "ALNG_K",
+      "definition": "NG: Adaptive Learn Gain"
+    },
+    {
+      "name": "ALNG_lo",
+      "definition": "NG: Adaptive Learn BM minimum (negative) allowed"
+    },
+    {
+      "name": "ALNG_stepmax",
+      "definition": "NG: Adaptive Learn Step Maximum"
+    },
+    {
+      "name": "ALNG_valid",
+      "definition": "Error tolerance for NG adaptive updates."
+    },
+    {
+      "name": "ALNG_wait",
+      "definition": "Required closed loop cycles before NG adaptive updates."
+    },
+    {
+      "name": "alphaN_ena",
+      "definition": "Switch for computing alpha-N based MAP estimate using TPS, RPM, and BP."
+    },
+    {
+      "name": "alphaN_interp",
+      "definition": "Interpolation percentage for Alpha-N MAP estimation (100%=base, 0%=post-cat)."
+    },
+    {
+      "name": "alphaN_MAPf",
+      "definition": "Alpha-N based MAP estimate"
+    },
+    {
+      "name": "alternator_chg_V",
+      "definition": "Voltage threshold to report J1939 alternator status as 'charging'."
+    },
+    {
+      "name": "alt_coilkill_ena",
+      "definition": "Enable/disable coil kill diagnostic in alternate fuel modes."
+    },
+    {
+      "name": "AL_erase_req",
+      "definition": "Command button to clear adaptive memory."
+    },
+    {
+      "name": "AL_hi",
+      "definition": "Currently active gasoline Adaptive Learn upper limit."
+    },
+    {
+      "name": "AL_lo",
+      "definition": "Currently active gasoline Adaptive Learn lower limit."
+    },
+    {
+      "name": "AL_nonzero",
+      "definition": "Confirmation indicator for the 'Clear Adaptive' button state."
+    },
+    {
+      "name": "AL_temp_wait_mul",
+      "definition": "Multiple of T_delay to wait after transient/FSO before re-enabling adaptive learn."
+    },
+    {
+      "name": "AL_temp_wait_tmr",
+      "definition": "Temporary wait time in ms before re-implementing adaptive learn."
+    },
+    {
+      "name": "AMTSA_dec_torq_est",
+      "definition": "Adjusts broadcast engine torque (SPN 513) during initial AMT upshift torque reduction."
+    },
+    {
+      "name": "AMTSA_ena",
+      "definition": "Enables Automated Manual Transmission (AMT) shift assistance to improve upshift smoothness."
+    },
+    {
+      "name": "AMTSA_minnom",
+      "definition": "AMT shift assist's requested EGR min/nom fraction."
+    },
+    {
+      "name": "AMTSA_minnom_ena",
+      "definition": "Enables limiting of EGR min/nom fraction during an AMT upshift."
+    },
+    {
+      "name": "AMTSA_minnom_time",
+      "definition": "Slew time for EGR min/nom fraction to reach the AMT shift assist target."
+    },
+    {
+      "name": "AMTSA_state",
+      "definition": "Current state of AMT shift assistance (e.g., Inactive, Decreasing Torque, Syncing Speed)."
+    },
+    {
+      "name": "AMTSA_TPSd_filt_ena",
+      "definition": "Enables TPS command filtering during specified phases of an AMT upshift."
+    },
+    {
+      "name": "AMTSA_WGPd_ena",
+      "definition": "Enables wastegate pressure limiting during the torque increase phase of an AMT upshift."
+    },
+    {
+      "name": "AMT_Gov3_acc_init",
+      "definition": "Gov3 integrator reset value when transitioning to speed control for AMT synchronization."
+    },
+    {
+      "name": "AMT_Gov3_acc_maxload",
+      "definition": "Maximum engine load allowed for the AMT Gov3 integrator reset."
+    },
+    {
+      "name": "AMT_input_speed",
+      "definition": "ETC1 transmission input shaft speed"
+    },
+    {
+      "name": "AMT_neut_coast_mode",
+      "definition": "Enables neutral coasting for WABCO AMT systems."
+    },
+    {
+      "name": "AMT_output_speed",
+      "definition": "ETC1 transmission output shaft speed"
+    },
+    {
+      "name": "AMT_RSC_suspend",
+      "definition": "Indicates WABCO AMT Suspend Cruise status."
+    },
+    {
+      "name": "AMT_select",
+      "definition": "Configures the source address for the AMT."
+    },
+    {
+      "name": "AMT_shift_in_process",
+      "definition": "ECT1 transmission shift in process indicator"
+    },
+    {
+      "name": "AMT_torq_lmt",
+      "definition": "Received AMT TSC1 torque limit."
+    },
+    {
+      "name": "AOSB_APSdelta",
+      "definition": "Delta voltage to initiate open-stop braking."
+    },
+    {
+      "name": "AOSB_ena",
+      "definition": "H-Bridge A Output device Open Stop Braking (OSB) Elimination enable switch"
+    },
+    {
+      "name": "AOSB_Kd",
+      "definition": "Gain for braking force based on dPS/dt when approaching open-stop."
+    },
+    {
+      "name": "AOSB_max_APSdt",
+      "definition": "dPS/dt value at min PS position above which no open-stop braking occurs."
+    },
+    {
+      "name": "AOSB_min_APSdt",
+      "definition": "dPS/dt value at max PS position above which no open-stop braking occurs."
+    },
+    {
+      "name": "APD1_max",
+      "definition": "AUX analog Pull-Down 1 max voltage fault threshold."
+    },
+    {
+      "name": "APD1_min",
+      "definition": "AUX analog Pull-Down 1 min voltage fault threshold."
+    },
+    {
+      "name": "APD2_max",
+      "definition": "AUX analog Pull-Down 2 max voltage fault threshold."
+    },
+    {
+      "name": "APD2_min",
+      "definition": "AUX analog Pull-Down 2 min voltage fault threshold."
+    },
+    {
+      "name": "APD3_max",
+      "definition": "AUX analog Pull-Down 3 max voltage fault threshold."
+    },
+    {
+      "name": "APD3_min",
+      "definition": "AUX analog Pull-Down 3 min voltage fault threshold."
+    },
+    {
+      "name": "APS12ctl_choice",
+      "definition": "Designates which TPS input to use in case of a TPS1/TPS2 mismatch."
+    },
+    {
+      "name": "APS12pct_hi",
+      "definition": "Threshold for 'APS1 higher than APS2' fault."
+    },
+    {
+      "name": "APS12pct_lo",
+      "definition": "Threshold for 'APS1 lower than APS2' fault."
+    },
+    {
+      "name": "APS1_def",
+      "definition": "PS1 sensor voltage for non-controlled (limp-home) position."
+    },
+    {
+      "name": "APS1_full",
+      "definition": "PS1 sensor full open voltage."
+    },
+    {
+      "name": "APS1_full_def",
+      "definition": "Voltage for throttle plate at theoretical open stop."
+    },
+    {
+      "name": "APS1_full_init",
+      "definition": "Limit voltage calculated from PS1 full default."
+    },
+    {
+      "name": "APS1_idle",
+      "definition": "PS1 sensor idle voltage."
+    },
+    {
+      "name": "APS1_idle_def",
+      "definition": "Voltage for throttle plate at theoretical closed stop."
+    },
+    {
+      "name": "APS1_idle_init",
+      "definition": "Limit voltage calculated from PS1 idle default."
+    },
+    {
+      "name": "APS1_learn_tau",
+      "definition": "Time constant used to learn PS1 idle/full voltages."
+    },
+    {
+      "name": "APS1_learn_wait",
+      "definition": "Wait time before learning PS1 idle/full voltages."
+    },
+    {
+      "name": "APS1_max",
+      "definition": "PS1 high voltage fault max threshold."
+    },
+    {
+      "name": "APS1_min",
+      "definition": "PS1 low voltage fault min threshold."
+    },
+    {
+      "name": "APS1_pct",
+      "definition": "PS1 position percentage."
+    },
+    {
+      "name": "APS1_rawfilt",
+      "definition": "Filtered PS1 feedback voltage."
+    },
+    {
+      "name": "APS1_source",
+      "definition": "H-Bridge A Throttle Position Source 1 input."
+    },
+    {
+      "name": "APS2ctl_allow",
+      "definition": "Allows use of TPS2 if TPS1 has a voltage out of range fault."
+    },
+    {
+      "name": "APS2_angle_at_full",
+      "definition": "Used for throttles where PS2 reaches full voltage before 100% opening."
+    },
+    {
+      "name": "APS2_def",
+      "definition": "PS2 sensor voltage for limp-home position."
+    },
+    {
+      "name": "APS2_full",
+      "definition": "PS2 sensor full open voltage."
+    },
+    {
+      "name": "APS2_full_init",
+      "definition": "Limit voltage calculated from PS2 full default."
+    },
+    {
+      "name": "APS2_idle",
+      "definition": "PS2 sensor idle voltage."
+    },
+    {
+      "name": "APS2_idle_init",
+      "definition": "Limit voltage calculated from PS2 idle default."
+    },
+    {
+      "name": "APS2_learn_tau",
+      "definition": "Time constant for learning PS2 idle/full voltages."
+    },
+    {
+      "name": "APS2_learn_wait",
+      "definition": "Wait time before learning PS2 idle/full voltages."
+    },
+    {
+      "name": "APS2_max",
+      "definition": "PS2 high voltage fault max threshold."
+    },
+    {
+      "name": "APS2_min",
+      "definition": "PS2 low voltage fault min threshold."
+    },
+    {
+      "name": "APS2_pct",
+      "definition": "PS2 position percentage."
+    },
+    {
+      "name": "Aux_PWM7_DC",
+      "definition": "AUX PWM7 Output Manual Mode Duty Cycle configuration (%)"
+    },
+    {
+      "name": "AUX_PWM7_FB_raw",
+      "definition": "AUX PWM7 Output Feedback raw volts"
+    },
+    {
+      "name": "AUX_PWM7_iFB_raw",
+      "definition": "Current feedback for AUX_PWM7."
+    },
+    {
+      "name": "Aux_PWM8_DC",
+      "definition": "AUX PWM8 Output Manual Mode Duty Cycle configuration (%)"
+    },
+    {
+      "name": "AUX_PWM8_FB_raw",
+      "definition": "AUX PWM8 Output Feedback raw volts"
+    },
+    {
+      "name": "AUX_PWM8_iFB_raw",
+      "definition": "Current feedback for AUX_PWM8."
+    },
+    {
+      "name": "Aux_PWM8_manual",
+      "definition": "AUX PWM8 Output Manual Mode request selector"
+    },
+    {
+      "name": "Aux_PWM9_DC",
+      "definition": "AUX PWM9 Output Manual Mode Duty Cycle configuration (%)"
+    },
+    {
+      "name": "AUX_PWM9_FB_raw",
+      "definition": "AUX PWM9 Output Feedback raw volts"
+    },
+    {
+      "name": "AUX_PWM9_iFB_raw",
+      "definition": "Current feedback for AUX_PWM9."
+    },
+    {
+      "name": "Aux_PWM9_manual",
+      "definition": "AUX PWM9 Output Manual Mode request selector"
+    },
+    {
+      "name": "AUX_start_chan",
+      "definition": "Enables engine start via an auxiliary input."
+    },
+    {
+      "name": "CAN2_J1939_DM1_ena",
+      "definition": "Enables or disables broadcasting of DM1 messages on CAN channel 2."
+    },
+    {
+      "name": "CCP_CR_counter",
+      "definition": "CCP CR (Rx) packet counter."
+    },
+    {
+      "name": "CVP2",
+      "definition": "Current CVP2 sensor pressure in psia."
+    },
+    {
+      "name": "CVP2_hi",
+      "definition": "Crankcase pressure threshold for high pressure fault."
+    },
+    {
+      "name": "derate_unlatch_RPM",
+      "definition": "Engine speed threshold to release derated condition once fault is inactive."
+    },
+    {
+      "name": "DiagTempWUT_calc",
+      "definition": "Configures expected warm-up temperature for diagnostics."
+    },
+    {
+      "name": "EE_TEL2_derate_type",
+      "definition": "Currently implemented version of telematics derate level or type."
+    },
+    {
+      "name": "EE_TEL_derate_active",
+      "definition": "Status of telematics derate."
+    },
+    {
+      "name": "IOPWM_hydraulic_fwd",
+      "definition": "PWM output channel for hydraulic forward solenoid."
+    },
+    {
+      "name": "IOPWM_hydraulic_rev",
+      "definition": "PWM output channel for hydraulic reverse solenoid."
+    },
+    {
+      "name": "IO_bkup_alarm",
+      "definition": "IO backup alarm status."
+    },
+    {
+      "name": "IparkA_dly",
+      "definition": "HBA Actuator park current delay time."
+    },
+    {
+      "name": "KNK_sig_cyl9",
+      "definition": "Knock signal for cylinder 9 as a percentage of sensor voltage fullscale."
+    },
+    {
+      "name": "KNK_sig_pavg",
+      "definition": "Instantaneous knock peak average."
+    },
+    {
+      "name": "KNK_sig_pweight",
+      "definition": "Weighting factor for knock feedback RMS voltage calculation."
+    },
+    {
+      "name": "MAP_high_air",
+      "definition": "MAP at high airflow point (psia)."
+    },
+    {
+      "name": "MAP_load",
+      "definition": "MAP load"
+    },
+    {
+      "name": "MAP_max",
+      "definition": "MAP high pressure diagnostic threshold."
+    },
+    {
+      "name": "MSP_prop_V_mstr",
+      "definition": "Switch for proportional setpoint in Max Speed System."
+    },
+    {
+      "name": "rpmd_gov_lo_min",
+      "definition": "Upper limit threshold for governor desired speed to achieve low target speed diagnostic."
+    },
+    {
+      "name": "RS_rpmtol_Ifrz",
+      "definition": "RPM tolerance for roadspeed governor integral freeze."
+    },
+    {
+      "name": "strt_inj_rpm",
+      "definition": "Speed limit up to which cranking injection timing is used."
+    },
+    {
+      "name": "strt_inj_tmng",
+      "definition": "Injection timing used during cranking in primary mode."
+    },
+    {
+      "name": "Tdrvtrim_V_volts",
+      "definition": "Auxiliary voltage 1 input column for gauge trim table."
+    },
+    {
+      "name": "TFauxAcal_F",
+      "definition": "1D Calibration Table for Auxiliary Flow A."
+    },
+    {
+      "name": "TspdK_rpm_KMAPdt",
+      "definition": "1D Table for Standard Speed Governor Integral-Derivative Gain."
+    },
+    {
+      "name": "TTC_turb_etamax",
+      "definition": "2D Table for max turbine efficiency based on PR and WGA position."
+    },
+    {
+      "name": "TTC_turb_mdot1c_Npct",
+      "definition": "2D Table for full open corrected turbine flow based on speed and PR."
+    },
+    {
+      "name": "TWCdiag_phi_d",
+      "definition": "TWC diagnostic pre-catalyst phi target."
+    },
+    {
+      "name": "TWCdiag_phi_pst_lean",
+      "definition": "TWC diagnostic lean post-catalyst threshold."
+    },
+    {
+      "name": "TWCdiag_state",
+      "definition": "TWC diagnostic status."
+    },
+    {
+      "name": "UEGO_drift_inject_t",
+      "definition": "Injection time delay for UEGO drift compensation during fuel shutoff."
+    },
+    {
+      "name": "XLS_Cal_Revision",
+      "definition": "XLS calibration revision"
+    },
+    {
+      "name": "XLS_Revision",
+      "definition": "XLS revision"
+    }
+  ]
+}

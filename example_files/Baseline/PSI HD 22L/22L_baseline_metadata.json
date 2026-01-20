@@ -1,0 +1,162 @@
+{
+  "metadata_version": "1.0",
+  "description": "Metadata for PSI HD 22L engine baseline CSV files",
+  "last_updated": "2026-01-17",
+  
+  "files": [
+    {
+      "filename": "22L_MLink_27839_HRs_1.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "High hour engine - 27,839 hours, MLink data",
+      "operating_conditions": {
+        "rpm_range": "1795-1808",
+        "rpm_avg": 1800,
+        "load_profile": "steady-state"
+      },
+      "file_stats": {
+        "rows": 1127,
+        "columns": 67,
+        "hour_meter": 27839
+      }
+    },
+    {
+      "filename": "22L_MLink_27839_HRs_0.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "High hour engine - 27,839 hours, MLink data (companion file)",
+      "operating_conditions": {
+        "rpm_range": "1795-1808",
+        "rpm_avg": 1800,
+        "load_profile": "steady-state"
+      },
+      "file_stats": {
+        "rows": 2263,
+        "columns": 67,
+        "hour_meter": 27839
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_Good__2_.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Standard diagnostic data, includes startup transient",
+      "operating_conditions": {
+        "rpm_range": "1054-1813",
+        "rpm_avg": 1790,
+        "load_profile": "variable"
+      },
+      "file_stats": {
+        "rows": 17156,
+        "columns": 29
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_Good__4_.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Standard diagnostic data, wide RPM range",
+      "operating_conditions": {
+        "rpm_range": "1202-1986",
+        "rpm_avg": 1799,
+        "load_profile": "variable"
+      },
+      "file_stats": {
+        "rows": 20161,
+        "columns": 35
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_Good__6_.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Spark/ignition diagnostic data - different column structure",
+      "operating_conditions": {
+        "rpm_range": "1740-1819",
+        "rpm_avg": 1800,
+        "load_profile": "steady-state"
+      },
+      "file_stats": {
+        "rows": 20668,
+        "columns": 34,
+        "data_type": "spark_diagnostics"
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_Good__7_.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Spark/ignition diagnostic data - different column structure",
+      "operating_conditions": {
+        "rpm_range": "1784-1811",
+        "rpm_avg": 1800,
+        "load_profile": "steady-state"
+      },
+      "file_stats": {
+        "rows": 12506,
+        "columns": 34,
+        "data_type": "spark_diagnostics"
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_Good_Name_Change.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Standard diagnostic data (appears identical to file 4)",
+      "operating_conditions": {
+        "rpm_range": "1202-1986",
+        "rpm_avg": 1799,
+        "load_profile": "variable"
+      },
+      "file_stats": {
+        "rows": 20161,
+        "columns": 35
+      }
+    },
+    {
+      "filename": "22L_PSI_HD_with_ECM_Download_Good.csv",
+      "product_group": "PSI HD",
+      "engine_size": "22L",
+      "application": "Power Systems",
+      "quality": "good",
+      "notes": "Includes ECM download data, 1,825 hours",
+      "operating_conditions": {
+        "rpm_range": "variable",
+        "load_profile": "variable"
+      },
+      "file_stats": {
+        "rows": 2161,
+        "columns": 72,
+        "hour_meter": 1825
+      }
+    }
+  ],
+
+  "summary": {
+    "total_files": 8,
+    "product_group": "PSI HD",
+    "engine_size": "22L",
+    "application": "Power Systems",
+    "total_data_rows": 95203,
+    "file_types": {
+      "standard_diagnostic": 5,
+      "spark_diagnostic": 2,
+      "ecm_download": 1
+    },
+    "hour_meter_range": "1,825 - 27,839 hours"
+  }
+}

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import uploadRouter from './routes/upload.js';
 import thresholdsRouter from './routes/thresholds.js';
 import baselinesRouter from './routes/baselines.js';
+import configuratorRouter from './routes/configurator.js';
 import issuesRouter from './routes/issues.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +22,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api', uploadRouter);
 app.use('/api/thresholds', thresholdsRouter);
 app.use('/api/baselines', baselinesRouter);
+app.use('/api/configurator', configuratorRouter);
 app.use('/api', issuesRouter);
 
 // Serve static files in production
