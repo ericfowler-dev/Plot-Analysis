@@ -52,9 +52,15 @@ export function detectFuelSystem(columns) {
     };
   }
 
-  // EPR (Electronic Pressure Regulator) indicators could be added here
-  // For now, return null to keep current profile selection
-  return { fuelSystem: null, profileId: null };
+  // No MFG columns found - use global defaults
+  // This ensures non-MFG engines (22L, 8.8L, etc.) don't get MFG-specific rules
+  return {
+    fuelSystem: 'standard',
+    fuelSystemName: 'Standard (Non-MFG)',
+    profileId: 'global-defaults',
+    profileName: 'Global Defaults',
+    confidence: 'high'
+  };
 }
 
 /**
