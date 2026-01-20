@@ -1467,7 +1467,7 @@ function analysisReducer(state, action) {
 const PlotAnalyzer = () => {
   // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
-  const { resolvedProfile, selectProfile, selectedProfileId, loading: profileLoading, error: profileError } = useThresholds();
+  const { resolvedProfile, selectProfile, selectedProfileId, baselineSelection, loading: profileLoading, error: profileError } = useThresholds();
   const activeThresholdProfile = useMemo(() => {
     // Use the resolved profile even if it's the fallback
     // This ensures basic threshold checks work even when API is unavailable
@@ -1736,7 +1736,15 @@ const PlotAnalyzer = () => {
         // Auto-detect fuel system and select appropriate profile
         let profileToUse = activeThresholdProfile;
         const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
-        if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
+        const hasManualBaselineSelection = baselineSelection?.group;
+
+        // Only auto-switch profiles when:
+        // 1. MFG fuel system detected (always switch for safety - these engines need specific thresholds)
+        // 2. No manual baseline selection AND detected profile differs from current
+        const shouldAutoSwitch = detectedFuelSystem.profileId === 'psi-hd-40l-53l-mfg' ||
+          (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
+
+        if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
           console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
@@ -1779,7 +1787,15 @@ const PlotAnalyzer = () => {
         // Auto-detect fuel system and select appropriate profile
         let profileToUse = activeThresholdProfile;
         const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
-        if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
+        const hasManualBaselineSelection = baselineSelection?.group;
+
+        // Only auto-switch profiles when:
+        // 1. MFG fuel system detected (always switch for safety - these engines need specific thresholds)
+        // 2. No manual baseline selection AND detected profile differs from current
+        const shouldAutoSwitch = detectedFuelSystem.profileId === 'psi-hd-40l-53l-mfg' ||
+          (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
+
+        if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
           console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
