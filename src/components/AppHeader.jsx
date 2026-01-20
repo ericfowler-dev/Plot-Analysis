@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, FileSpreadsheet, Download, Bug } from 'lucide-react';
+import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 
 // =============================================================================
 // BMS DATA ANALYZER - TRON-STYLE HEADER
@@ -46,6 +46,29 @@ const SourceBadge = ({ source }) => {
     `} style={{ fontFamily: 'Orbitron, sans-serif' }}>
       {source}
     </span>
+  );
+};
+
+// Active profile indicator
+const ProfileIndicator = ({ profileName, profileId }) => {
+  if (!profileName) return null;
+
+  // Shorten common prefixes for cleaner display
+  const shortName = profileName
+    .replace('PSI HD ', '')
+    .replace('Global Defaults', 'Defaults')
+    .replace(' with MFG Fuel System', ' MFG');
+
+  return (
+    <div
+      className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/50 border border-slate-700/50 rounded text-[10px]"
+      title={`Active Profile: ${profileName}`}
+    >
+      <Settings className="w-3 h-3 text-slate-500" />
+      <span className="text-slate-400 font-medium tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
+        {shortName}
+      </span>
+    </div>
   );
 };
 
@@ -125,7 +148,9 @@ const AppHeader = ({
   onImport,
   onExport,
   onReportIssue,
-  eventCount = 0
+  eventCount = 0,
+  activeProfileName = null,
+  activeProfileId = null
 }) => {
   // Determine which tab configuration to use
   const getTabConfig = () => {
@@ -170,7 +195,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                DATA ANALYSIS v1.4.1
+                DATA ANALYSIS v1.4.2
               </span>
             </div>
           </div>
@@ -194,6 +219,14 @@ const AppHeader = ({
                 {hasBplt && <FileIndicator type="BPLT" fileName={bpltFileName} />}
               </div>
             </div>
+          )}
+
+          {/* Active profile indicator */}
+          {(hasEcm || hasBplt) && activeProfileName && (
+            <>
+              <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
+              <ProfileIndicator profileName={activeProfileName} profileId={activeProfileId} />
+            </>
           )}
         </div>
 

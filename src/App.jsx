@@ -2412,6 +2412,8 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
           eventCount={bplotProcessed?.events?.length || 0}
+          activeProfileName={activeThresholdProfile?.name}
+          activeProfileId={activeThresholdProfile?.profileId}
         />
         <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
         <BPlotAnalysis
@@ -2447,6 +2449,8 @@ const PlotAnalyzer = () => {
         onExport={exportToPDF}
         onReportIssue={() => setShowReportIssue(true)}
         eventCount={faults?.length || 0}
+        activeProfileName={activeThresholdProfile?.name}
+        activeProfileId={activeThresholdProfile?.profileId}
       />
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 

@@ -13,6 +13,7 @@ import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
 import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
 import AppHeader from './AppHeader';
+import { useThresholds } from '../contexts/ThresholdContext';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 20;
@@ -269,6 +270,9 @@ const BPlotAnalysis = ({
   hideHeader = false,       // Hide header when embedded in combined view
   reportRef                // Ref for PDF export
 }) => {
+  // Get active profile for display
+  const { resolvedProfile } = useThresholds();
+
   const [internalActiveTab, setInternalActiveTab] = useState('overview');
   // Use external tab if provided, otherwise use internal state
   const activeTab = externalActiveTab || internalActiveTab;
@@ -505,6 +509,8 @@ const BPlotAnalysis = ({
             onExport={onExport}
             onReportIssue={onReportIssue}
             eventCount={processedData?.events?.length || 0}
+            activeProfileName={resolvedProfile?.name}
+            activeProfileId={resolvedProfile?.profileId}
           />
 
           {/* Secondary Controls Bar */}
