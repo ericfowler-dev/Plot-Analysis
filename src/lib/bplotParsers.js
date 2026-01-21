@@ -8,6 +8,15 @@ import {
   getChannelValidityPolicy
 } from './bplotThresholds.js';
 
+// Shared defaults for engine state thresholds to avoid magic numbers
+const ENGINE_DEFAULTS = {
+  RPM_CRANKING_THRESHOLD: 100,
+  RPM_HISTORY_SIZE: 5,
+  STARTUP_GRACE_SECONDS: 2,
+  ENGINE_START_THRESHOLD: 500,
+  ENGINE_STOP_THRESHOLD: 200
+};
+
 // =============================================================================
 // VALIDITY MASK SYSTEM
 // Determines which samples are valid for statistics and alerts per channel
@@ -102,7 +111,11 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
   let lastState = ENGINE_STATE.OFF;
   let stateStartTime = 0;
   let rpmHistory = [];
-  const historySize = 5;
+  const historySize = config.rpmHistorySize || ENGINE_DEFAULTS.RPM_HISTORY_SIZE;
+  const rpmCranking = config.rpmCrankingThreshold || ENGINE_DEFAULTS.RPM_CRANKING_THRESHOLD;
+  const rpmRunning = config.rpmRunningThreshold || ENGINE_DEFAULTS.ENGINE_START_THRESHOLD;
+  const rpmStable = config.rpmStableThreshold || config.rpmRunningThreshold || ENGINE_DEFAULTS.ENGINE_START_THRESHOLD;
+  const startupGrace = config.startupGraceSeconds || ENGINE_DEFAULTS.STARTUP_GRACE_SECONDS;
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -121,31 +134,31 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
 
     switch (lastState) {
       case ENGINE_STATE.OFF:
-        if (smoothedRpm >= 100) {
+        if (smoothedRpm >= rpmCranking) {
           newState = ENGINE_STATE.CRANKING;
           stateStartTime = time;
         }
         break;
 
       case ENGINE_STATE.CRANKING:
-        if (smoothedRpm < 100) {
+        if (smoothedRpm < rpmCranking) {
           newState = ENGINE_STATE.OFF;
           stateStartTime = time;
-        } else if (smoothedRpm >= config.rpmRunningThreshold &&
-                   (time - stateStartTime) >= config.startupGraceSeconds) {
+        } else if (smoothedRpm >= rpmRunning &&
+                   (time - stateStartTime) >= startupGrace) {
           newState = ENGINE_STATE.RUNNING_UNSTABLE;
           stateStartTime = time;
         }
         break;
 
       case ENGINE_STATE.RUNNING_UNSTABLE:
-        if (smoothedRpm < 100) {
+        if (smoothedRpm < rpmCranking) {
           newState = ENGINE_STATE.OFF;
           stateStartTime = time;
-        } else if (smoothedRpm < config.rpmRunningThreshold) {
+        } else if (smoothedRpm < rpmRunning) {
           newState = ENGINE_STATE.STOPPING;
           stateStartTime = time;
-        } else if (smoothedRpm >= config.rpmStableThreshold &&
+        } else if (smoothedRpm >= rpmStable &&
                    (time - stateStartTime) >= 2) {
           newState = ENGINE_STATE.RUNNING_STABLE;
           stateStartTime = time;
@@ -153,20 +166,20 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
         break;
 
       case ENGINE_STATE.RUNNING_STABLE:
-        if (smoothedRpm < 100) {
+        if (smoothedRpm < rpmCranking) {
           newState = ENGINE_STATE.OFF;
           stateStartTime = time;
-        } else if (smoothedRpm < config.rpmRunningThreshold) {
+        } else if (smoothedRpm < rpmRunning) {
           newState = ENGINE_STATE.STOPPING;
           stateStartTime = time;
         }
         break;
 
       case ENGINE_STATE.STOPPING:
-        if (smoothedRpm < 100) {
+        if (smoothedRpm < rpmCranking) {
           newState = ENGINE_STATE.OFF;
           stateStartTime = time;
-        } else if (smoothedRpm >= config.rpmRunningThreshold) {
+        } else if (smoothedRpm >= rpmRunning) {
           newState = ENGINE_STATE.RUNNING_UNSTABLE;
           stateStartTime = time;
         }
@@ -187,6 +200,7 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
  */
 export function parseBPlotData(content) {
   const lines = content.split('\n').filter(line => line.trim());
+  const parseErrors = [];
 
   if (lines.length < 2) {
     throw new Error('Invalid B-Plot CSV: insufficient data');
@@ -213,12 +227,20 @@ export function parseBPlotData(content) {
   const data = [];
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',');
-    if (values.length !== headers.length) continue;
+    if (values.length !== headers.length) {
+      parseErrors.push({ line: i + 1, reason: 'column count mismatch' });
+      continue;
+    }
 
     const row = {};
     for (let j = 0; j < headers.length; j++) {
-      const value = parseFloat(values[j]);
-      row[headers[j]] = isNaN(value) ? 0 : value;
+      const num = parseFloat(values[j]);
+      if (Number.isNaN(num)) {
+        parseErrors.push({ line: i + 1, column: headers[j], value: values[j], reason: 'NaN' });
+        row[headers[j]] = 0;
+      } else {
+        row[headers[j]] = num;
+      }
     }
     data.push(row);
   }
@@ -234,7 +256,9 @@ export function parseBPlotData(content) {
     channels,
     data,
     rowCount: data.length,
-    columnCount: headers.length
+    columnCount: headers.length,
+    parseErrors,
+    hasErrors: parseErrors.length > 0
   };
 }
 
@@ -379,9 +403,24 @@ function categorizeChannel(name) {
 export function extractTimeInfo(data) {
   if (!data || data.length === 0) return null;
 
-  const times = data.map(row => row.Time);
-  const startTime = Math.min(...times);
-  const endTime = Math.max(...times);
+  let startTime = Infinity;
+  let endTime = -Infinity;
+  let invalidTime = false;
+
+  for (let i = 0; i < data.length; i++) {
+    const time = Number(data[i].Time);
+    if (!Number.isFinite(time)) {
+      invalidTime = true;
+      break;
+    }
+    if (time < startTime) startTime = time;
+    if (time > endTime) endTime = time;
+  }
+
+  if (invalidTime) {
+    startTime = NaN;
+    endTime = NaN;
+  }
   const duration = endTime - startTime;
 
   // Calculate sample rate
@@ -487,17 +526,19 @@ function calculateStdDev(values, mean) {
  * Extract engine events (starts, stops, rpm changes)
  * Per rules: Engine Start = RPM crosses 500 RPM threshold (rising from 0 or near 0)
  */
-export function extractEngineEvents(data) {
+export function extractEngineEvents(data, config = DEFAULT_VALIDITY_CONFIG) {
   const events = [];
   let engineRunning = false;
   let startIndex = null;
+  const startThreshold = config.rpmRunningThreshold || ENGINE_DEFAULTS.ENGINE_START_THRESHOLD;
+  const stopThreshold = config.rpmCrankingThreshold || ENGINE_DEFAULTS.ENGINE_STOP_THRESHOLD;
 
   for (let i = 0; i < data.length; i++) {
     const rpm = data[i].rpm ?? data[i].RPM ?? 0;
     const time = data[i].Time;
 
-    // Engine start detection (RPM crosses 500 threshold - per rules)
-    if (!engineRunning && rpm >= 500) {
+    // Engine start detection
+    if (!engineRunning && rpm >= startThreshold) {
       engineRunning = true;
       startIndex = i;
       events.push({
@@ -508,8 +549,8 @@ export function extractEngineEvents(data) {
       });
     }
 
-    // Engine stop detection (RPM drops below 200)
-    if (engineRunning && rpm < 200) {
+    // Engine stop detection
+    if (engineRunning && rpm < stopThreshold) {
       engineRunning = false;
       const runDuration = time - data[startIndex].Time;
       events.push({
@@ -528,14 +569,40 @@ export function extractEngineEvents(data) {
 /**
  * Downsample data for chart rendering (reduces data points for performance)
  */
-export function downsampleData(data, targetPoints = 2000) {
+export function downsampleData(data, targetPoints = 2000, options = {}) {
   if (data.length <= targetPoints) return data;
+
+  const { preserveExtremes = true, key = 'rpm' } = options;
+
+  if (!preserveExtremes) {
+    const step = Math.ceil(data.length / targetPoints);
+    return data.filter((_, i) => i % step === 0);
+  }
 
   const step = Math.ceil(data.length / targetPoints);
   const sampled = [];
 
   for (let i = 0; i < data.length; i += step) {
-    sampled.push(data[i]);
+    const bucket = data.slice(i, Math.min(i + step, data.length));
+    if (bucket.length === 0) continue;
+    let minRow = bucket[0];
+    let maxRow = bucket[0];
+
+    for (const row of bucket) {
+      const v = row[key] ?? row[key.toUpperCase()];
+      const minVal = minRow[key] ?? minRow[key?.toUpperCase?.()];
+      const maxVal = maxRow[key] ?? maxRow[key?.toUpperCase?.()];
+      if (v !== undefined && minVal !== undefined && v < minVal) minRow = row;
+      if (v !== undefined && maxVal !== undefined && v > maxVal) maxRow = row;
+    }
+
+    if (minRow.Time <= maxRow.Time) {
+      sampled.push(minRow);
+      if (minRow !== maxRow) sampled.push(maxRow);
+    } else {
+      sampled.push(maxRow);
+      if (minRow !== maxRow) sampled.push(minRow);
+    }
   }
 
   return sampled;

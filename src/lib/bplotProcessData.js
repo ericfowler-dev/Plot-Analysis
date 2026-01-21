@@ -13,14 +13,41 @@ import {
 import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, getChannelValidityPolicy } from './bplotThresholds.js';
 import { detectAnomalies, formatAlert } from './anomalyEngine.js';
 
+function getMinMaxValue(values) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const value of values) {
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  return { min, max };
+}
+
+function getMinValue(values) {
+  let min = Infinity;
+  for (const value of values) {
+    if (value < min) min = value;
+  }
+  return min;
+}
+
+function getMaxValue(values) {
+  let max = -Infinity;
+  for (const value of values) {
+    if (value > max) max = value;
+  }
+  return max;
+}
+
 /**
- * Detect fuel system type from data columns
+ * Detect fuel system type from data columns + values
  * Used for auto-selecting the appropriate threshold profile
  *
  * @param {Array} columns - Array of column names from parsed data
+ * @param {Array} dataRows - Parsed data rows (optional) for value-based heuristics
  * @returns {Object} - Detection result with fuelSystem and recommended profileId
  */
-export function detectFuelSystem(columns) {
+export function detectFuelSystem(columns, dataRows = []) {
   if (!columns || !Array.isArray(columns)) {
     return { fuelSystem: null, profileId: null };
   }
@@ -43,6 +70,81 @@ export function detectFuelSystem(columns) {
   );
 
   if (hasMfgColumns) {
+    // Value-based heuristics to avoid false positives (e.g., static 8.24 placeholder)
+    const getValues = (keys) => {
+      const vals = [];
+      const lowerKeys = keys.map(k => k.toLowerCase());
+      for (const row of dataRows || []) {
+        for (const key of Object.keys(row)) {
+          if (lowerKeys.includes(key.toLowerCase())) {
+            const v = Number(row[key]);
+            if (!Number.isNaN(v)) vals.push(v);
+          }
+        }
+      }
+      return vals;
+    };
+
+    const upVals = getValues(['MFG_USPress', 'mfg_uspress', 'MFG_US']);
+    const dnVals = getValues(['MFG_DSPress', 'mfg_dspress', 'MFG_DS']);
+    const dpVals = getValues(['MFG_DPPress', 'mfg_dppress', 'MFG_DP']);
+
+    const allMfgVals = [...upVals, ...dnVals, ...dpVals];
+
+    // Heuristic 1: missing meaningful values
+    if (allMfgVals.length === 0) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'low'
+      };
+    }
+
+    const { min: minVal, max: maxVal } = getMinMaxValue(allMfgVals);
+    const range = maxVal - minVal;
+    const mean = allMfgVals.reduce((a, b) => a + b, 0) / allMfgVals.length;
+
+    // Heuristic 2: static placeholder around 8.24 with no variation
+    const isStatic824 = Math.abs(mean - 8.24) <= 0.1 && range <= 0.15;
+    if (isStatic824) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'low'
+      };
+    }
+
+    // Heuristic 3: require some dynamic signal (variation > 0.5 psi)
+    if (range < 0.5) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'low'
+      };
+    }
+
+    // Heuristic 4: require meaningful delta pressure (>=0.2 psi) at least occasionally
+    const maxDelta = dpVals.length > 0 ? getMaxValue(dpVals) : 0;
+    const hasThrottleCols = normalizedColumns.some(col =>
+      col.includes('mfg_tps_act') || col.includes('mfg_tps_cmd')
+    );
+
+    if (maxDelta < 0.2 || !hasThrottleCols) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'low'
+      };
+    }
+
     return {
       fuelSystem: 'mfg',
       fuelSystemName: 'MFG (Mass Flow Gas)',
@@ -113,6 +215,26 @@ function addComputedFields(data) {
       ...mfgFields
     };
   });
+}
+
+/**
+ * Guard against applying MFG-only profiles to non-MFG data.
+ * If a profile declares applicableSystems including "MFG" but the
+ * uploaded file does not look like MFG data, return null to force
+ * fallback thresholds and avoid spurious MFG warnings.
+ */
+function sanitizeProfileForFuelSystem(thresholdProfile, fuelSystem) {
+  if (!thresholdProfile) return null;
+
+  const applicableSystems = thresholdProfile.metadata?.applicableSystems;
+  const requiresMfg = Array.isArray(applicableSystems) && applicableSystems.includes('MFG');
+  const isMfgData = fuelSystem?.fuelSystem === 'mfg';
+
+  if (requiresMfg && !isMfgData) {
+    return null;
+  }
+
+  return thresholdProfile;
 }
 
 /**
@@ -241,6 +363,7 @@ export function calculateTimeInState(data, channelName) {
  */
 export function processBPlotData(parsedData, thresholdProfile = null) {
   const { data, channels, headers } = parsedData;
+  const detectedFuelSystem = detectFuelSystem(headers, data);
 
   // Extract time information
   const timeInfo = extractTimeInfo(data);
@@ -308,14 +431,6 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
   // and include computed/derived fields for rule evaluation)
   let alerts = [];
   const ruleDurations = {};
-  if (thresholdProfile?.anomalyRules) {
-    for (const rule of thresholdProfile.anomalyRules) {
-      if (rule.id) {
-        const dur = rule.duration || rule.triggerPersistenceSec || 0;
-        if (dur > 0) ruleDurations[rule.id] = dur;
-      }
-    }
-  }
   const mapAlertChannel = (alert) => {
     if (!alert) return 'anomaly';
 
@@ -345,8 +460,20 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     return categoryToChannel[category] || category || 'anomaly';
   };
 
-  if (thresholdProfile?.thresholds || thresholdProfile?.anomalyRules) {
-    const profileAlerts = detectAnomalies(normalizedData, thresholdProfile, {
+  // Avoid applying MFG-only profiles to non-MFG data
+  const detectionProfile = sanitizeProfileForFuelSystem(thresholdProfile, detectedFuelSystem);
+
+  if (detectionProfile?.anomalyRules) {
+    for (const rule of detectionProfile.anomalyRules) {
+      if (rule.id) {
+        const dur = rule.duration || rule.triggerPersistenceSec || 0;
+        if (dur > 0) ruleDurations[rule.id] = dur;
+      }
+    }
+  }
+
+  if (detectionProfile?.thresholds || detectionProfile?.anomalyRules) {
+    const profileAlerts = detectAnomalies(normalizedData, detectionProfile, {
       sampleRate,
       gracePeriod: 5,
       minDuration: 0
@@ -413,8 +540,8 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     operatingStats,
     alerts,
     summary,
-    thresholdProfileId: thresholdProfile?.profileId || null,
-    thresholdProfileVersion: thresholdProfile?.version || null,
+    thresholdProfileId: detectionProfile?.profileId || thresholdProfile?.profileId || null,
+    thresholdProfileVersion: detectionProfile?.version || thresholdProfile?.version || null,
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,
@@ -652,7 +779,7 @@ function detectAlerts(data, channelStats) {
     const vBatValues = dataAfterGrace.map(row => row.Vbat || 0).filter(v => v > 0);
 
     if (vBatValues.length > 0) {
-      const minVbat = Math.min(...vBatValues);
+      const minVbat = getMinValue(vBatValues);
 
       // Use hysteresis thresholds
       if (minVbat < ALARM_HYSTERESIS.battery.critical.trigger) {
@@ -690,7 +817,7 @@ function detectAlerts(data, channelStats) {
   // Check coolant temperature - after grace period (skip crank transients)
   const ectValues = dataAfterGrace.map(row => row.ECT || 0).filter(v => v > 0);
   if (ectValues.length > 0) {
-    const maxECT = Math.max(...ectValues);
+    const maxECT = getMaxValue(ectValues);
     if (maxECT > BPLOT_THRESHOLDS.coolantTemp.critical_high) {
       alerts.push({
         severity: 'critical',
@@ -715,7 +842,7 @@ function detectAlerts(data, channelStats) {
     .filter(v => v > 0);
 
   if (oilpValues.length > 0) {
-    const minOilp = Math.min(...oilpValues);
+    const minOilp = getMinValue(oilpValues);
     if (minOilp < BPLOT_THRESHOLDS.oilPressure.critical_low) {
       alerts.push({
         severity: 'critical',
@@ -736,7 +863,7 @@ function detectAlerts(data, channelStats) {
   // Check for knock retard - after grace period
   const knockData = dataAfterGrace.filter(row => (row.KNK_retard || 0) > 0);
   if (knockData.length > 0) {
-    const maxKnock = Math.max(...knockData.map(r => r.KNK_retard));
+    const maxKnock = getMaxValue(knockData.map(r => r.KNK_retard));
     const knockPercent = (knockData.length / dataAfterGrace.length) * 100;
 
     if (knockPercent > 5 || maxKnock > 10) {
@@ -752,7 +879,7 @@ function detectAlerts(data, channelStats) {
   // Check RPM exceeded limits - after grace period
   const rpmValues = dataAfterGrace.map(row => row.rpm ?? row.RPM ?? 0);
   if (rpmValues.length > 0) {
-    const maxRPM = Math.max(...rpmValues);
+    const maxRPM = getMaxValue(rpmValues);
     if (maxRPM > BPLOT_THRESHOLDS.rpm.warning_high) {
       alerts.push({
         severity: 'warning',

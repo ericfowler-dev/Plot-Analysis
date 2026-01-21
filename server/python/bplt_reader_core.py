@@ -5,6 +5,7 @@ Based on BPLTExporter by Tyler Onkst (tonkst@psiengines.com)
 Version-aware parser with support for legacy BPLT v1.1.0 headers and
 optional debug logging for troubleshooting conversions.
 """
+import os
 import struct
 from typing import TYPE_CHECKING, Tuple
 
@@ -297,10 +298,11 @@ def read_data(file_handle, channel_names: list, header_info: dict | None = None,
     return channel_dfs
 
 
-def read_bplt_file(file_path: str, debug: bool = False) -> dict:
+def read_bplt_file(file_path: str, debug: bool = False, header: dict | None = None) -> dict:
     """Read and parse a BPLT file."""
     with open(file_path, 'rb') as f:
-        header = read_header_from_handle(f, debug=debug)
+        if header is None:
+            header = read_header_from_handle(f, debug=debug)
         data = read_data(f, header['channel_names'], header, debug=debug)
         return {
             'header': header,
@@ -340,6 +342,20 @@ def upsample_and_combine_channels(channel_dfs: dict, debug: bool = False) -> 'pd
 
 def convert_bplt_to_csv(input_path: str, output_path: str, debug: bool = False) -> None:
     """Convert a BPLT file to CSV format."""
-    bplt_data = read_bplt_file(input_path, debug=debug)
+    header = read_header(input_path, debug=debug)
+
+    max_cells = int(os.getenv("BPLT_MAX_CELLS", "5000000"))
+    num_columns = int(header.get("num_columns") or 0)
+    num_rows = int(header.get("num_rows") or 0)
+    estimated_cells = num_columns * num_rows if num_columns and num_rows else 0
+
+    if max_cells > 0 and estimated_cells > max_cells:
+        raise ValueError(
+            "BPLT file too large for server conversion. "
+            f"Estimated {num_rows} rows x {num_columns} columns ({estimated_cells:,} cells). "
+            "Convert locally or increase BPLT_MAX_CELLS."
+        )
+
+    bplt_data = read_bplt_file(input_path, debug=debug, header=header)
     combined_df = upsample_and_combine_channels(bplt_data['data'], debug=debug)
     combined_df.to_csv(output_path, index=False)

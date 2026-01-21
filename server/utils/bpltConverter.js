@@ -19,6 +19,11 @@ export function convertBpltToCSV(inputPath, outputPath) {
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
     const pythonProcess = spawn(pythonCmd, [pythonScript, inputPath, outputPath]);
+    const timeoutMs = Number(process.env.BPLT_CONVERT_TIMEOUT_MS || 180000);
+    const timeoutId = setTimeout(() => {
+      pythonProcess.kill('SIGKILL');
+      reject(new Error(`BPLT conversion timed out after ${timeoutMs / 1000}s`));
+    }, timeoutMs);
 
     let stdout = '';
     let stderr = '';
@@ -32,6 +37,7 @@ export function convertBpltToCSV(inputPath, outputPath) {
     });
 
     pythonProcess.on('close', (code) => {
+      clearTimeout(timeoutId);
       if (code === 0) {
         console.log('BPLT conversion successful');
         resolve();
@@ -42,6 +48,7 @@ export function convertBpltToCSV(inputPath, outputPath) {
     });
 
     pythonProcess.on('error', (error) => {
+      clearTimeout(timeoutId);
       // If python command not found, try alternative
       if (error.code === 'ENOENT') {
         const altPythonCmd = process.platform === 'win32' ? 'python3' : 'python';

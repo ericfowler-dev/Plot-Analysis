@@ -694,8 +694,17 @@ const ECTBarChart = ({ histogram }) => {
 
   // Find temperature range with actual data
   const dataWithHours = chartData.filter(d => d.hours > 0);
-  const minTemp = dataWithHours.length > 0 ? Math.min(...dataWithHours.map(d => d.tempValue)) : 0;
-  const maxTemp = dataWithHours.length > 0 ? Math.max(...dataWithHours.map(d => d.tempValue)) : 0;
+  let minTemp = 0;
+  let maxTemp = 0;
+  if (dataWithHours.length > 0) {
+    minTemp = dataWithHours[0].tempValue;
+    maxTemp = dataWithHours[0].tempValue;
+    for (let i = 1; i < dataWithHours.length; i++) {
+      const value = dataWithHours[i].tempValue;
+      if (value < minTemp) minTemp = value;
+      if (value > maxTemp) maxTemp = value;
+    }
+  }
 
   // Calculate weighted average temperature
   const weightedAvg = totalHours > 0
@@ -1665,6 +1674,34 @@ const PlotAnalyzer = () => {
     if (e.target) e.target.value = '';
   };
 
+  const parseApiResponse = async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    const text = await response.text();
+
+    if (contentType.includes('application/json')) {
+      try {
+        return { json: JSON.parse(text), text };
+      } catch (error) {
+        return { json: null, text };
+      }
+    }
+
+    return { json: null, text };
+  };
+
+  const formatApiError = (response, payload) => {
+    const statusLabel = response?.status ? `HTTP ${response.status}` : 'HTTP error';
+    const errorText = payload?.json?.error || payload?.json?.message || payload?.text || '';
+    const isHtml = typeof errorText === 'string' && errorText.trim().startsWith('<');
+    if (isHtml || !errorText) {
+      return `${statusLabel}: Upload failed. Server returned a non-JSON response.`;
+    }
+    const compact = typeof errorText === 'string'
+      ? errorText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      : String(errorText);
+    return `${statusLabel}: ${compact}`;
+  };
+
   // Detect file type from content
   const detectFileType = (text, fileName) => {
     // Check for .bplt extension (binary file - should be handled by backend)
@@ -1723,11 +1760,15 @@ const PlotAnalyzer = () => {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to process BPLT file');
+          const payload = await parseApiResponse(response);
+          throw new Error(formatApiError(response, payload));
         }
 
-        const result = await response.json();
+        const payload = await parseApiResponse(response);
+        const result = payload.json;
+        if (!result?.content) {
+          throw new Error('Upload succeeded but returned no file content.');
+        }
         const text = result.content;
 
         // Parse as B-Plot CSV
@@ -1735,7 +1776,7 @@ const PlotAnalyzer = () => {
 
         // Auto-detect fuel system and select appropriate profile
         let profileToUse = activeThresholdProfile;
-        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
         const hasManualBaselineSelection = baselineSelection?.group;
 
         // Only auto-switch profiles when:
@@ -1786,7 +1827,7 @@ const PlotAnalyzer = () => {
 
         // Auto-detect fuel system and select appropriate profile
         let profileToUse = activeThresholdProfile;
-        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
         const hasManualBaselineSelection = baselineSelection?.group;
 
         // Only auto-switch profiles when:
@@ -1889,18 +1930,22 @@ const PlotAnalyzer = () => {
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Failed to process ${file.name}: ${error.error}`);
+            const payload = await parseApiResponse(response);
+            throw new Error(`Failed to process ${file.name}: ${formatApiError(response, payload)}`);
           }
 
-          const result = await response.json();
+          const payload = await parseApiResponse(response);
+          const result = payload.json;
+          if (!result?.content) {
+            throw new Error(`Failed to process ${file.name}: upload returned no file content.`);
+          }
           const text = result.content;
 
           const bplotParsed = parseBPlotData(text);
 
           // Auto-detect fuel system from first BPLOT file
           if (!profileAutoDetected) {
-            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
               console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
@@ -1939,7 +1984,7 @@ const PlotAnalyzer = () => {
 
           // Auto-detect fuel system from first BPLOT file
           if (!profileAutoDetected) {
-            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
               console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
