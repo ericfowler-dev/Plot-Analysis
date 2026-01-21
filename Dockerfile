@@ -15,9 +15,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install Node dependencies (include dev deps for Vite build)
+# Install Node dependencies (force dev deps for build)
 ENV NODE_ENV=development
-RUN npm install --include=dev
+ENV NPM_CONFIG_PRODUCTION=false
+RUN npm ci --include=dev
 
 # Copy all source files
 COPY . .
@@ -28,8 +29,9 @@ RUN npm run build
 # Expose port
 EXPOSE 10000
 
-# Set environment variables
+# Set environment variables for runtime
 ENV NODE_ENV=production
+ENV NPM_CONFIG_PRODUCTION=true
 ENV PORT=10000
 
 # Start the server
