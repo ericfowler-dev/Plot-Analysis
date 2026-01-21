@@ -14,6 +14,108 @@ import { BPLOT_THRESHOLDS, BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, TI
 import { detectAnomalies, formatAlert } from './anomalyEngine.js';
 
 /**
+ * Detect fuel system type from data columns
+ * Used for auto-selecting the appropriate threshold profile
+ *
+ * @param {Array} columns - Array of column names from parsed data
+ * @returns {Object} - Detection result with fuelSystem and recommended profileId
+ */
+export function detectFuelSystem(columns) {
+  if (!columns || !Array.isArray(columns)) {
+    return { fuelSystem: null, profileId: null };
+  }
+
+  // Normalize column names for comparison
+  const normalizedColumns = columns.map(c => c.toLowerCase());
+
+  // MFG (Mass Flow Gas) fuel system indicators
+  // These columns are unique to MFG-equipped engines (40L/53L)
+  const mfgIndicators = [
+    'mfg_uspress', 'mfg_dspress', 'mfg_dppress',
+    'mfg_tps_act_pct', 'mfg_tps_cmd_pct', 'mfg_tps_act', 'mfg_tps_cmd',
+    'mfg_mdot_act', 'mfg_mdot_cmd', 'mfg_mdot_act_pct', 'mfg_mdot_cmd_pct',
+    'mfg_ftemp', 'mfg_status', 'mfg_dppress_final'
+  ];
+
+  // Check for MFG columns
+  const hasMfgColumns = mfgIndicators.some(indicator =>
+    normalizedColumns.some(col => col.includes(indicator.replace(/_/g, '')) || col === indicator)
+  );
+
+  if (hasMfgColumns) {
+    return {
+      fuelSystem: 'mfg',
+      fuelSystemName: 'MFG (Mass Flow Gas)',
+      profileId: 'psi-hd-40l-53l-mfg',
+      profileName: 'PSI HD 40L/53L with MFG Fuel System',
+      confidence: 'high'
+    };
+  }
+
+  // No MFG columns found - use global defaults
+  // This ensures non-MFG engines (22L, 8.8L, etc.) don't get MFG-specific rules
+  return {
+    fuelSystem: 'standard',
+    fuelSystemName: 'Standard (Non-MFG)',
+    profileId: 'global-defaults',
+    profileName: 'Global Defaults',
+    confidence: 'high'
+  };
+}
+
+/**
+ * Compute derived MFG fuel pressure fields
+ * Based on PSI Knowledge Article PSIKO210015-2 "MFG Valve Operation & Diagnostics"
+ *
+ * Formula: (MFG_USPress - BP) × 27 = Fuel Pressure in inches of Water Column (inWC)
+ * Valid range: 20-30 inWC at MFG inlet while engine is at full operating load
+ *
+ * @param {Object} row - Data row containing MFG parameters
+ * @returns {Object} - Object with computed fields to merge into row
+ */
+function computeMfgDerivedFields(row) {
+  const computed = {};
+
+  // Get MFG upstream pressure (PSIA) and barometric pressure (PSIA)
+  const mfgUsPress = row.MFG_USPress ?? row.mfg_uspress ?? row.MFG_US;
+  const bp = row.BP ?? row.baro ?? row.BARO ?? row.barometric_pressure;
+
+  // Compute fuel gauge pressure in inches of water column (inWC)
+  // Only compute if both values are available and valid
+  if (mfgUsPress !== undefined && bp !== undefined &&
+      !isNaN(mfgUsPress) && !isNaN(bp) &&
+      mfgUsPress > 0 && bp > 0) {
+    // (MFG_USPress - BP) × 27 = inWC
+    computed.MFG_FuelPressure_inWC = (mfgUsPress - bp) * 27;
+
+    // Also compute in PSI gauge for convenience (simpler threshold checks)
+    computed.MFG_FuelPressure_psig = mfgUsPress - bp;
+  }
+
+  return computed;
+}
+
+/**
+ * Add computed/derived fields to data rows
+ * This includes MFG fuel pressure calculations and other derived values
+ *
+ * @param {Array} data - Array of data rows
+ * @returns {Array} - Data with computed fields added
+ */
+function addComputedFields(data) {
+  return data.map(row => {
+    // Compute MFG derived fields
+    const mfgFields = computeMfgDerivedFields(row);
+
+    // Merge computed fields into row
+    return {
+      ...row,
+      ...mfgFields
+    };
+  });
+}
+
+/**
  * Format duration - show seconds if < 1 minute, otherwise minutes
  */
 export function formatDuration(seconds) {
@@ -145,7 +247,7 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
 
   // Normalize time to start from 0 for charting
   const startTime = timeInfo ? timeInfo.startTime : 0;
-  const normalizedData = data.map(row => {
+  let normalizedData = data.map(row => {
     const rpmValue = row.rpm ?? row.RPM;
     const normalizedRow = {
       ...row,
@@ -158,6 +260,9 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
 
     return normalizedRow;
   });
+
+  // Add computed/derived fields (MFG fuel pressure, etc.)
+  normalizedData = addComputedFields(normalizedData);
 
   // Calculate stats for ALL channels (not just key channels)
   const channelStats = {};
@@ -199,21 +304,95 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
   // Calculate operating statistics
   const operatingStats = calculateOperatingStats(data, channelStats);
 
-  // Detect anomalies and warnings (pass raw data to check VSW)
+  // Detect anomalies and warnings (use normalized data so alert times align with charts
+  // and include computed/derived fields for rule evaluation)
   let alerts = [];
+  const ruleDurations = {};
+  if (thresholdProfile?.anomalyRules) {
+    for (const rule of thresholdProfile.anomalyRules) {
+      if (rule.id) {
+        const dur = rule.duration || rule.triggerPersistenceSec || 0;
+        if (dur > 0) ruleDurations[rule.id] = dur;
+      }
+    }
+  }
+  const mapAlertChannel = (alert) => {
+    if (!alert) return 'anomaly';
+
+    // Signal quality alerts have the channel name in the alert
+    if (alert.category === 'signal_quality' && alert.channel) {
+      return alert.channel;
+    }
+
+    const id = (alert.ruleId || '').toLowerCase();
+    // MFG-specific rules
+    if (id.includes('mfg') && id.includes('delta')) return 'MFG_DPPress';
+    if (id.includes('mfg') && id.includes('throttle')) return 'MFG_TPS_act_pct';
+    if (id.includes('fuel-pressure')) return 'MFG_FuelPressure_inWC';
+    if (id.includes('mfg') && id.includes('starvation')) return 'MFG_DPPress';
+
+    // Map categories to actual column names so chart overlay works
+    const categoryToChannel = {
+      'voltage': 'Vbat',
+      'thermal': 'ECT',
+      'pressure': 'OILP_press',
+      'fuel': 'MFG_DPPress',
+      'fault': 'rpm',  // Show fault overlays relative to RPM
+      'knock': 'KNK_retard'
+    };
+
+    const category = alert.category || '';
+    return categoryToChannel[category] || category || 'anomaly';
+  };
+
   if (thresholdProfile?.thresholds || thresholdProfile?.anomalyRules) {
-    const profileAlerts = detectAnomalies(data, thresholdProfile, {
+    const profileAlerts = detectAnomalies(normalizedData, thresholdProfile, {
       sampleRate,
       gracePeriod: 5,
       minDuration: 0
     });
     alerts = profileAlerts.alerts.map(alert => ({
+      id: alert.id || `${alert.ruleId || alert.category || 'alert'}-${alert.startTime ?? Math.random()}`,
       severity: alert.severity,
-      channel: alert.category || 'anomaly',
+      category: alert.category,
+      channel: mapAlertChannel(alert),
       message: formatAlert(alert),
       threshold: alert.threshold,
-      ruleId: alert.ruleId
+      ruleId: alert.ruleId,
+      startTime: alert.startTime,
+      endTime: alert.endTime,
+      duration: alert.duration,
+      minDuration: alert.minDuration ?? ruleDurations[alert.ruleId] ?? 0,
+      name: alert.name,
+      description: alert.description
     }));
+
+    // Merge overlapping/adjacent alerts with the same rule/channel to reduce clutter
+    const merged = [];
+    const timedAlerts = alerts
+      .filter(a => a.startTime !== undefined && a.endTime !== undefined)
+      .sort((a, b) => a.startTime - b.startTime);
+
+    timedAlerts.forEach(alert => {
+      const last = merged[merged.length - 1];
+      const isSame =
+        last &&
+        last.ruleId === alert.ruleId &&
+        last.severity === alert.severity &&
+        last.channel === alert.channel;
+      const overlapsOrAdjacent = isSame && alert.startTime <= (last.endTime + 1); // 1s gap tolerance
+
+      if (overlapsOrAdjacent) {
+        last.endTime = Math.max(last.endTime, alert.endTime);
+        last.duration = last.endTime - last.startTime;
+      } else {
+        merged.push({ ...alert });
+      }
+    });
+
+    // Keep any alerts without times plus merged timed alerts
+    const untimed = alerts.filter(a => a.startTime === undefined || a.endTime === undefined);
+    alerts = [...merged, ...untimed];
   } else {
     alerts = detectAlerts(data, channelStats);
   }
@@ -235,6 +414,7 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     alerts,
     summary,
     thresholdProfileId: thresholdProfile?.profileId || null,
+    thresholdProfileVersion: thresholdProfile?.version || null,
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,

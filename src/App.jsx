@@ -31,13 +31,14 @@ import {
 
 // Import B-Plot modules
 import { parseBPlotData } from './lib/bplotParsers';
-import { processBPlotData } from './lib/bplotProcessData';
+import { processBPlotData, detectFuelSystem } from './lib/bplotProcessData';
 import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
 import AppHeader from './components/AppHeader';
 import BaselineSelector from './components/BaselineSelector';
 import ReportIssue from './components/ReportIssue';
 import { useThresholds } from './contexts/ThresholdContext';
+import { getResolvedProfile } from './lib/thresholdService';
 
 // File type constants
 const FILE_TYPES = {
@@ -1466,13 +1467,19 @@ function analysisReducer(state, action) {
 const PlotAnalyzer = () => {
   // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
-  const { resolvedProfile } = useThresholds();
+  const { resolvedProfile, selectProfile, selectedProfileId, baselineSelection, loading: profileLoading, error: profileError } = useThresholds();
   const activeThresholdProfile = useMemo(() => {
-    if (!resolvedProfile || resolvedProfile.profileId === 'fallback') {
+    // Use the resolved profile even if it's the fallback
+    // This ensures basic threshold checks work even when API is unavailable
+    if (!resolvedProfile) {
       return null;
     }
+    // Log warning if using fallback (API unavailable)
+    if (resolvedProfile.profileId === 'fallback' && profileError) {
+      console.warn('Using fallback thresholds - API server may not be running. Start with: npm run dev');
+    }
     return resolvedProfile;
-  }, [resolvedProfile]);
+  }, [resolvedProfile, profileError]);
   const {
     hasEcm, hasBplt, ecmFileName, bpltFileName, activeTab,
     fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
@@ -1563,13 +1570,22 @@ const PlotAnalyzer = () => {
     }
   }, []);
 
-  // Reprocess B-Plot anomalies when threshold profile changes
+  // Reprocess B-Plot anomalies when threshold profile changes (ID or version)
   useEffect(() => {
     if (!hasBplt || !activeThresholdProfile) return;
     const profileId = activeThresholdProfile.profileId;
+    const profileVersion = activeThresholdProfile.version;
+
+    // Check if profile ID or version changed - reprocess if either is different
+    const profileChanged = (processed) => {
+      if (!processed) return true;
+      if (processed.thresholdProfileId !== profileId) return true;
+      if (processed.thresholdProfileVersion !== profileVersion) return true;
+      return false;
+    };
 
     if (bplotFiles.length > 0) {
-      if (combinedBplotProcessed?.thresholdProfileId === profileId) return;
+      if (!profileChanged(combinedBplotProcessed)) return;
       const updatedFiles = bplotFiles.map(file => ({
         ...file,
         processed: processBPlotData(file.data, activeThresholdProfile)
@@ -1587,7 +1603,7 @@ const PlotAnalyzer = () => {
       return;
     }
 
-    if (!bplotData || bplotProcessed?.thresholdProfileId === profileId) return;
+    if (!bplotData || !profileChanged(bplotProcessed)) return;
     const updatedProcessed = processBPlotData(bplotData, activeThresholdProfile);
     dispatch({
       type: 'BPLOT_REPROCESSED',
@@ -1716,7 +1732,30 @@ const PlotAnalyzer = () => {
 
         // Parse as B-Plot CSV
         const bplotParsed = parseBPlotData(text);
-        const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
+
+        // Auto-detect fuel system and select appropriate profile
+        let profileToUse = activeThresholdProfile;
+        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+        const hasManualBaselineSelection = baselineSelection?.group;
+
+        // Only auto-switch profiles when:
+        // 1. MFG fuel system detected (always switch for safety - these engines need specific thresholds)
+        // 2. No manual baseline selection AND detected profile differs from current
+        const shouldAutoSwitch = detectedFuelSystem.profileId === 'psi-hd-40l-53l-mfg' ||
+          (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
+
+        if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
+          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          try {
+            profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
+            // Update the UI profile selector to match
+            selectProfile(detectedFuelSystem.profileId);
+          } catch (err) {
+            console.warn('Failed to load auto-detected profile, using current:', err);
+          }
+        }
+
+        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1744,7 +1783,30 @@ const PlotAnalyzer = () => {
       if (detectedType === FILE_TYPES.BPLOT) {
         // Process as B-Plot time-series data
         const bplotParsed = parseBPlotData(text);
-        const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
+
+        // Auto-detect fuel system and select appropriate profile
+        let profileToUse = activeThresholdProfile;
+        const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+        const hasManualBaselineSelection = baselineSelection?.group;
+
+        // Only auto-switch profiles when:
+        // 1. MFG fuel system detected (always switch for safety - these engines need specific thresholds)
+        // 2. No manual baseline selection AND detected profile differs from current
+        const shouldAutoSwitch = detectedFuelSystem.profileId === 'psi-hd-40l-53l-mfg' ||
+          (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
+
+        if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
+          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          try {
+            profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
+            // Update the UI profile selector to match
+            selectProfile(detectedFuelSystem.profileId);
+          } catch (err) {
+            console.warn('Failed to load auto-detected profile, using current:', err);
+          }
+        }
+
+        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1811,6 +1873,8 @@ const PlotAnalyzer = () => {
     try {
       const bplotFilesData = [];
       let ecmData = null;
+      let profileToUse = activeThresholdProfile;
+      let profileAutoDetected = false;
 
       // Process each file
       for (const file of files) {
@@ -1833,7 +1897,23 @@ const PlotAnalyzer = () => {
           const text = result.content;
 
           const bplotParsed = parseBPlotData(text);
-          const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
+
+          // Auto-detect fuel system from first BPLOT file
+          if (!profileAutoDetected) {
+            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+            if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
+              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              try {
+                profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
+                selectProfile(detectedFuelSystem.profileId);
+              } catch (err) {
+                console.warn('Failed to load auto-detected profile, using current:', err);
+              }
+            }
+            profileAutoDetected = true;
+          }
+
+          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
 
           bplotFilesData.push({
             id: generateFileId(),
@@ -1856,7 +1936,23 @@ const PlotAnalyzer = () => {
 
         if (detectedType === FILE_TYPES.BPLOT) {
           const bplotParsed = parseBPlotData(text);
-          const bplotProcessedData = processBPlotData(bplotParsed, activeThresholdProfile);
+
+          // Auto-detect fuel system from first BPLOT file
+          if (!profileAutoDetected) {
+            const detectedFuelSystem = detectFuelSystem(bplotParsed.headers);
+            if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
+              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              try {
+                profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
+                selectProfile(detectedFuelSystem.profileId);
+              } catch (err) {
+                console.warn('Failed to load auto-detected profile, using current:', err);
+              }
+            }
+            profileAutoDetected = true;
+          }
+
+          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
 
           bplotFilesData.push({
             id: generateFileId(),
@@ -2162,7 +2258,7 @@ const PlotAnalyzer = () => {
               </div>
               <div>
                 <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
-                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.3.0</p>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.4.5</p>
               </div>
             </div>
             <button
@@ -2332,6 +2428,8 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
           eventCount={bplotProcessed?.events?.length || 0}
+          activeProfileName={activeThresholdProfile?.name}
+          activeProfileId={activeThresholdProfile?.profileId}
         />
         <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
         <BPlotAnalysis
@@ -2367,6 +2465,8 @@ const PlotAnalyzer = () => {
         onExport={exportToPDF}
         onReportIssue={() => setShowReportIssue(true)}
         eventCount={faults?.length || 0}
+        activeProfileName={activeThresholdProfile?.name}
+        activeProfileId={activeThresholdProfile?.profileId}
       />
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 

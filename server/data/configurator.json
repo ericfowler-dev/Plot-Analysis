@@ -1,6 +1,6 @@
 {
-  "version": 9,
-  "lastUpdated": "2026-01-17T15:25:37.593Z",
+  "version": 23,
+  "lastUpdated": "2026-01-20T12:50:06.974Z",
   "audit": [
     {
       "version": 2,
@@ -83,6 +83,141 @@
       "action": "profile.update",
       "details": {
         "profileId": "global-defaults"
+      }
+    },
+    {
+      "version": 10,
+      "timestamp": "2026-01-20T01:22:07.961Z",
+      "actor": "admin",
+      "action": "baseline.size.create",
+      "details": {
+        "group": "PSI HD",
+        "name": "40L"
+      }
+    },
+    {
+      "version": 11,
+      "timestamp": "2026-01-20T01:22:14.833Z",
+      "actor": "admin",
+      "action": "baseline.application.create",
+      "details": {
+        "group": "PSI HD",
+        "size": "40L",
+        "name": "Power Gen"
+      }
+    },
+    {
+      "version": 12,
+      "timestamp": "2026-01-20T01:23:24.033Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 13,
+      "timestamp": "2026-01-20T01:57:04.698Z",
+      "actor": "admin",
+      "action": "baseline.group.create",
+      "details": {
+        "name": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 14,
+      "timestamp": "2026-01-20T01:57:27.002Z",
+      "actor": "admin",
+      "action": "baseline.group.archive",
+      "details": {
+        "name": "psi-hd-40l-53l-mfg",
+        "archived": true
+      }
+    },
+    {
+      "version": 15,
+      "timestamp": "2026-01-20T01:58:44.782Z",
+      "actor": "admin",
+      "action": "baseline.size.create",
+      "details": {
+        "group": "PSI HD",
+        "name": "40L/53L with MFG Fuel System"
+      }
+    },
+    {
+      "version": 16,
+      "timestamp": "2026-01-20T01:59:11.638Z",
+      "actor": "admin",
+      "action": "baseline.group.create",
+      "details": {
+        "name": "40L/53L with MFG Fuel System"
+      }
+    },
+    {
+      "version": 17,
+      "timestamp": "2026-01-20T01:59:27.563Z",
+      "actor": "admin",
+      "action": "baseline.size.create",
+      "details": {
+        "group": "40L/53L with MFG Fuel System",
+        "name": "40L/53L with MFG Fuel System"
+      }
+    },
+    {
+      "version": 18,
+      "timestamp": "2026-01-20T01:59:46.143Z",
+      "actor": "admin",
+      "action": "baseline.group.archive",
+      "details": {
+        "name": "40L/53L with MFG Fuel System",
+        "archived": true
+      }
+    },
+    {
+      "version": 19,
+      "timestamp": "2026-01-20T01:59:49.589Z",
+      "actor": "admin",
+      "action": "baseline.size.archive",
+      "details": {
+        "group": "40L/53L with MFG Fuel System",
+        "name": "40L/53L with MFG Fuel System",
+        "archived": true
+      }
+    },
+    {
+      "version": 20,
+      "timestamp": "2026-01-20T02:17:30.860Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 21,
+      "timestamp": "2026-01-20T02:47:51.807Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 22,
+      "timestamp": "2026-01-20T12:46:12.638Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 23,
+      "timestamp": "2026-01-20T12:50:06.974Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-40l-53l-mfg"
       }
     }
   ]

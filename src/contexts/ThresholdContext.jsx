@@ -90,6 +90,7 @@ const FALLBACK_THRESHOLDS = {
 
 export function ThresholdProvider({ children }) {
   // Currently selected profile ID
+  // Default to global-defaults - auto-detection will switch to MFG profile when MFG columns found
   const [selectedProfileId, setSelectedProfileId] = useState('global-defaults');
   const [baselineSelection, setBaselineSelection] = useState({
     group: '',

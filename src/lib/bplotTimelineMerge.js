@@ -197,10 +197,13 @@ function mergeAlerts(files) {
 
   for (const file of files) {
     if (!file.processed?.alerts) continue;
+    const offset = file.timeOffset || 0;
 
     for (const alert of file.processed.alerts) {
       merged.push({
         ...alert,
+        startTime: typeof alert.startTime === 'number' ? alert.startTime + offset : alert.startTime,
+        endTime: typeof alert.endTime === 'number' ? alert.endTime + offset : alert.endTime,
         sourceFile: file.fileName,
         sourceFileId: file.id
       });

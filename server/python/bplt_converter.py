@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from bplt_reader_core import convert_bplt_to_csv
 
+DEBUG = os.getenv("BPLT_DEBUG", "").lower() in {"1", "true", "yes", "on"}
+
 
 def main():
     if len(sys.argv) < 3:
@@ -25,7 +27,7 @@ def main():
         sys.exit(1)
 
     try:
-        convert_bplt_to_csv(input_path, output_path)
+        convert_bplt_to_csv(input_path, output_path, debug=DEBUG)
         print(f"Successfully converted {input_path} to {output_path}")
         sys.exit(0)
     except Exception as e:

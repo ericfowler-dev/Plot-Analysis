@@ -6,8 +6,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useThresholds } from '../contexts/ThresholdContext';
 
+/**
+ * Map baseline selection to a profile ID
+ * This determines which threshold profile to use based on group/size/application
+ */
+function mapSelectionToProfile(group, size, application) {
+  if (!group) {
+    return 'global-defaults';
+  }
+
+  const groupLower = group.toLowerCase();
+  const sizeLower = (size || '').toLowerCase();
+
+  // PSI HD engines
+  if (groupLower.includes('psi hd') || groupLower.includes('psi-hd')) {
+    // 40L/53L with MFG fuel system get special profile
+    if (sizeLower.includes('40l') || sizeLower.includes('53l') || sizeLower.includes('mfg')) {
+      return 'psi-hd-40l-53l-mfg';
+    }
+    // Other PSI HD sizes use HD base profile
+    return 'psi-hd-base';
+  }
+
+  // PSI Industrial engines
+  if (groupLower.includes('industrial')) {
+    return 'psi-industrial-base';
+  }
+
+  // Default fallback
+  return 'global-defaults';
+}
+
 export default function BaselineSelector() {
-  const { baselineSelection, setBaselineSelection } = useThresholds();
+  const { baselineSelection, setBaselineSelection, selectProfile, selectedProfileId } = useThresholds();
   const [baselineData, setBaselineData] = useState(null);
   const [baselineIndex, setBaselineIndex] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +46,18 @@ export default function BaselineSelector() {
   const [actionError, setActionError] = useState(null);
 
   const isAdmin = typeof window !== 'undefined' && Boolean(localStorage.getItem('adminToken'));
+
+  // Trigger profile change when baseline selection changes
+  useEffect(() => {
+    const targetProfile = mapSelectionToProfile(
+      baselineSelection.group,
+      baselineSelection.size,
+      baselineSelection.application
+    );
+    if (targetProfile !== selectedProfileId) {
+      selectProfile(targetProfile);
+    }
+  }, [baselineSelection, selectedProfileId, selectProfile]);
 
   const getAdminHeaders = () => {
     if (typeof window === 'undefined') return {};

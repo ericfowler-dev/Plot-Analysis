@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, Brush
+  ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, ReferenceArea, Brush
 } from 'recharts';
 import {
-  Activity, AlertCircle, AlertTriangle, Clock, Zap,
+  Activity, AlertCircle, AlertTriangle, Clock, Zap, Info,
   ThermometerSun, Battery, Gauge, TrendingUp, Play,
   ChevronDown, ChevronRight, Droplets, Settings, FileText, Eye, EyeOff, Upload
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
 import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
 import AppHeader from './AppHeader';
+import { useThresholds } from '../contexts/ThresholdContext';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 20;
@@ -164,27 +165,87 @@ const safeToFixed = (value, decimals, fallback = '-') => {
   return value.toFixed(decimals);
 };
 
-const AlertCard = ({ alert, onClick, isHighlighted }) => {
-  const bgColor = alert.severity === 'critical' ? 'bg-red-950/50 border-red-500/50' : 'bg-yellow-950/50 border-yellow-500/50';
-  const hoverBg = alert.severity === 'critical' ? 'hover:bg-red-900/30' : 'hover:bg-amber-900/20';
-  const iconColor = alert.severity === 'critical' ? 'text-red-400' : 'text-yellow-400';
+const getSeverityLabel = (severity, category) => {
+  if (category === 'signal_quality') return 'Sensor';
+  if (severity === 'critical') return 'Critical';
+  if (severity === 'info') return 'Info';
+  return 'Warning';
+};
+
+const AlertCard = ({ alert, onClick, isHighlighted, onToggleShow }) => {
+  const handleCardClick = () => {
+    if (onClick) onClick();
+  };
+
+  const handleToggleClick = (e) => {
+    e.stopPropagation();
+    if (onToggleShow) onToggleShow();
+  };
+
+  // Determine styles based on severity
+  let bgColor, hoverBg, iconColor;
+  if (alert.severity === 'critical') {
+    bgColor = 'bg-red-950/50 border-red-500/50';
+    hoverBg = 'hover:bg-red-900/30';
+    iconColor = 'text-red-400';
+  } else if (alert.severity === 'info') {
+    bgColor = 'bg-cyan-950/50 border-cyan-500/50';
+    hoverBg = 'hover:bg-cyan-900/30';
+    iconColor = 'text-cyan-400';
+  } else {
+    bgColor = 'bg-yellow-950/50 border-yellow-500/50';
+    hoverBg = 'hover:bg-amber-900/20';
+    iconColor = 'text-yellow-400';
+  }
+  const highlightRing = isHighlighted ? 'ring-2 ring-green-400/70 shadow-[0_0_12px_rgba(74,222,128,0.45)]' : '';
+  const toggleLabel = isHighlighted ? 'On Chart' : 'Show on Chart';
+
+  // Select appropriate icon
+  const IconComponent = alert.severity === 'critical' ? AlertCircle
+    : alert.severity === 'info' ? Info
+    : AlertTriangle;
+
+  // For signal quality alerts, use the descriptive name; for others use severity: channel format
+  const alertTitle = alert.category === 'signal_quality' && alert.name
+    ? alert.name
+    : `${getSeverityLabel(alert.severity, alert.category)}: ${alert.channel}`;
+
+  // For signal quality alerts, show description; for others show message
+  const alertBody = alert.category === 'signal_quality' && alert.description
+    ? alert.description
+    : alert.message;
 
   return (
     <div
-      className={`${bgColor} ${hoverBg} border rounded-lg p-4 cursor-pointer transition-colors ${isHighlighted ? 'ring-2 ring-white/50' : ''}`}
-      onClick={onClick}
+      className={`${bgColor} ${hoverBg} border rounded-lg p-4 transition-colors ${highlightRing} ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
     >
       <div className="flex items-start gap-3">
-        {alert.severity === 'critical' ?
-          <AlertCircle className={`w-5 h-5 ${iconColor} mt-0.5`} /> :
-          <AlertTriangle className={`w-5 h-5 ${iconColor} mt-0.5`} />
-        }
-        <div>
+        <IconComponent className={`w-5 h-5 ${iconColor} mt-0.5`} />
+        <div className="flex-1 min-w-0">
           <div className={`font-medium ${iconColor}`}>
-            {alert.severity === 'critical' ? 'Critical' : 'Warning'}: {alert.channel}
+            {alertTitle}
           </div>
-          <div className="text-slate-300 text-sm mt-1">{alert.message}</div>
+          <div className="text-slate-300 text-sm mt-1">
+            {alertBody}
+            {alert.startTime !== undefined && alert.endTime !== undefined && (
+              <div className="text-xs text-slate-400 mt-1">
+                {formatDuration(alert.startTime)} → {formatDuration(alert.endTime)} ({formatDuration(alert.duration || (alert.endTime - alert.startTime))})
+              </div>
+            )}
+          </div>
         </div>
+        <button
+          onClick={handleToggleClick}
+          className={`ml-3 px-3 py-2 text-xs font-semibold rounded-md border transition-colors ${
+            isHighlighted
+              ? 'bg-green-500/20 border-green-400/60 text-green-100 hover:bg-green-500/30'
+              : 'bg-slate-800/70 border-slate-600 text-slate-200 hover:bg-slate-700'
+          }`}
+          title="Toggle highlight on chart"
+        >
+          {toggleLabel}
+        </button>
       </div>
     </div>
   );
@@ -209,6 +270,9 @@ const BPlotAnalysis = ({
   hideHeader = false,       // Hide header when embedded in combined view
   reportRef                // Ref for PDF export
 }) => {
+  // Get active profile for display
+  const { resolvedProfile } = useThresholds();
+
   const [internalActiveTab, setInternalActiveTab] = useState('overview');
   // Use external tab if provided, otherwise use internal state
   const activeTab = externalActiveTab || internalActiveTab;
@@ -218,6 +282,7 @@ const BPlotAnalysis = ({
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [showFileBoundaries, setShowFileBoundaries] = useState(true);
   const [highlightedChannel, setHighlightedChannel] = useState(null);
+  const [selectedAlert, setSelectedAlert] = useState(null);
 
   const {
     timeInfo,
@@ -392,14 +457,26 @@ const BPlotAnalysis = ({
     }));
   };
 
-  const handleAlertClick = (channel) => {
-    // Toggle highlight off if clicking same channel
-    if (highlightedChannel === channel) {
+  const isAlertSelected = (alert) => {
+    if (!selectedAlert || !alert) return false;
+    if (selectedAlert.id && alert.id) return selectedAlert.id === alert.id;
+    return selectedAlert.ruleId === alert.ruleId &&
+      selectedAlert.channel === alert.channel &&
+      selectedAlert.startTime === alert.startTime;
+  };
+
+  const handleAlertClick = (alert) => {
+    const channel = alert.channel;
+    // Toggle off if clicking the same alert
+    if (isAlertSelected(alert)) {
+      setSelectedAlert(null);
       setHighlightedChannel(null);
       return;
     }
-    // Set highlight and ensure channel is selected
+
+    setSelectedAlert(alert);
     setHighlightedChannel(channel);
+
     if (!selectedChannels.includes(channel)) {
       setSelectedChannels(prev => {
         if (prev.length >= MAX_CHART_CHANNELS) {
@@ -409,6 +486,9 @@ const BPlotAnalysis = ({
         return [...prev, channel];
       });
     }
+
+    // Jump to charts tab for correlation
+    setInternalActiveTab('charts');
   };
 
   // =============================================================================
@@ -429,6 +509,8 @@ const BPlotAnalysis = ({
             onExport={onExport}
             onReportIssue={onReportIssue}
             eventCount={processedData?.events?.length || 0}
+            activeProfileName={resolvedProfile?.name}
+            activeProfileId={resolvedProfile?.profileId}
           />
 
           {/* Secondary Controls Bar */}
@@ -524,8 +606,9 @@ const BPlotAnalysis = ({
               <AlertCard
                 key={i}
                 alert={alert}
-                onClick={() => handleAlertClick(alert.channel)}
-                isHighlighted={highlightedChannel === alert.channel}
+                onClick={() => handleAlertClick(alert)}
+                isHighlighted={isAlertSelected(alert)}
+                onToggleShow={() => handleAlertClick(alert)}
               />
             ))}
           </div>
@@ -741,8 +824,9 @@ const BPlotAnalysis = ({
                   <AlertCard
                     key={i}
                     alert={alert}
-                    onClick={() => handleAlertClick(alert.channel)}
-                    isHighlighted={highlightedChannel === alert.channel}
+                    onClick={() => handleAlertClick(alert)}
+                    isHighlighted={isAlertSelected(alert)}
+                    onToggleShow={() => handleAlertClick(alert)}
                   />
                 ))}
               </div>
@@ -905,6 +989,32 @@ const BPlotAnalysis = ({
                         />
                       )
                     ))}
+                    {/* Alert overlay for selected alert only */}
+                    {selectedAlert && selectedAlert.startTime !== undefined && selectedAlert.endTime !== undefined && (() => {
+                      const persistence = selectedAlert.minDuration || 0;
+                      // Place the band starting at estimated onset (start minus persistence)
+                      const bandStart = Math.max(0, selectedAlert.startTime - persistence);
+                      const labelText = `${selectedAlert.severity === 'critical' ? 'Critical' : 'Warning'}: ${selectedAlert.channel}` +
+                        (persistence > 0 ? ` (delay ${formatDuration(persistence)})` : '');
+
+                      return (
+                        <ReferenceArea
+                          x1={bandStart}
+                          x2={selectedAlert.endTime}
+                          yAxisId={chartAxes.channelToAxis[selectedAlert.channel] || chartAxes.axes[0]?.id}
+                          stroke={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
+                          fill={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
+                          fillOpacity={0.08}
+                          ifOverflow="extendDomain"
+                          label={{
+                            value: labelText,
+                            position: 'insideTopLeft',
+                            fill: '#ffffff',
+                            fontSize: 11
+                          }}
+                        />
+                      );
+                    })()}
                     {/* ECM fault snapshot overlay lines */}
                     {showFaultOverlays && faultOverlayLines.map((line, idx) => (
                       <ReferenceLine
@@ -941,8 +1051,9 @@ const BPlotAnalysis = ({
                 <AlertCard
                   key={i}
                   alert={alert}
-                  onClick={() => handleAlertClick(alert.channel)}
-                  isHighlighted={highlightedChannel === alert.channel}
+                  onClick={() => handleAlertClick(alert)}
+                  isHighlighted={isAlertSelected(alert)}
+                  onToggleShow={() => handleAlertClick(alert)}
                 />
               ))}
             </div>

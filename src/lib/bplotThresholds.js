@@ -155,6 +155,18 @@ export const CHANNEL_VALIDITY_POLICIES = {
   MFG_USPress: {
     statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
     alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING
+  },
+
+  // Computed MFG fuel pressure fields - only valid when engine running stable
+  MFG_FuelPressure_inWC: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    excludeNegative: true
+  },
+  MFG_FuelPressure_psig: {
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_STABLE,
+    excludeNegative: true
   }
 };
 
@@ -545,6 +557,22 @@ export const BPLOT_PARAMETERS = {
     unit: '%',
     description: 'Mass Flow Gas Valve throttle percent',
     category: 'fuel'
+  },
+  MFG_FuelPressure_inWC: {
+    name: 'MFG Fuel Pressure (inWC)',
+    unit: 'inWC',
+    description: 'Computed MFG fuel gauge pressure. Formula: (MFG_USPress - BP) × 27. Valid range: 20-30 inWC at full load.',
+    category: 'fuel',
+    computed: true,
+    warningThreshold: { min: 20, max: 35 },
+    criticalThreshold: { min: 15, max: 45 }
+  },
+  MFG_FuelPressure_psig: {
+    name: 'MFG Fuel Pressure (psig)',
+    unit: 'psig',
+    description: 'Computed MFG fuel gauge pressure. Formula: MFG_USPress - BP. Valid range: 0.74-1.11 psig.',
+    category: 'fuel',
+    computed: true
   },
   FT: {
     name: 'Fuel Temperature',
@@ -972,7 +1000,11 @@ export const CHANNEL_UNIT_TYPES = {
   A_BM1: 'percentage',
   CL_BM1: 'percentage',
   MFG_TPS_act_pct: 'percentage',
-  MFG_TPS_cmd_pct: 'percentage'
+  MFG_TPS_cmd_pct: 'percentage',
+
+  // Computed MFG fuel pressure - pressure formatting (2 decimal)
+  MFG_FuelPressure_inWC: 'pressure',
+  MFG_FuelPressure_psig: 'pressure'
 };
 
 /**

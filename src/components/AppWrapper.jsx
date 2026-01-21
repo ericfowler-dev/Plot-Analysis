@@ -16,6 +16,7 @@ import App from '../App';
  * Set to false to completely disable the new system
  */
 const ENABLE_THRESHOLD_SYSTEM = true;
+const SHOW_PROFILE_INDICATOR = false;
 
 /**
  * Main wrapper that provides threshold context
@@ -76,7 +77,7 @@ function AppWithThresholds() {
       <AdminFloatingButton onClick={() => setShowAdmin(true)} />
 
       {/* Profile indicator (shown when not using defaults) */}
-      {selectedProfileId && selectedProfileId !== 'global-defaults' && (
+      {SHOW_PROFILE_INDICATOR && selectedProfileId && selectedProfileId !== 'global-defaults' && (
         <ProfileIndicator profile={resolvedProfile} onClick={() => setShowAdmin(true)} />
       )}
     </div>

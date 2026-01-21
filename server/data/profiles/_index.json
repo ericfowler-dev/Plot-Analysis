@@ -67,7 +67,54 @@
   "profiles": [
     "global-defaults",
     "psi-hd-base",
+    "psi-hd-40l-53l-mfg",
     "psi-industrial-base",
     "test-profile"
+  ],
+  "engineSizes": [
+    {
+      "id": "40L",
+      "name": "40L",
+      "family": "psi-hd",
+      "description": "PSI HD 40 liter engine with MFG fuel system"
+    },
+    {
+      "id": "53L",
+      "name": "53L",
+      "family": "psi-hd",
+      "description": "PSI HD 53 liter engine with MFG fuel system"
+    },
+    {
+      "id": "22L",
+      "name": "22L",
+      "family": "psi-hd",
+      "description": "PSI HD 22 liter engine"
+    },
+    {
+      "id": "8.8L",
+      "name": "8.8L",
+      "family": "psi-industrial",
+      "description": "PSI Industrial 8.8 liter engine"
+    },
+    {
+      "id": "4.3L",
+      "name": "4.3L",
+      "family": "psi-industrial",
+      "description": "PSI Industrial 4.3 liter engine"
+    }
+  ],
+  "fuelSystems": [
+    {
+      "id": "mfg",
+      "name": "MFG (Mass Flow Gas)",
+      "applicableEngines": ["40L", "53L"],
+      "description": "Mass Flow Gas valve fuel system with electronic throttle control"
+    },
+    {
+      "id": "epr",
+      "name": "EPR (Electronic Pressure Regulator)",
+      "applicableEngines": ["22L", "8.8L", "4.3L"],
+      "description": "Electronic Pressure Regulator fuel system"
+    }
   ]
 }
