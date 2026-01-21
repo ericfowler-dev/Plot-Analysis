@@ -15,8 +15,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install Node dependencies
-RUN npm install
+# Install Node dependencies (include dev deps for Vite build)
+ENV NODE_ENV=development
+RUN npm install --include=dev
 
 # Copy all source files
 COPY . .
