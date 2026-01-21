@@ -12,7 +12,9 @@ echo "Verifying Python packages..."
 python3 -c "import numpy; import pandas; import scipy; print('Python packages OK')"
 
 echo "Installing Node dependencies..."
-npm install
+export NODE_ENV=development
+export NPM_CONFIG_PRODUCTION=false
+npm ci --include=dev
 
 echo "Building frontend..."
 npm run build
