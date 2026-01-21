@@ -4,10 +4,11 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    python3-numpy \
-    python3-pandas \
-    python3-scipy \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies via pip (matching requirements.txt)
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Create app directory
 WORKDIR /app
