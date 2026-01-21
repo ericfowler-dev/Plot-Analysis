@@ -70,6 +70,29 @@ export async function ensureUploadsTable() {
   `);
 }
 
+export async function ensureBaselinesTables() {
+  const pool = getPool();
+  if (!pool) return;
+
+  // Main baseline data storage
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS baseline_data (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      payload JSONB NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  // Baseline index (groups, sizes, applications metadata)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS baseline_index (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      payload JSONB NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+}
+
 export async function ensureAllTables() {
   console.log('Starting database table creation...');
   try {
@@ -77,7 +100,8 @@ export async function ensureAllTables() {
       ensureIssuesTable(),
       ensureProfilesTables(),
       ensureConfiguratorAuditTable(),
-      ensureUploadsTable()
+      ensureUploadsTable(),
+      ensureBaselinesTables()
     ]);
     console.log('Database tables created successfully');
   } catch (error) {
