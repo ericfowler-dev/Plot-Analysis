@@ -303,6 +303,9 @@ def read_bplt_file(file_path: str, debug: bool = False, header: dict | None = No
     with open(file_path, 'rb') as f:
         if header is None:
             header = read_header_from_handle(f, debug=debug)
+        else:
+            # Seek to data section when header was pre-read
+            f.seek(header['header_position'])
         data = read_data(f, header['channel_names'], header, debug=debug)
         return {
             'header': header,
