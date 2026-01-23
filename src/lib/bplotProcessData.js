@@ -77,8 +77,10 @@ export function detectFuelSystem(columns, dataRows = []) {
       for (const row of dataRows || []) {
         for (const key of Object.keys(row)) {
           if (lowerKeys.includes(key.toLowerCase())) {
-            const v = Number(row[key]);
-            if (!Number.isNaN(v)) vals.push(v);
+            const raw = row[key];
+            if (raw === null || raw === undefined) continue;
+            const v = Number(raw);
+            if (Number.isFinite(v)) vals.push(v);
           }
         }
       }
@@ -181,17 +183,18 @@ function computeMfgDerivedFields(row) {
   // Get MFG upstream pressure (PSIA) and barometric pressure (PSIA)
   const mfgUsPress = row.MFG_USPress ?? row.mfg_uspress ?? row.MFG_US;
   const bp = row.BP ?? row.baro ?? row.BARO ?? row.barometric_pressure;
+  const mfgUsValue = typeof mfgUsPress === 'number' ? mfgUsPress : parseFloat(mfgUsPress);
+  const bpValue = typeof bp === 'number' ? bp : parseFloat(bp);
 
   // Compute fuel gauge pressure in inches of water column (inWC)
   // Only compute if both values are available and valid
-  if (mfgUsPress !== undefined && bp !== undefined &&
-      !isNaN(mfgUsPress) && !isNaN(bp) &&
-      mfgUsPress > 0 && bp > 0) {
+  if (Number.isFinite(mfgUsValue) && Number.isFinite(bpValue) &&
+      mfgUsValue > 0 && bpValue > 0) {
     // (MFG_USPress - BP) × 27 = inWC
-    computed.MFG_FuelPressure_inWC = (mfgUsPress - bp) * 27;
+    computed.MFG_FuelPressure_inWC = (mfgUsValue - bpValue) * 27;
 
     // Also compute in PSI gauge for convenience (simpler threshold checks)
-    computed.MFG_FuelPressure_psig = mfgUsPress - bp;
+    computed.MFG_FuelPressure_psig = mfgUsValue - bpValue;
   }
 
   return computed;
@@ -361,7 +364,12 @@ export function calculateTimeInState(data, channelName) {
 /**
  * Process B-Plot data and generate comprehensive analysis
  */
-export function processBPlotData(parsedData, thresholdProfile = null) {
+export function processBPlotData(parsedData, thresholdProfile = null, options = {}) {
+  const {
+    baseline = null,
+    baselineSelection = null,
+    baselineAlertsEnabled = false
+  } = options;
   const { data, channels, headers } = parsedData;
   const detectedFuelSystem = detectFuelSystem(headers, data);
 
@@ -434,8 +442,8 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
   const mapAlertChannel = (alert) => {
     if (!alert) return 'anomaly';
 
-    // Signal quality alerts have the channel name in the alert
-    if (alert.category === 'signal_quality' && alert.channel) {
+    // Use explicit channel when provided (e.g., signal quality or baseline alerts)
+    if (alert.channel) {
       return alert.channel;
     }
 
@@ -476,7 +484,9 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     const profileAlerts = detectAnomalies(normalizedData, detectionProfile, {
       sampleRate,
       gracePeriod: 5,
-      minDuration: 0
+      minDuration: 0,
+      baseline,
+      baselineAlertsEnabled
     });
     alerts = profileAlerts.alerts.map(alert => ({
       id: alert.id || `${alert.ruleId || alert.category || 'alert'}-${alert.startTime ?? Math.random()}`,
@@ -542,6 +552,8 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     summary,
     thresholdProfileId: detectionProfile?.profileId || thresholdProfile?.profileId || null,
     thresholdProfileVersion: detectionProfile?.version || thresholdProfile?.version || null,
+    baselineSelection: baselineSelection || null,
+    baselineAlertsEnabled: Boolean(baselineAlertsEnabled),
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,

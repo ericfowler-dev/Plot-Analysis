@@ -1,6 +1,6 @@
 {
-  "version": 23,
-  "lastUpdated": "2026-01-20T12:50:06.974Z",
+  "version": 24,
+  "lastUpdated": "2026-01-20T20:26:32.919Z",
   "audit": [
     {
       "version": 2,
@@ -218,6 +218,15 @@
       "action": "profile.update",
       "details": {
         "profileId": "psi-hd-40l-53l-mfg"
+      }
+    },
+    {
+      "version": 24,
+      "timestamp": "2026-01-20T20:26:32.919Z",
+      "actor": "admin",
+      "action": "profile.update",
+      "details": {
+        "profileId": "psi-hd-base"
       }
     }
   ]

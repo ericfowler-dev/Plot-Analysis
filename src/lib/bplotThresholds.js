@@ -211,9 +211,9 @@ export const BPLOT_THRESHOLDS = {
   oilPressure: {
     min: 0,
     max: 100,
-    warning_low: 20,
-    critical_low: 10,
-    idle_min: 15
+    warning_low: 8,
+    critical_low: 6,
+    idle_min: 6
   },
   manifoldPressure: {
     min: 0,

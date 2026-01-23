@@ -20,7 +20,8 @@ import {
   X,
   RefreshCw,
   ArrowLeft,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import {
   listProfiles,
@@ -34,6 +35,7 @@ import {
 } from '../../lib/thresholdService';
 import { getConfiguratorState } from '../../lib/configuratorService';
 import ThresholdEditor from './ThresholdEditor';
+import Config3Editor from './Config3Editor';
 import { useThresholds } from '../../contexts/ThresholdContext';
 
 export default function ThresholdManager({ onClose }) {
@@ -54,6 +56,7 @@ export default function ThresholdManager({ onClose }) {
   const [editingProfile, setEditingProfile] = useState(null);
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [useConfig3, setUseConfig3] = useState(true); // Default to new Config 3.0 editor
 
   // Action state
   const [actionLoading, setActionLoading] = useState(false);
@@ -344,6 +347,21 @@ export default function ThresholdManager({ onClose }) {
 
   // If editing a profile, show the editor
   if (editingProfile) {
+    // Use Config 3.0 editor by default
+    if (useConfig3) {
+      return (
+        <div className="fixed inset-0 bg-gray-100 z-50">
+          <Config3Editor
+            profile={editingProfile}
+            onSave={handleSaveProfile}
+            onBack={() => setEditingProfile(null)}
+            isNew={!editingProfile.profileId}
+          />
+        </div>
+      );
+    }
+
+    // Legacy editor (can be accessed via toggle)
     return (
       <ThresholdEditor
         profile={editingProfile}
@@ -391,6 +409,19 @@ export default function ThresholdManager({ onClose }) {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Config 3.0 Toggle */}
+              <button
+                onClick={() => setUseConfig3(!useConfig3)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  useConfig3
+                    ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                }`}
+                title={useConfig3 ? 'Using Config 3.0 (New)' : 'Using Legacy Editor'}
+              >
+                <Sparkles className="w-4 h-4" />
+                {useConfig3 ? 'Config 3.0' : 'Legacy'}
+              </button>
               {onClose && (
                 <button
                   onClick={onClose}

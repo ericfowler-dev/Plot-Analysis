@@ -49,10 +49,10 @@ export const ECM_THRESHOLDS = {
 
   // Oil pressure thresholds (psi)
   oilPressure: {
-    min: 10,        // Minimum oil pressure
+    min: 6,         // Minimum oil pressure
     max: 100,       // Maximum oil pressure
-    warningLow: 25, // Low pressure warning
-    criticalLow: 15 // Critical low pressure
+    warningLow: 8,  // Low pressure warning
+    criticalLow: 6  // Critical low pressure
   },
 
   // Fuel system thresholds

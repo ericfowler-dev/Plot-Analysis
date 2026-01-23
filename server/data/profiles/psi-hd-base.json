@@ -6,10 +6,10 @@
   "engineFamily": "PSI HD",
   "fuelType": null,
   "application": null,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-15T18:10:06.329Z",
+  "lastModified": "2026-01-20T20:26:32.878Z",
   "modifiedBy": "system",
   "thresholds": {
     "battery": {
@@ -22,7 +22,36 @@
         "critical": 75,
         "warning": 50
       }
+    },
+    "rpm": {
+      "ignoreWhen": [],
+      "requireWhen": []
     }
   },
-  "anomalyRules": []
+  "anomalyRules": [
+    {
+      "id": "rule-1768940746001",
+      "name": "RPM IGNORE",
+      "description": "RPM IGNORE",
+      "enabled": true,
+      "conditions": [
+        {
+          "param": "rpm",
+          "operator": ">=",
+          "value": 1850
+        }
+      ],
+      "logic": "AND",
+      "duration": 0,
+      "severity": "warning",
+      "category": "custom",
+      "ignoreWhen": [
+        {
+          "param": "EngineStarting",
+          "operator": "==",
+          "value": 1
+        }
+      ]
+    }
+  ]
 }

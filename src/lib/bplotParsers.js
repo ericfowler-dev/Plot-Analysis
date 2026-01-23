@@ -7,6 +7,10 @@ import {
   DEFAULT_VALIDITY_CONFIG,
   getChannelValidityPolicy
 } from './bplotThresholds.js';
+import {
+  ENGINE_STATE,
+  generateEngineStates as generateEngineStatesShared
+} from './engineState.js';
 
 // Shared defaults for engine state thresholds to avoid magic numbers
 const ENGINE_DEFAULTS = {
@@ -21,17 +25,6 @@ const ENGINE_DEFAULTS = {
 // VALIDITY MASK SYSTEM
 // Determines which samples are valid for statistics and alerts per channel
 // =============================================================================
-
-/**
- * Engine state constants (must match anomalyEngine.js)
- */
-const ENGINE_STATE = {
-  OFF: 'off',
-  CRANKING: 'cranking',
-  RUNNING_UNSTABLE: 'running_unstable',
-  RUNNING_STABLE: 'running_stable',
-  STOPPING: 'stopping'
-};
 
 /**
  * Check if a sample is valid based on the validity policy
@@ -92,105 +85,34 @@ export function isSampleValid(row, policy, engineState = null, config = DEFAULT_
  * @returns {boolean} True if the value passes filters
  */
 export function isValueValid(value, policyConfig = {}) {
-  if (isNaN(value)) return false;
-  if (policyConfig.excludeNegative && value < 0) return false;
-  if (policyConfig.excludeZero && value === 0) return false;
+  const numericValue = typeof value === 'number' ? value : parseFloat(value);
+  if (!Number.isFinite(numericValue)) return false;
+  if (policyConfig.excludeNegative && numericValue < 0) return false;
+  if (policyConfig.excludeZero && numericValue === 0) return false;
   return true;
 }
 
 /**
  * Generate engine state for each sample in the dataset
- * This is a simplified version - for full state tracking, use EngineStateTracker from anomalyEngine.js
+ * Uses the shared EngineStateTracker to keep state logic consistent across the app.
  *
  * @param {Array} data - Array of data rows
  * @param {Object} config - Validity configuration
  * @returns {Array} Array of engine states corresponding to each data row
  */
 export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
-  const states = [];
-  let lastState = ENGINE_STATE.OFF;
-  let stateStartTime = 0;
-  let rpmHistory = [];
-  const historySize = config.rpmHistorySize || ENGINE_DEFAULTS.RPM_HISTORY_SIZE;
-  const rpmCranking = config.rpmCrankingThreshold || ENGINE_DEFAULTS.RPM_CRANKING_THRESHOLD;
-  const rpmRunning = config.rpmRunningThreshold || ENGINE_DEFAULTS.ENGINE_START_THRESHOLD;
-  const rpmStable = config.rpmStableThreshold || config.rpmRunningThreshold || ENGINE_DEFAULTS.ENGINE_START_THRESHOLD;
-  const startupGrace = config.startupGraceSeconds || ENGINE_DEFAULTS.STARTUP_GRACE_SECONDS;
+  const engineConfig = {
+    rpmCrankingThreshold: config.rpmCrankingThreshold ?? ENGINE_DEFAULTS.RPM_CRANKING_THRESHOLD,
+    rpmRunningThreshold: config.rpmRunningThreshold ?? ENGINE_DEFAULTS.ENGINE_START_THRESHOLD,
+    rpmStableThreshold: config.rpmStableThreshold ?? config.rpmRunningThreshold ?? ENGINE_DEFAULTS.ENGINE_START_THRESHOLD,
+    startupGraceSeconds: config.startupGraceSeconds ?? ENGINE_DEFAULTS.STARTUP_GRACE_SECONDS,
+    stableHoldoffSeconds: config.stableHoldoffSeconds,
+    stopHoldoffSeconds: config.stopHoldoffSeconds,
+    shutdownRpmRate: config.shutdownRpmRate,
+    rpmHistorySize: config.rpmHistorySize ?? ENGINE_DEFAULTS.RPM_HISTORY_SIZE
+  };
 
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    const rpm = row.rpm ?? row.RPM ?? 0;
-    const time = row.Time ?? i / 10;
-
-    // Maintain RPM history for smoothing
-    rpmHistory.push(rpm);
-    if (rpmHistory.length > historySize) {
-      rpmHistory.shift();
-    }
-    const smoothedRpm = rpmHistory.reduce((a, b) => a + b, 0) / rpmHistory.length;
-
-    // Simple state machine
-    let newState = lastState;
-
-    switch (lastState) {
-      case ENGINE_STATE.OFF:
-        if (smoothedRpm >= rpmCranking) {
-          newState = ENGINE_STATE.CRANKING;
-          stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.CRANKING:
-        if (smoothedRpm < rpmCranking) {
-          newState = ENGINE_STATE.OFF;
-          stateStartTime = time;
-        } else if (smoothedRpm >= rpmRunning &&
-                   (time - stateStartTime) >= startupGrace) {
-          newState = ENGINE_STATE.RUNNING_UNSTABLE;
-          stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.RUNNING_UNSTABLE:
-        if (smoothedRpm < rpmCranking) {
-          newState = ENGINE_STATE.OFF;
-          stateStartTime = time;
-        } else if (smoothedRpm < rpmRunning) {
-          newState = ENGINE_STATE.STOPPING;
-          stateStartTime = time;
-        } else if (smoothedRpm >= rpmStable &&
-                   (time - stateStartTime) >= 2) {
-          newState = ENGINE_STATE.RUNNING_STABLE;
-          stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.RUNNING_STABLE:
-        if (smoothedRpm < rpmCranking) {
-          newState = ENGINE_STATE.OFF;
-          stateStartTime = time;
-        } else if (smoothedRpm < rpmRunning) {
-          newState = ENGINE_STATE.STOPPING;
-          stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.STOPPING:
-        if (smoothedRpm < rpmCranking) {
-          newState = ENGINE_STATE.OFF;
-          stateStartTime = time;
-        } else if (smoothedRpm >= rpmRunning) {
-          newState = ENGINE_STATE.RUNNING_UNSTABLE;
-          stateStartTime = time;
-        }
-        break;
-    }
-
-    lastState = newState;
-    states.push(newState);
-  }
-
-  return states;
+  return generateEngineStatesShared(data, engineConfig);
 }
 
 /**
@@ -237,7 +159,7 @@ export function parseBPlotData(content) {
       const num = parseFloat(values[j]);
       if (Number.isNaN(num)) {
         parseErrors.push({ line: i + 1, column: headers[j], value: values[j], reason: 'NaN' });
-        row[headers[j]] = 0;
+        row[headers[j]] = null;
       } else {
         row[headers[j]] = num;
       }
@@ -408,7 +330,7 @@ export function extractTimeInfo(data) {
   let invalidTime = false;
 
   for (let i = 0; i < data.length; i++) {
-    const time = Number(data[i].Time);
+    const time = data[i].Time;
     if (!Number.isFinite(time)) {
       invalidTime = true;
       break;
@@ -461,8 +383,9 @@ export function calculateChannelStats(data, channelName, options = {}) {
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     const value = row[channelName];
+    const numericValue = typeof value === 'number' ? value : parseFloat(value);
 
-    if (isNaN(value)) continue;
+    if (!Number.isFinite(numericValue)) continue;
     totalCount++;
 
     // Check sample validity based on policy
@@ -470,10 +393,10 @@ export function calculateChannelStats(data, channelName, options = {}) {
     const sampleIsValid = isSampleValid(row, statsPolicy, engineState);
 
     // Check value validity (negative/zero exclusions)
-    const valueIsValid = isValueValid(value, policyConfig || channelPolicy);
+    const valueIsValid = isValueValid(numericValue, policyConfig || channelPolicy);
 
     if (sampleIsValid && valueIsValid) {
-      validValues.push(value);
+      validValues.push(numericValue);
       validCount++;
     }
   }

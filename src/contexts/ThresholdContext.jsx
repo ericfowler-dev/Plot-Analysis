@@ -27,8 +27,8 @@ const FALLBACK_THRESHOLDS = {
   },
   oilPressure: {
     // Legacy static thresholds (used if useDynamicThreshold is false)
-    critical: { min: 10 },
-    warning: { min: 20 },
+    critical: { min: 6 },
+    warning: { min: 8 },
 
     // Engine state tracking - suppresses false warnings during startup/shutdown
     rpmDependent: true,                    // Enable engine state tracking
@@ -89,6 +89,8 @@ const FALLBACK_THRESHOLDS = {
 };
 
 export function ThresholdProvider({ children }) {
+  const latestRequestRef = React.useRef(0);
+
   // Currently selected profile ID
   // Default to global-defaults - auto-detection will switch to MFG profile when MFG columns found
   const [selectedProfileId, setSelectedProfileId] = useState('global-defaults');
@@ -97,6 +99,7 @@ export function ThresholdProvider({ children }) {
     size: '',
     application: ''
   });
+  const [baselineAlertsEnabled, setBaselineAlertsEnabled] = useState(true);
 
   // Resolved profile with all inherited values
   const [resolvedProfile, setResolvedProfile] = useState(null);
@@ -161,17 +164,26 @@ export function ThresholdProvider({ children }) {
   const selectProfile = useCallback(async (profileId) => {
     if (!profileId || profileId === selectedProfileId) return;
 
+    const requestId = Date.now();
+    latestRequestRef.current = requestId;
+
     try {
       setLoading(true);
       const resolved = await getResolvedProfile(profileId);
-      setSelectedProfileId(profileId);
-      setResolvedProfile(resolved);
-      setError(null);
+      if (latestRequestRef.current === requestId) {
+        setSelectedProfileId(profileId);
+        setResolvedProfile(resolved);
+        setError(null);
+      }
     } catch (err) {
-      console.error(`Failed to load profile ${profileId}:`, err);
-      setError(err.message);
+      if (latestRequestRef.current === requestId) {
+        console.error(`Failed to load profile ${profileId}:`, err);
+        setError(err.message);
+      }
     } finally {
-      setLoading(false);
+      if (latestRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [selectedProfileId]);
 
@@ -239,7 +251,7 @@ export function ThresholdProvider({ children }) {
   // Load initial data on mount
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [loadInitialData]);
 
   const value = {
     // State
@@ -248,6 +260,7 @@ export function ThresholdProvider({ children }) {
     profiles,
     selectableProfiles,
     baselineSelection,
+    baselineAlertsEnabled,
     index,
     loading,
     error,
@@ -257,6 +270,7 @@ export function ThresholdProvider({ children }) {
     selectProfile,
     refreshProfiles,
     setBaselineSelection,
+    setBaselineAlertsEnabled,
     setThresholdSystemEnabled,
 
     // Helpers

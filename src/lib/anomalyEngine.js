@@ -3,6 +3,8 @@
  * Uses configurable threshold profiles to detect anomalies in engine data
  */
 
+import { ENGINE_STATE, EngineStateTracker } from './engineState.js';
+
 /**
  * Alert severity levels
  */
@@ -97,6 +99,15 @@ function getParamValue(row, paramKey, columnMap) {
   return typeof value === 'number' ? value : parseFloat(value);
 }
 
+function coerceNumber(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function evaluateCondition(condition, row, columnMap) {
   // Try direct access first
   let value = row[condition.param];
@@ -118,14 +129,16 @@ function evaluateCondition(condition, row, columnMap) {
   }
 
   if (value === undefined) return false;
+  const numericValue = coerceNumber(value);
+  if (numericValue === null) return false;
 
   switch (condition.operator) {
-    case '>': return value > condition.value;
-    case '<': return value < condition.value;
-    case '>=': return value >= condition.value;
-    case '<=': return value <= condition.value;
-    case '==': return value == condition.value;
-    case '!=': return value != condition.value;
+    case '>': return numericValue > condition.value;
+    case '<': return numericValue < condition.value;
+    case '>=': return numericValue >= condition.value;
+    case '<=': return numericValue <= condition.value;
+    case '==': return numericValue == condition.value;
+    case '!=': return numericValue != condition.value;
     default: return false;
   }
 }
@@ -181,260 +194,6 @@ function isEngineRunning(row, columnMap) {
   return rpm > 400 && (vsw === undefined || vsw > 1);
 }
 
-/**
- * Engine state constants
- * Defines the states for engine operation lifecycle
- */
-const ENGINE_STATE = {
-  OFF: 'off',                     // Engine not running (RPM near 0)
-  CRANKING: 'cranking',           // Engine cranking/starting (RPM rising but not yet stable)
-  RUNNING_UNSTABLE: 'running_unstable', // Engine running but in warmup/stabilization period
-  RUNNING_STABLE: 'running_stable',     // Engine running in stable operation - OK to check oil pressure
-  STOPPING: 'stopping'            // Engine shutting down (RPM decreasing)
-};
-
-/**
- * Engine state tracker for detecting startup/shutdown transitions
- * This helps suppress false oil pressure warnings during normal engine transitions
- *
- * State transitions:
- * OFF -> CRANKING: RPM rises above cranking threshold
- * CRANKING -> RUNNING_UNSTABLE: RPM above running threshold for startHoldoffSeconds
- * RUNNING_UNSTABLE -> RUNNING_STABLE: RPM above stable threshold for stableHoldoffSeconds
- * RUNNING_STABLE -> STOPPING: RPM dropping rapidly or falls below running threshold
- * STOPPING -> OFF: RPM near zero for stopHoldoffSeconds
- * Any state -> OFF: RPM stays near zero
- */
-class EngineStateTracker {
-  constructor(config = {}) {
-    // Configurable RPM thresholds
-    this.rpmCrankingThreshold = config.rpmCrankingThreshold || 100;   // RPM to detect cranking
-    this.rpmRunningThreshold = config.rpmRunningThreshold || 650;     // RPM to consider engine "running"
-    this.rpmStableThreshold = config.rpmStableThreshold || 800;       // RPM for stable operation
-
-    // Configurable timing thresholds (seconds)
-    this.startHoldoffSeconds = config.startHoldoffSeconds || 3;       // Time after RPM > running before unstable
-    this.stableHoldoffSeconds = config.stableHoldoffSeconds || 2;     // Time after RPM > stable before stable state
-    this.stopHoldoffSeconds = config.stopHoldoffSeconds || 2;         // Time in stopping before OFF
-
-    // RPM rate threshold for detecting shutdown
-    this.shutdownRpmRate = config.shutdownRpmRate || -300;            // RPM/sec to detect rapid decel
-
-    // State tracking
-    this.state = ENGINE_STATE.OFF;
-    this.stateStartTime = 0;
-    this.lastRpm = 0;
-    this.lastTime = 0;
-
-    // RPM history for rate calculation and smoothing
-    this.rpmHistory = [];
-    this.historyWindowSize = 10; // samples for rate calculation
-
-    // Track time above thresholds for state transitions
-    this.timeAboveRunning = 0;
-    this.timeAboveStable = 0;
-    this.lastAboveRunningTime = null;
-    this.lastAboveStableTime = null;
-  }
-
-  /**
-   * Update engine state based on current RPM and time
-   * Returns the current engine state and metadata
-   */
-  update(rpm, time) {
-    // Track RPM history for rate calculation
-    this.rpmHistory.push({ rpm, time });
-    if (this.rpmHistory.length > this.historyWindowSize) {
-      this.rpmHistory.shift();
-    }
-
-    // Calculate RPM rate of change (RPM/second)
-    const rpmRate = this.calculateRpmRate();
-    const smoothedRpm = this.getSmoothedRpm();
-
-    const prevState = this.state;
-    const timeDelta = this.lastTime > 0 ? time - this.lastTime : 0;
-
-    // Track continuous time above thresholds
-    if (smoothedRpm >= this.rpmRunningThreshold) {
-      if (this.lastAboveRunningTime === null) {
-        this.lastAboveRunningTime = time;
-      }
-      this.timeAboveRunning = time - this.lastAboveRunningTime;
-    } else {
-      this.lastAboveRunningTime = null;
-      this.timeAboveRunning = 0;
-    }
-
-    if (smoothedRpm >= this.rpmStableThreshold) {
-      if (this.lastAboveStableTime === null) {
-        this.lastAboveStableTime = time;
-      }
-      this.timeAboveStable = time - this.lastAboveStableTime;
-    } else {
-      this.lastAboveStableTime = null;
-      this.timeAboveStable = 0;
-    }
-
-    // State machine logic
-    switch (this.state) {
-      case ENGINE_STATE.OFF:
-        if (smoothedRpm >= this.rpmCrankingThreshold) {
-          this.state = ENGINE_STATE.CRANKING;
-          this.stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.CRANKING:
-        if (smoothedRpm < this.rpmCrankingThreshold) {
-          // Cranking failed or stopped
-          this.state = ENGINE_STATE.OFF;
-          this.stateStartTime = time;
-        } else if (this.timeAboveRunning >= this.startHoldoffSeconds) {
-          // Engine has been above running threshold long enough
-          this.state = ENGINE_STATE.RUNNING_UNSTABLE;
-          this.stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.RUNNING_UNSTABLE:
-        if (smoothedRpm < this.rpmCrankingThreshold) {
-          // Engine stopped
-          this.state = ENGINE_STATE.OFF;
-          this.stateStartTime = time;
-        } else if (smoothedRpm < this.rpmRunningThreshold) {
-          // Engine slowing down
-          this.state = ENGINE_STATE.STOPPING;
-          this.stateStartTime = time;
-        } else if (rpmRate < this.shutdownRpmRate) {
-          // Rapid deceleration detected
-          this.state = ENGINE_STATE.STOPPING;
-          this.stateStartTime = time;
-        } else if (this.timeAboveStable >= this.stableHoldoffSeconds) {
-          // Engine has been stable long enough
-          this.state = ENGINE_STATE.RUNNING_STABLE;
-          this.stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.RUNNING_STABLE:
-        if (smoothedRpm < this.rpmCrankingThreshold) {
-          // Engine stopped suddenly
-          this.state = ENGINE_STATE.OFF;
-          this.stateStartTime = time;
-        } else if (smoothedRpm < this.rpmRunningThreshold) {
-          // RPM dropped below running threshold
-          this.state = ENGINE_STATE.STOPPING;
-          this.stateStartTime = time;
-        } else if (rpmRate < this.shutdownRpmRate) {
-          // Rapid deceleration - shutting down
-          this.state = ENGINE_STATE.STOPPING;
-          this.stateStartTime = time;
-        }
-        break;
-
-      case ENGINE_STATE.STOPPING:
-        if (smoothedRpm < this.rpmCrankingThreshold) {
-          const timeInState = time - this.stateStartTime;
-          if (timeInState >= this.stopHoldoffSeconds || smoothedRpm < 50) {
-            // Engine has stopped
-            this.state = ENGINE_STATE.OFF;
-            this.stateStartTime = time;
-          }
-        } else if (smoothedRpm >= this.rpmRunningThreshold && rpmRate >= 0) {
-          // RPM recovered - may have been a transient dip
-          this.state = ENGINE_STATE.RUNNING_UNSTABLE;
-          this.stateStartTime = time;
-        }
-        break;
-    }
-
-    this.lastRpm = rpm;
-    this.lastTime = time;
-
-    return {
-      state: this.state,
-      prevState,
-      timeInState: time - this.stateStartTime,
-      rpmRate,
-      smoothedRpm,
-      timeAboveRunning: this.timeAboveRunning,
-      timeAboveStable: this.timeAboveStable,
-      stateChanged: prevState !== this.state
-    };
-  }
-
-  /**
-   * Calculate RPM rate of change from history (RPM/second)
-   */
-  calculateRpmRate() {
-    if (this.rpmHistory.length < 2) return 0;
-
-    const oldest = this.rpmHistory[0];
-    const newest = this.rpmHistory[this.rpmHistory.length - 1];
-    const timeDiff = newest.time - oldest.time;
-
-    if (timeDiff <= 0) return 0;
-
-    return (newest.rpm - oldest.rpm) / timeDiff;
-  }
-
-  /**
-   * Get smoothed RPM value (simple moving average)
-   */
-  getSmoothedRpm() {
-    if (this.rpmHistory.length === 0) return 0;
-    const sum = this.rpmHistory.reduce((acc, h) => acc + h.rpm, 0);
-    return sum / this.rpmHistory.length;
-  }
-
-  /**
-   * Check if oil pressure monitoring should be active
-   * Returns true only when engine is in RUNNING_STABLE state
-   */
-  shouldCheckOilPressure() {
-    return this.state === ENGINE_STATE.RUNNING_STABLE;
-  }
-
-  /**
-   * Check if we're in a state where warnings should be suppressed
-   * Returns true for OFF, CRANKING, and STOPPING states
-   */
-  shouldSuppressWarnings() {
-    return this.state === ENGINE_STATE.OFF ||
-           this.state === ENGINE_STATE.CRANKING ||
-           this.state === ENGINE_STATE.STOPPING;
-  }
-
-  /**
-   * Get the current state name for display
-   */
-  getStateName() {
-    const names = {
-      [ENGINE_STATE.OFF]: 'Off',
-      [ENGINE_STATE.CRANKING]: 'Cranking',
-      [ENGINE_STATE.RUNNING_UNSTABLE]: 'Running (Stabilizing)',
-      [ENGINE_STATE.RUNNING_STABLE]: 'Running (Stable)',
-      [ENGINE_STATE.STOPPING]: 'Stopping'
-    };
-    return names[this.state] || this.state;
-  }
-
-  /**
-   * Reset tracker state
-   */
-  reset() {
-    this.state = ENGINE_STATE.OFF;
-    this.stateStartTime = 0;
-    this.lastRpm = 0;
-    this.lastTime = 0;
-    this.rpmHistory = [];
-    this.timeAboveRunning = 0;
-    this.timeAboveStable = 0;
-    this.lastAboveRunningTime = null;
-    this.lastAboveStableTime = null;
-  }
-}
 
 /**
  * Oil pressure signal filter - simple moving average for noise reduction
@@ -757,6 +516,12 @@ class RuleTimingTracker {
       const windowStart = time - rule.windowSec;
       state.windowHistory = state.windowHistory.filter(h => h.time >= windowStart);
 
+      // Guard against unbounded growth
+      const MAX_WINDOW_ENTRIES = 1000;
+      if (state.windowHistory.length > MAX_WINDOW_ENTRIES) {
+        state.windowHistory = state.windowHistory.slice(-MAX_WINDOW_ENTRIES);
+      }
+
       // For windowed evaluation, count total time condition was met in window
       const totalTimeMet = state.windowHistory.reduce((acc, h, i, arr) => {
         if (!h.met) return acc;
@@ -844,11 +609,16 @@ class ChannelDropoutTracker {
    * @param {boolean} engineRunning - Whether engine is currently running
    * @returns {Object|null} Dropout issue if detected, null otherwise
    */
-  update(value, time, engineRunning) {
+  update(value, time, engineRunning, rowHasChannel) {
     // Only check during engine operation
     if (!engineRunning) {
       this.dropoutStart = null;
       this.hasDropout = false;
+      return null;
+    }
+
+    // If the channel is not present in the row at all, don't treat it as a dropout
+    if (!rowHasChannel) {
       return null;
     }
 
@@ -899,7 +669,7 @@ class ChannelDropoutTracker {
  * Only detects signal loss (NaN/null values) during engine operation
  */
 class SignalQualityAnalyzer {
-  constructor(config = {}) {
+  constructor(config = {}, availableColumns = []) {
     this.enabled = config.enabled !== false;
     this.alertSeverity = config.alertSeverity ?? SEVERITY.INFO;
     this.suppressRelatedAlerts = config.suppressRelatedAlerts !== false;
@@ -910,6 +680,11 @@ class SignalQualityAnalyzer {
     // Per-channel configuration
     this.channelConfigs = config.channels ?? {};
 
+    // Track which columns actually exist (case-insensitive)
+    this.availableColumns = new Set(
+      (availableColumns || []).map(c => String(c).toLowerCase())
+    );
+
     // Channel trackers (created on demand)
     this.trackers = new Map();
   }
@@ -918,6 +693,11 @@ class SignalQualityAnalyzer {
    * Get or create a tracker for a channel
    */
   getTracker(channelName) {
+    // If dataset doesn't have this channel, skip
+    if (this.availableColumns.size > 0 && !this.availableColumns.has(String(channelName).toLowerCase())) {
+      return null;
+    }
+
     if (!this.trackers.has(channelName)) {
       const channelConfig = this.channelConfigs[channelName] || {};
 
@@ -957,8 +737,9 @@ class SignalQualityAnalyzer {
       const tracker = this.getTracker(channelName);
       if (!tracker) continue;
 
+      const rowHasChannel = Object.prototype.hasOwnProperty.call(row, channelName);
       const value = row[channelName];
-      const issue = tracker.update(value, time, engineRunning);
+      const issue = tracker.update(value, time, engineRunning, rowHasChannel);
 
       if (issue) {
         allIssues.push(issue);
@@ -1055,7 +836,11 @@ export function detectAnomalies(data, thresholds, options = {}) {
     sampleRate = 1,  // samples per second (estimated if not provided)
     minDuration = 0,  // minimum alert duration in seconds
     debug = false,    // when true, return debug traces for engine state/params
-    debugParams = []  // additional param keys to capture in debug traces
+    debugParams = [],  // additional param keys to capture in debug traces
+    baseline = null,
+    baselineAlertsEnabled = false,
+    baselineAlertSeverity = SEVERITY.INFO,
+    baselineMinDuration = 0
   } = options;
 
   if (!data || data.length === 0) {
@@ -1113,6 +898,14 @@ export function detectAnomalies(data, thresholds, options = {}) {
   }
 
   const graceSamples = Math.round(gracePeriod * effectiveSampleRate);
+  const baselineConfig = {
+    enabled: Boolean(baselineAlertsEnabled && baseline),
+    severity: baselineAlertSeverity,
+    minDuration: baselineMinDuration
+  };
+  const baselineChannels = baselineConfig.enabled
+    ? Object.keys(baseline || {}).filter(param => param && param !== 'Time')
+    : [];
 
   // Initialize oil pressure filter for noise reduction
   const oilPressureFilter = new OilPressureFilter(
@@ -1138,7 +931,8 @@ export function detectAnomalies(data, thresholds, options = {}) {
 
   // Initialize signal quality analyzer for sensor fault detection
   const signalQualityConfig = thresholds.thresholds?.signalQuality || {};
-  const signalQualityAnalyzer = new SignalQualityAnalyzer(signalQualityConfig);
+  const availableColumns = Object.keys(data[0] || {});
+  const signalQualityAnalyzer = new SignalQualityAnalyzer(signalQualityConfig, availableColumns);
   const signalQualitySeverity = signalQualityConfig.alertSeverity === 'warning'
     ? SEVERITY.WARNING
     : SEVERITY.INFO;
@@ -1178,7 +972,7 @@ export function detectAnomalies(data, thresholds, options = {}) {
       const suppressedThisRow = checkSignalQuality(
         row, time, signalQualityAnalyzer,
         alerts, alertStartTimes, alertValues,
-        signalQualitySeverity, isRunning
+        signalQualitySeverity, isRunning, engineState
       );
       // Accumulate suppressed alert IDs
       for (const alertId of suppressedThisRow) {
@@ -1210,7 +1004,7 @@ export function detectAnomalies(data, thresholds, options = {}) {
 
       // RPM check
       if (thresholds.thresholds.rpm?.enabled !== false && isRunning) {
-        checkRPM(row, time, thresholds.thresholds.rpm, columnMap, alerts, alertStartTimes, alertValues);
+        checkRPM(row, time, thresholds.thresholds.rpm, columnMap, alerts, alertStartTimes, alertValues, engineState);
       }
 
       // Fuel trim check
@@ -1230,6 +1024,21 @@ export function detectAnomalies(data, thresholds, options = {}) {
         row, time, thresholds.anomalyRules, columnMap,
         alerts, alertStartTimes, alertValues, isRunning,
         engineState, ruleTimingTracker
+      );
+    }
+
+    // Run baseline bounds checks (info-level) if enabled
+    if (baselineConfig.enabled && baselineChannels.length > 0 && isRunning) {
+      checkBaselineBounds(
+        row,
+        time,
+        baseline,
+        baselineChannels,
+        columnMap,
+        alerts,
+        alertStartTimes,
+        alertValues,
+        baselineConfig
       );
     }
 
@@ -1304,7 +1113,7 @@ export function detectAnomalies(data, thresholds, options = {}) {
 function checkBatteryVoltage(row, time, config, columnMap, hysteresis, alerts, startTimes, values) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
   const voltage = getParamValue(row, 'battery', columnMap);
-  if (voltage === undefined || isNaN(voltage)) return;
+  if (!Number.isFinite(voltage)) return;
 
   // Critical low
   if (config.critical?.min) {
@@ -1358,7 +1167,7 @@ function checkBatteryVoltage(row, time, config, columnMap, hysteresis, alerts, s
 function checkCoolantTemp(row, time, config, columnMap, alerts, startTimes, values, sampleIdx, graceSamples, sampleRate) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
   const temp = getParamValue(row, 'coolantTemp', columnMap);
-  if (temp === undefined || isNaN(temp)) return;
+  if (!Number.isFinite(temp)) return;
 
   // Check grace period for warmup
   const warmupGrace = config.gracePeriod || 60;
@@ -1410,7 +1219,7 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
   if (shouldSkipThreshold(config, row, columnMap)) return;
 
   const rawPressure = getParamValue(row, 'oilPressure', columnMap);
-  if (rawPressure === undefined || isNaN(rawPressure)) return;
+  if (!Number.isFinite(rawPressure)) return;
 
   // Apply low-pass filter to reduce noise (if filter available)
   const filteredPressure = oilPressureFilter ? oilPressureFilter.filter(rawPressure) : rawPressure;
@@ -1436,8 +1245,8 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
 
   // Use user-configured thresholds directly
   // These are the values set in the UI (Warning Min, Critical Min)
-  const warningThreshold = userWarningMin !== undefined ? userWarningMin : 20;
-  const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 10;
+  const warningThreshold = userWarningMin !== undefined ? userWarningMin : 8;
+  const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 6;
 
   // Simple threshold comparison using user-configured values
   // Critical low
@@ -1474,10 +1283,14 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
 /**
  * RPM threshold check
  */
-function checkRPM(row, time, config, columnMap, alerts, startTimes, values) {
+function checkRPM(row, time, config, columnMap, alerts, startTimes, values, engineState) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
+  // Ignore RPM anomalies during startup/shutdown/unstable periods
+  if (engineState && engineState.state !== ENGINE_STATE.RUNNING_STABLE) {
+    return;
+  }
   const rpm = getParamValue(row, 'rpm', columnMap);
-  if (rpm === undefined || isNaN(rpm)) return;
+  if (!Number.isFinite(rpm)) return;
 
   // Critical overspeed
   if (config.overspeed && rpm > config.overspeed) {
@@ -1531,7 +1344,7 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
   const adaptTrim = getParamValue(row, 'fuelTrimAdaptive', columnMap);
 
   // Closed loop trim checks
-  if (clTrim !== undefined && !isNaN(clTrim) && config.closedLoop) {
+  if (Number.isFinite(clTrim) && config.closedLoop) {
     // Critical lean
     if (config.closedLoop.critical?.max && clTrim > config.closedLoop.critical.max) {
       handleAlertState('fuel_cl_critical_lean', true, time, clTrim, alerts, startTimes, values, {
@@ -1592,7 +1405,7 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
 function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
   const knockRetard = getParamValue(row, 'knock', columnMap);
-  if (knockRetard === undefined || isNaN(knockRetard)) return;
+  if (!Number.isFinite(knockRetard)) return;
 
   // Critical knock
   if (config.maxRetard?.critical && knockRetard > config.maxRetard.critical) {
@@ -1648,16 +1461,79 @@ function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
 
   // Standard signal comparison
   const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
-  if (value === undefined) return false;
+  const numericValue = coerceNumber(value);
+  if (numericValue === null) return false;
 
   switch (condition.operator) {
-    case '>': return value > condition.value;
-    case '<': return value < condition.value;
-    case '>=': return value >= condition.value;
-    case '<=': return value <= condition.value;
-    case '==': return value == condition.value;
-    case '!=': return value != condition.value;
+    case '>': return numericValue > condition.value;
+    case '<': return numericValue < condition.value;
+    case '>=': return numericValue >= condition.value;
+    case '<=': return numericValue <= condition.value;
+    case '==': return numericValue == condition.value;
+    case '!=': return numericValue != condition.value;
     default: return false;
+  }
+}
+
+/**
+ * Baseline bounds check (p05/p95 padded) for info-level alerts.
+ */
+function checkBaselineBounds(row, time, baseline, baselineChannels, columnMap, alerts, startTimes, values, config) {
+  for (const param of baselineChannels) {
+    const stats = baseline?.[param];
+    if (!stats) continue;
+
+    const lower = stats.p05_padded;
+    const upper = stats.p95_padded;
+    if (!Number.isFinite(lower) && !Number.isFinite(upper)) continue;
+
+    const rawValue = row[param] ?? getParamValue(row, param, columnMap);
+    const numericValue = coerceNumber(rawValue);
+    if (numericValue === null) continue;
+
+    const lowAlertId = `baseline_low_${param}`;
+    const highAlertId = `baseline_high_${param}`;
+
+    if (Number.isFinite(lower) && numericValue < lower) {
+      handleAlertState(lowAlertId, true, time, numericValue, alerts, startTimes, values, {
+        name: `${param} below baseline`,
+        description: `${param} below expected baseline`,
+        severity: config.severity,
+        category: CATEGORIES.CUSTOM,
+        channel: param,
+        threshold: lower,
+        unit: '',
+        minDuration: config.minDuration
+      });
+      if (startTimes.has(highAlertId)) {
+        handleAlertState(highAlertId, false, time, numericValue, alerts, startTimes, values, {});
+      }
+      continue;
+    }
+
+    if (Number.isFinite(upper) && numericValue > upper) {
+      handleAlertState(highAlertId, true, time, numericValue, alerts, startTimes, values, {
+        name: `${param} above baseline`,
+        description: `${param} above expected baseline`,
+        severity: config.severity,
+        category: CATEGORIES.CUSTOM,
+        channel: param,
+        threshold: upper,
+        unit: '',
+        minDuration: config.minDuration
+      });
+      if (startTimes.has(lowAlertId)) {
+        handleAlertState(lowAlertId, false, time, numericValue, alerts, startTimes, values, {});
+      }
+      continue;
+    }
+
+    if (startTimes.has(lowAlertId)) {
+      handleAlertState(lowAlertId, false, time, numericValue, alerts, startTimes, values, {});
+    }
+    if (startTimes.has(highAlertId)) {
+      handleAlertState(highAlertId, false, time, numericValue, alerts, startTimes, values, {});
+    }
   }
 }
 
@@ -1788,8 +1664,13 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
  * @param {boolean} engineRunning - Whether engine is currently running
  * @returns {Set} Set of alert IDs to suppress due to signal loss
  */
-function checkSignalQuality(row, time, analyzer, alerts, startTimes, values, severity, engineRunning) {
+function checkSignalQuality(row, time, analyzer, alerts, startTimes, values, severity, engineRunning, engineState) {
   if (!analyzer || !analyzer.enabled) {
+    return new Set();
+  }
+
+  // Only evaluate during stable running to avoid startup/shutdown transients
+  if (!engineState || engineState.state !== ENGINE_STATE.RUNNING_STABLE) {
     return new Set();
   }
 
@@ -1842,6 +1723,7 @@ function handleAlertState(alertId, isActive, time, value, alerts, startTimes, va
         description: config.description,
         severity: config.severity,
         category: config.category,
+        channel: config.channel,
         threshold: config.threshold,
         unit: config.unit,
         ruleId: config.ruleId,

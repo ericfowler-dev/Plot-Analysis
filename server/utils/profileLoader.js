@@ -7,6 +7,8 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPool } from '../db/pool.js';
+import { ensureProfilesTables } from '../db/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +20,13 @@ let profileCache = new Map();
 let indexCache = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minute cache TTL
+const pool = getPool();
+
+async function useDatabase() {
+  if (!pool) return false;
+  await ensureProfilesTables();
+  return true;
+}
 
 /**
  * Clear the profile cache
@@ -43,6 +52,16 @@ export async function loadIndex(forceReload = false) {
     return indexCache;
   }
 
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT payload FROM profile_index WHERE id=1');
+    if (result.rows.length > 0) {
+      indexCache = result.rows[0].payload;
+      cacheTimestamp = Date.now();
+      return indexCache;
+    }
+  }
+
   try {
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     const content = await fs.readFile(indexPath, 'utf8');
@@ -61,6 +80,17 @@ export async function loadIndex(forceReload = false) {
 export async function loadProfile(profileId, forceReload = false) {
   if (profileCache.has(profileId) && isCacheValid() && !forceReload) {
     return profileCache.get(profileId);
+  }
+
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT profile FROM profiles WHERE profile_id = $1', [profileId]);
+    if (result.rows.length > 0) {
+      const profile = result.rows[0].profile;
+      profileCache.set(profileId, profile);
+      cacheTimestamp = Date.now();
+      return profile;
+    }
   }
 
   try {
@@ -83,6 +113,12 @@ export async function loadProfile(profileId, forceReload = false) {
  * Load all profiles
  */
 export async function loadAllProfiles(forceReload = false) {
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT profile FROM profiles');
+    return result.rows.map(r => r.profile);
+  }
+
   const index = await loadIndex(forceReload);
   const profiles = [];
 
@@ -140,6 +176,18 @@ export async function saveProfile(profile) {
   // Update metadata
   profile.lastModified = new Date().toISOString();
 
+  // Save to DB if available
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    await pool.query(
+      `INSERT INTO profiles (profile_id, profile, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (profile_id) DO UPDATE SET profile = $2, updated_at = NOW()`,
+      [profile.profileId, profile]
+    );
+  }
+
+  // Also write to disk for backward compatibility
   const profilePath = path.join(PROFILES_DIR, `${profile.profileId}.json`);
   await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf8');
 
@@ -190,6 +238,17 @@ async function updateIndex(profileId) {
     index.profiles.push(profileId);
     index.lastUpdated = new Date().toISOString();
 
+    // Save to DB if available
+    const dbReady = await useDatabase();
+    if (dbReady) {
+      await pool.query(
+        `INSERT INTO profile_index (id, payload, updated_at)
+         VALUES (1, $1, NOW())
+         ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
+        [index]
+      );
+    }
+
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
     indexCache = index;
@@ -207,6 +266,16 @@ async function removeFromIndex(profileId) {
     index.profiles.splice(idx, 1);
     index.lastUpdated = new Date().toISOString();
 
+    const dbReady = await useDatabase();
+    if (dbReady) {
+      await pool.query(
+        `INSERT INTO profile_index (id, payload, updated_at)
+         VALUES (1, $1, NOW())
+         ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
+        [index]
+      );
+    }
+
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
     indexCache = index;
@@ -219,8 +288,18 @@ async function removeFromIndex(profileId) {
 export async function getProfileHierarchy(profileId) {
   const hierarchy = [];
   let currentId = profileId;
+  const visited = new Set();
+  const chain = [];
 
   while (currentId) {
+    if (visited.has(currentId)) {
+      const cycleStart = chain.indexOf(currentId);
+      const cycle = cycleStart >= 0 ? chain.slice(cycleStart) : [...chain];
+      cycle.push(currentId);
+      throw new Error(`Circular profile inheritance: ${cycle.join(' -> ')}`);
+    }
+    visited.add(currentId);
+    chain.push(currentId);
     const profile = await loadProfile(currentId);
     hierarchy.unshift(profile); // Add to beginning (ancestors first)
     currentId = profile.parent;

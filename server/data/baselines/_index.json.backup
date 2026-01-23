@@ -1,6 +1,10 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-22T15:22:36.846Z",
+<<<<<<< HEAD
+  "lastUpdated": "2026-01-17T21:05:18.538Z",
+=======
+  "lastUpdated": "2026-01-16T19:44:41.011Z",
+>>>>>>> origin/dev-configurator
   "groups": [
     {
       "name": "PSI HD",
@@ -9,14 +13,6 @@
     {
       "name": "PSI Industrial",
       "archived": false
-    },
-    {
-      "name": "psi-hd-40l-53l-mfg",
-      "archived": true
-    },
-    {
-      "name": "40L/53L with MFG Fuel System",
-      "archived": true
     }
   ],
   "sizes": [
@@ -59,26 +55,14 @@
       "group": "PSI Industrial",
       "name": "8.8L",
       "archived": false
+<<<<<<< HEAD
+=======
     },
     {
       "group": "PSI Industrial",
       "name": "4.3L",
       "archived": false
-    },
-    {
-      "group": "PSI HD",
-      "name": "40L",
-      "archived": false
-    },
-    {
-      "group": "PSI HD",
-      "name": "40L/53L with MFG Fuel System",
-      "archived": false
-    },
-    {
-      "group": "40L/53L with MFG Fuel System",
-      "name": "40L/53L with MFG Fuel System",
-      "archived": true
+>>>>>>> origin/dev-configurator
     }
   ],
   "applications": [
@@ -129,6 +113,8 @@
       "size": "8.8L",
       "name": "Power Systems",
       "archived": false
+<<<<<<< HEAD
+=======
     },
     {
       "group": "PSI Industrial",
@@ -159,12 +145,7 @@
       "size": "8.8L",
       "name": "Power Gen - Standby",
       "archived": false
-    },
-    {
-      "group": "PSI HD",
-      "size": "40L",
-      "name": "Power Gen",
-      "archived": false
+>>>>>>> origin/dev-configurator
     }
   ]
 }

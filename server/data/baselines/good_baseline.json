@@ -3,20 +3,24 @@
   "tolerance": {
     "strategy": "pad p05/p95 by 10% of observed range with min padding by channel, cap at 25% of observed range",
     "min_padding": {
-      "rpm": 50.0,
-      "RPM": 50.0,
-      "ECT": 5.0,
-      "IAT": 5.0,
-      "OILT": 5.0,
-      "FT": 5.0,
+      "rpm": 50,
+      "RPM": 50,
+      "ECT": 5,
+      "IAT": 5,
+      "OILT": 5,
+      "FT": 5,
       "MAP": 0.5,
       "BP": 0.5,
       "TIP": 0.5,
-      "OILP_press": 1.0,
+      "OILP_press": 1,
       "Vbat": 0.2,
       "Vsw": 0.2,
-      "TPS_pct": 2.0,
-      "eng_load": 2.0
+      "TPS_pct": 2,
+      "eng_load": 2,
+      "CL_BM1": 1,
+      "A_BM1": 1,
+      "spk_adv": 2,
+      "PWe_avg": 2
     },
     "default_min_padding": 0.5,
     "range_padding_pct": 0.1,
@@ -34,8 +38,8 @@
             "files": 1
           },
           "rpm": {
-            "p05_mean": 1775.0,
-            "p95_mean": 1854.0,
+            "p05_mean": 1775,
+            "p95_mean": 1854,
             "p05_padded": 1755.25,
             "p95_padded": 1873.75,
             "files": 1
@@ -90,8 +94,8 @@
             "files": 1
           },
           "I_Gov1_acc": {
-            "p05_mean": 15.0,
-            "p95_mean": 15.0,
+            "p05_mean": 15,
+            "p95_mean": 15,
             "p05_padded": 14.5,
             "p95_padded": 15.5,
             "files": 1
@@ -111,8 +115,8 @@
             "files": 1
           },
           "AUX_PWM4_FB_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -132,8 +136,8 @@
             "files": 1
           },
           "TPS_min_gov_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -146,8 +150,8 @@
             "files": 1
           },
           "spk_off_ECTvL": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -160,8 +164,8 @@
             "files": 1
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -251,15 +255,15 @@
             "files": 1
           },
           "spk_off_ECT": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "gov_I_frz": {
-            "p05_mean": 500.0,
-            "p95_mean": 500.0,
+            "p05_mean": 500,
+            "p95_mean": 500,
             "p05_padded": 499.5,
             "p95_padded": 500.5,
             "files": 1
@@ -307,8 +311,8 @@
             "files": 1
           },
           "run_mode": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
@@ -321,15 +325,15 @@
             "files": 1
           },
           "fuel_type": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
+            "p05_mean": 2,
+            "p95_mean": 2,
             "p05_padded": 1.5,
             "p95_padded": 2.5,
             "files": 1
           },
           "fuel_supply": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
@@ -342,15 +346,15 @@
             "files": 1
           },
           "fuel_ctl_mode": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
           },
           "spk_off_global": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -363,15 +367,15 @@
             "files": 1
           },
           "spk_ret_CWT": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -384,22 +388,22 @@
             "files": 1
           },
           "spk_off_MATvL": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "rpmd_gain": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 1
           },
           "rpmd_gov": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 1
@@ -440,7 +444,7 @@
             "files": 1
           },
           "spkgv_mod": {
-            "p05_mean": -5.0,
+            "p05_mean": -5,
             "p95_mean": 1.5,
             "p05_padded": -5.65,
             "p95_padded": 2.15,
@@ -468,8 +472,8 @@
             "files": 1
           },
           "gov_sw_state": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
@@ -482,8 +486,8 @@
             "files": 1
           },
           "gov_gain_slct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -503,8 +507,8 @@
             "files": 1
           },
           "LoadLim_max_TPS_src": {
-            "p05_mean": 7.0,
-            "p95_mean": 7.0,
+            "p05_mean": 7,
+            "p95_mean": 7,
             "p05_padded": 6.5,
             "p95_padded": 7.5,
             "files": 1
@@ -524,15 +528,15 @@
             "files": 1
           },
           "Phi_post_act": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
           },
           "LLTO_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -587,8 +591,8 @@
             "files": 1
           },
           "Kiv_gov": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -601,8 +605,8 @@
             "files": 1
           },
           "gov_type": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
@@ -678,22 +682,22 @@
             "files": 1
           },
           "KMAPdtfb_gov": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "rpmdz_Kp": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
           },
           "rpmdz_Ki": {
-            "p05_mean": 12.0,
-            "p95_mean": 12.0,
+            "p05_mean": 12,
+            "p95_mean": 12,
             "p05_padded": 11.5,
             "p95_padded": 12.5,
             "files": 1
@@ -755,92 +759,92 @@
             "files": 1
           },
           "MJ_ctltype_cmd": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "MJ_status": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
           },
           "MJ2_status": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
           },
           "FuelSpk_SD_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "power_mode": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
           },
           "cfgout_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": -2.0,
+            "p05_mean": -2,
+            "p95_mean": -2,
             "p05_padded": -2.5,
             "p95_padded": -1.5,
             "files": 1
           },
           "DEPR_strtspk_ena": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "fuelclr_requested": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "afs_crkdly_ECT": {
-            "p05_mean": -99.0,
-            "p95_mean": -99.0,
+            "p05_mean": -99,
+            "p95_mean": -99,
             "p05_padded": -99.5,
             "p95_padded": -98.5,
             "files": 1
           },
           "afs_crkdly_ECTlo": {
-            "p05_mean": -99.0,
-            "p95_mean": -99.0,
+            "p05_mean": -99,
+            "p95_mean": -99,
             "p05_padded": -99.5,
             "p95_padded": -98.5,
             "files": 1
           },
           "afs_crkdly_cycs": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -850,8 +854,8 @@
       "22L": {
         "Power Systems": {
           "========== 4G ECM Information ==========": {
-            "p05_mean": 2.0,
-            "p95_mean": 18.0,
+            "p05_mean": 2,
+            "p95_mean": 18,
             "p05_padded": 0.3999999999999999,
             "p95_padded": 19.6,
             "files": 1
@@ -878,8 +882,8 @@
             "files": 5
           },
           "MIL Status": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -934,8 +938,8 @@
             "files": 7
           },
           "EGO1_volts": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -976,21 +980,21 @@
             "files": 1
           },
           "KNK_bg_FO1": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 7.13043212890625,
             "p05_padded": -0.713043212890625,
             "p95_padded": 7.843475341796875,
             "files": 1
           },
           "fuel_type": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
+            "p05_mean": 2,
+            "p95_mean": 2,
             "p05_padded": 1.5,
             "p95_padded": 2.5,
             "files": 2
           },
           "OILP_state": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.5,
             "p05_padded": -0.125,
             "p95_padded": 0.625,
@@ -1004,15 +1008,15 @@
             "files": 2
           },
           "KNK_sig_FO1": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_sig_FO2": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1025,15 +1029,15 @@
             "files": 2
           },
           "KNK_bg_FO2": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 6.117858886718741,
             "p05_padded": -0.6117858886718741,
             "p95_padded": 6.729644775390615,
             "files": 1
           },
           "KNK_sig_FO3": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1046,7 +1050,7 @@
             "files": 1
           },
           "KNK_bg_FO3": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 6.30950927734375,
             "p05_padded": -0.630950927734375,
             "p95_padded": 6.940460205078125,
@@ -1074,28 +1078,28 @@
             "files": 3
           },
           "KNK_sig_FO4": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_sig_FO5": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_sig_FO6": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.390625,
             "p05_padded": -0.09765625,
             "p95_padded": 0.48828125,
             "files": 1
           },
           "KNK_sig_pavg": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.005859375,
             "p05_padded": -0.00146484375,
             "p95_padded": 0.00732421875,
@@ -1123,29 +1127,29 @@
             "files": 2
           },
           "KNK_bg_FO4": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 5.73577880859375,
             "p05_padded": -0.573577880859375,
             "p95_padded": 6.309356689453125,
             "files": 1
           },
           "KNK_bg_FO5": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 6.92596435546875,
             "p05_padded": -0.692596435546875,
             "p95_padded": 7.618560791015625,
             "files": 1
           },
           "KNK_bg_FO6": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 5.750122070312491,
             "p05_padded": -0.5750122070312491,
             "p95_padded": 6.32513427734374,
             "files": 1
           },
           "KNK_bg_FO7": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1158,57 +1162,57 @@
             "files": 2
           },
           "KNK_bg_FO8": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_sig_FO7": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FPP1_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FPP2_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_sig_FO8": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "spk_off_global": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 3
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": -1.0,
+            "p05_mean": -2,
+            "p95_mean": -1,
             "p05_padded": -2.25,
             "p95_padded": -0.75,
             "files": 2
@@ -1291,15 +1295,15 @@
             "files": 1
           },
           "EGO2Z_ohms": {
-            "p05_mean": 181.0,
-            "p95_mean": 217.0,
+            "p05_mean": 181,
+            "p95_mean": 217,
             "p05_padded": 177.4,
             "p95_padded": 220.6,
             "files": 1
           },
           "EGO2Z_Rd": {
-            "p05_mean": 200.0,
-            "p95_mean": 200.0,
+            "p05_mean": 200,
+            "p95_mean": 200,
             "p05_padded": 199.5,
             "p95_padded": 200.5,
             "files": 1
@@ -1368,15 +1372,15 @@
             "files": 2
           },
           "MAPdt_dz": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "rpmd_gain": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 2
@@ -1396,8 +1400,8 @@
             "files": 2
           },
           "Kiv_gov": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -1424,15 +1428,15 @@
             "files": 2
           },
           "rpmdz_Kp": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 2
           },
           "rpmdz_Ki": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 2
@@ -1445,8 +1449,8 @@
             "files": 2
           },
           "gov_I_frz": {
-            "p05_mean": 750.0,
-            "p95_mean": 750.0,
+            "p05_mean": 750,
+            "p95_mean": 750,
             "p05_padded": 749.5,
             "p95_padded": 750.5,
             "files": 2
@@ -1459,15 +1463,15 @@
             "files": 2
           },
           "AUX_PWM11_iFB_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "rpmdt_n": {
-            "p05_mean": 35.0,
-            "p95_mean": 35.0,
+            "p05_mean": 35,
+            "p95_mean": 35,
             "p05_padded": 34.5,
             "p95_padded": 35.5,
             "files": 2
@@ -1480,15 +1484,15 @@
             "files": 2
           },
           "gov_mode": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 2
           },
           "gov_type": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 3
@@ -1544,7 +1548,7 @@
           },
           "SPK_IGBT_T(1,1)": {
             "p05_mean": 65.5,
-            "p95_mean": 67.0,
+            "p95_mean": 67,
             "p05_padded": 65.125,
             "p95_padded": 67.375,
             "files": 2
@@ -1571,15 +1575,15 @@
             "files": 2
           },
           "SPK_IGBT_T(1,2)": {
-            "p05_mean": 66.0,
-            "p95_mean": 67.0,
+            "p05_mean": 66,
+            "p95_mean": 67,
             "p05_padded": 65.75,
             "p95_padded": 67.25,
             "files": 2
           },
           "SPK_IGBT_T(1,4)": {
             "p05_mean": 65.5,
-            "p95_mean": 67.0,
+            "p95_mean": 67,
             "p05_padded": 65.125,
             "p95_padded": 67.375,
             "files": 2
@@ -1599,8 +1603,8 @@
             "files": 2
           },
           "SPK_IGBT_T(1,3)": {
-            "p05_mean": 66.0,
-            "p95_mean": 67.0,
+            "p05_mean": 66,
+            "p95_mean": 67,
             "p05_padded": 65.75,
             "p95_padded": 67.25,
             "files": 2
@@ -1620,8 +1624,8 @@
             "files": 2
           },
           "SPK_IGBT_T(1,5)": {
-            "p05_mean": 66.0,
-            "p95_mean": 67.0,
+            "p05_mean": 66,
+            "p95_mean": 67,
             "p05_padded": 65.75,
             "p95_padded": 67.25,
             "files": 2
@@ -1641,7 +1645,7 @@
             "files": 2
           },
           "SPK_IGBT_T(1,6)": {
-            "p05_mean": 64.0,
+            "p05_mean": 64,
             "p95_mean": 65.5,
             "p05_padded": 63.625,
             "p95_padded": 65.875,
@@ -1683,8 +1687,8 @@
             "files": 2
           },
           "Fuel Control Mode": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
@@ -1725,15 +1729,15 @@
             "files": 1
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1746,15 +1750,15 @@
             "files": 1
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1774,8 +1778,8 @@
             "files": 1
           },
           "gov_sw_state": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 1
@@ -1788,22 +1792,22 @@
             "files": 1
           },
           "MFG_TPS_cmd_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "MFG_TPS_act_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "MFG Delta Press - DP": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1823,8 +1827,8 @@
             "files": 1
           },
           "TIPAdapt_TIPcorrect": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1838,35 +1842,35 @@
           },
           "AUX_PU1_raw": {
             "p05_mean": 4.9992952410368545,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.999119051296068,
             "p95_padded": 5.000176189740786,
             "files": 1
           },
           "AUX_PU2_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
           },
           "AUX_PU3_raw": {
             "p05_mean": 4.999747838528182,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.999684798160228,
             "p95_padded": 5.000063040367954,
             "files": 1
           },
           "AUX_PD2_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "AUX_PD3_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1893,64 +1897,64 @@
             "files": 1
           },
           "min_gov_rpm": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 1
           },
           "max_gov_rpm": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 1
           },
           "Gov1_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 1
           },
           "Gov2_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
+            "p05_mean": 1500,
+            "p95_mean": 1500,
             "p05_padded": 1499.5,
             "p95_padded": 1500.5,
             "files": 1
           },
           "Gov3_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 1
           },
           "gov_min_abslimit": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 1
           },
           "gov_max_abslimit": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 1
           },
           "LoadLim_perf_stat": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "LoadLim_T_active": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
+            "p05_mean": 2,
+            "p95_mean": 2,
             "p05_padded": 1.5,
             "p95_padded": 2.5,
             "files": 1
@@ -1963,22 +1967,22 @@
             "files": 1
           },
           "DERATE1_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "DERATE2_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "SD_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -1995,8 +1999,8 @@
             "files": 2
           },
           "RPM": {
-            "p05_mean": 0.0,
-            "p95_mean": 1802.0,
+            "p05_mean": 0,
+            "p95_mean": 1802,
             "p05_padded": -180.20000000000002,
             "p95_padded": 1982.2,
             "files": 2
@@ -2023,22 +2027,22 @@
             "files": 2
           },
           "Remote Speed TSC1": {
-            "p05_mean": 0.0,
-            "p95_mean": 900.0,
-            "p05_padded": -90.0,
-            "p95_padded": 990.0,
+            "p05_mean": 0,
+            "p95_mean": 900,
+            "p05_padded": -90,
+            "p95_padded": 990,
             "files": 2
           },
           "fuel_type": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
+            "p05_mean": 2,
+            "p95_mean": 2,
             "p05_padded": 1.5,
             "p95_padded": 2.5,
             "files": 2
           },
           "Fuel Control Mode": {
-            "p05_mean": 0.0,
-            "p95_mean": 3.0,
+            "p05_mean": 0,
+            "p95_mean": 3,
             "p05_padded": -0.5,
             "p95_padded": 3.5,
             "files": 2
@@ -2051,7 +2055,7 @@
             "files": 2
           },
           "Vsw": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 27.57681518425253,
             "p05_padded": -2.757681518425253,
             "p95_padded": 30.334496702677786,
@@ -2079,7 +2083,7 @@
             "files": 2
           },
           "spk_adv": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 33.375,
             "p05_padded": -3.3375000000000004,
             "p95_padded": 36.7125,
@@ -2100,8 +2104,8 @@
             "files": 2
           },
           "EGO1_volts": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2149,36 +2153,36 @@
             "files": 2
           },
           "PWe_avg": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 97.578125,
             "p05_padded": -9.7578125,
             "p95_padded": 107.3359375,
             "files": 2
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "OILP_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 2
           },
           "MIL Status": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2198,22 +2202,22 @@
             "files": 2
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 2
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 2
           },
           "Phi1_post_delt": {
             "p05_mean": -0.0040283203125,
-            "p95_mean": 0.0,
+            "p95_mean": 0,
             "p05_padded": -0.005035400390625,
             "p95_padded": 0.001007080078125,
             "files": 2
@@ -2240,8 +2244,8 @@
             "files": 2
           },
           "rpmd_gov": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1825.0,
+            "p05_mean": 1000,
+            "p95_mean": 1825,
             "p05_padded": 917.5,
             "p95_padded": 1907.5,
             "files": 2
@@ -2261,15 +2265,15 @@
             "files": 2
           },
           "gov_sw_state": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 1.5,
             "p05_padded": -0.375,
             "p95_padded": 1.875,
             "files": 2
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2282,8 +2286,8 @@
             "files": 2
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": 0.0,
+            "p05_mean": -2,
+            "p95_mean": 0,
             "p05_padded": -2.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2296,22 +2300,22 @@
             "files": 2
           },
           "MFG_TPS_cmd_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "MFG_TPS_act_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "MFG Delta Press - DP": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2346,14 +2350,14 @@
           },
           "AUX_PU1_raw": {
             "p05_mean": 4.999389410018921,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.999236762523651,
             "p95_padded": 5.00015264749527,
             "files": 2
           },
           "AUX_PU2_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 2
@@ -2366,15 +2370,15 @@
             "files": 2
           },
           "AUX_PD2_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "AUX_PD3_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -2401,50 +2405,50 @@
             "files": 2
           },
           "min_gov_rpm": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 2
           },
           "max_gov_rpm": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 2
           },
           "Gov1_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 2
           },
           "Gov2_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
+            "p05_mean": 1500,
+            "p95_mean": 1500,
             "p05_padded": 1499.5,
             "p95_padded": 1500.5,
             "files": 2
           },
           "Gov3_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 2
           },
           "gov_min_abslimit": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 2
           },
           "gov_max_abslimit": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 2
@@ -2458,7 +2462,7 @@
           },
           "MJ_P_Tnom": {
             "p05_mean": -0.71136474609375,
-            "p95_mean": 0.0,
+            "p95_mean": 0,
             "p05_padded": -0.8892059326171875,
             "p95_padded": 0.1778411865234375,
             "files": 2
@@ -2479,7 +2483,7 @@
           },
           "Vent_P_sig": {
             "p05_mean": -13.515929990234374,
-            "p95_mean": 0.0,
+            "p95_mean": 0,
             "p05_padded": -14.867522989257811,
             "p95_padded": 1.3515929990234374,
             "files": 2
@@ -2506,8 +2510,8 @@
             "files": 2
           },
           "FT_def": {
-            "p05_mean": 88.0,
-            "p95_mean": 88.0,
+            "p05_mean": 88,
+            "p95_mean": 88,
             "p05_padded": 87.5,
             "p95_padded": 88.5,
             "files": 2
@@ -2552,22 +2556,22 @@
             "files": 5
           },
           "RMT_speed": {
-            "p05_mean": 360.0,
-            "p95_mean": 1080.0,
-            "p05_padded": 288.0,
-            "p95_padded": 1152.0,
+            "p05_mean": 360,
+            "p95_mean": 1080,
+            "p05_padded": 288,
+            "p95_padded": 1152,
             "files": 5
           },
           "fuel_type": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
+            "p05_mean": 2,
+            "p95_mean": 2,
             "p05_padded": 1.5,
             "p95_padded": 2.5,
             "files": 5
           },
           "fuel_ctl_mode": {
             "p05_mean": 1.2,
-            "p95_mean": 3.0,
+            "p95_mean": 3,
             "p05_padded": 0.75,
             "p95_padded": 3.45,
             "files": 5
@@ -2615,22 +2619,22 @@
             "files": 5
           },
           "MJ_P_cmd": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
           },
           "MJ_P_act": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
           },
           "EGO1_volts": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
@@ -2685,28 +2689,28 @@
             "files": 5
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
           },
           "OILP_state": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.6,
             "p05_padded": -0.15,
             "p95_padded": 0.75,
             "files": 5
           },
           "MILout_mirror": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.6,
             "p05_padded": -0.15,
             "p95_padded": 0.75,
@@ -2727,15 +2731,15 @@
             "files": 5
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.6,
             "p05_padded": -0.15,
             "p95_padded": 0.75,
             "files": 5
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
@@ -2769,10 +2773,10 @@
             "files": 5
           },
           "rpmd_gov": {
-            "p05_mean": 1330.0,
-            "p95_mean": 1820.0,
-            "p05_padded": 1281.0,
-            "p95_padded": 1869.0,
+            "p05_mean": 1330,
+            "p95_mean": 1820,
+            "p05_padded": 1281,
+            "p95_padded": 1869,
             "files": 5
           },
           "LoadLim_max": {
@@ -2797,8 +2801,8 @@
             "files": 5
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
@@ -2811,7 +2815,7 @@
             "files": 5
           },
           "sync_state": {
-            "p05_mean": -2.0,
+            "p05_mean": -2,
             "p95_mean": -0.8,
             "p05_padded": -2.3,
             "p95_padded": -0.5,
@@ -2874,7 +2878,7 @@
             "files": 2
           },
           "TIPAdapt_TIPcorrect": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 0.90576171875,
             "p05_padded": -0.2264404296875,
             "p95_padded": 1.1322021484375,
@@ -2889,14 +2893,14 @@
           },
           "AUX_PU1_raw": {
             "p05_mean": 4.9960403487512055,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.995050435939007,
             "p95_padded": 5.000989912812199,
             "files": 5
           },
           "AUX_PU2_raw": {
             "p05_mean": 4.996928985455898,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.9961612318198725,
             "p95_padded": 5.000767753636025,
             "files": 5
@@ -2909,15 +2913,15 @@
             "files": 5
           },
           "AUX_PD2_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
           },
           "AUX_PD3_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 5
@@ -2944,50 +2948,50 @@
             "files": 5
           },
           "min_gov_rpm": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 5
           },
           "max_gov_rpm": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 5
           },
           "Gov1_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 5
           },
           "Gov2_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
+            "p05_mean": 1500,
+            "p95_mean": 1500,
             "p05_padded": 1499.5,
             "p95_padded": 1500.5,
             "files": 5
           },
           "Gov3_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 5
           },
           "gov_min_abslimit": {
-            "p05_mean": 1000.0,
-            "p95_mean": 1000.0,
+            "p05_mean": 1000,
+            "p95_mean": 1000,
             "p05_padded": 999.5,
             "p95_padded": 1000.5,
             "files": 5
           },
           "gov_max_abslimit": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
+            "p05_mean": 1850,
+            "p95_mean": 1850,
             "p05_padded": 1849.5,
             "p95_padded": 1850.5,
             "files": 5
@@ -3020,8 +3024,8 @@
             "files": 1
           },
           "rpm": {
-            "p05_mean": 0.0,
-            "p95_mean": 2062.0,
+            "p05_mean": 0,
+            "p95_mean": 2062,
             "p05_padded": -206.20000000000002,
             "p95_padded": 2268.2,
             "files": 1
@@ -3034,7 +3038,7 @@
             "files": 1
           },
           "MILout_mirror": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 1.1102230246251565e-16,
             "p05_padded": -2.7755575615628914e-17,
             "p95_padded": 1.3877787807814457e-16,
@@ -3063,14 +3067,14 @@
           },
           "IAT": {
             "p05_mean": 103.015625,
-            "p95_mean": 164.0,
+            "p95_mean": 164,
             "p05_padded": 96.9171875,
             "p95_padded": 170.0984375,
             "files": 1
           },
           "MJ_P_cmd": {
             "p05_mean": -3.1571044921875,
-            "p95_mean": 0.0,
+            "p95_mean": 0,
             "p05_padded": -3.6571044921875,
             "p95_padded": 0.5,
             "files": 1
@@ -3104,71 +3108,71 @@
             "files": 1
           },
           "RMT_speed": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "RMT_speed_SA": {
-            "p05_mean": 255.0,
-            "p95_mean": 255.0,
+            "p05_mean": 255,
+            "p95_mean": 255,
             "p05_padded": 254.5,
             "p95_padded": 255.5,
             "files": 1
           },
           "spk_adv": {
-            "p05_mean": 4.0,
+            "p05_mean": 4,
             "p95_mean": 28.375,
             "p05_padded": 1.5625,
             "p95_padded": 30.8125,
             "files": 1
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 1
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 1
           },
           "fuel_type": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
           },
           "OILP_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 1
           },
           "MAT": {
-            "p05_mean": 103.0,
-            "p95_mean": 186.0,
+            "p05_mean": 103,
+            "p95_mean": 186,
             "p05_padded": 94.7,
             "p95_padded": 194.3,
             "files": 1
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3181,15 +3185,15 @@
             "files": 1
           },
           "PWe_avg": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 11.09375,
             "p05_padded": -1.109375,
             "p95_padded": 12.203125,
             "files": 1
           },
           "FPin": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3217,7 +3221,7 @@
           },
           "A_BM1": {
             "p05_mean": -5.01708984375,
-            "p95_mean": 0.0,
+            "p95_mean": 0,
             "p05_padded": -5.518798828125,
             "p95_padded": 0.501708984375,
             "files": 1
@@ -3230,36 +3234,36 @@
             "files": 1
           },
           "fuel_ctl_mode": {
-            "p05_mean": 0.0,
-            "p95_mean": 3.0,
+            "p05_mean": 0,
+            "p95_mean": 3,
             "p05_padded": -0.5,
             "p95_padded": 3.5,
             "files": 1
           },
           "EGO1Z_ohms": {
-            "p05_mean": 95.0,
-            "p95_mean": 20000.0,
+            "p05_mean": 95,
+            "p95_mean": 20000,
             "p05_padded": -1895.5,
             "p95_padded": 21990.5,
             "files": 1
           },
           "EGO2Z_ohms": {
-            "p05_mean": 197.0,
-            "p95_mean": 20000.0,
+            "p05_mean": 197,
+            "p95_mean": 20000,
             "p05_padded": -1783.3000000000002,
             "p95_padded": 21980.3,
             "files": 1
           },
           "UEGO_Tsensor": {
-            "p05_mean": 630.0,
-            "p95_mean": 630.0,
+            "p05_mean": 630,
+            "p95_mean": 630,
             "p05_padded": 629.5,
             "p95_padded": 630.5,
             "files": 1
           },
           "Phi_UEGO": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
@@ -3279,22 +3283,22 @@
             "files": 1
           },
           "gov_sw_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 1
           },
           "rpmd_gov": {
-            "p05_mean": 850.0,
-            "p95_mean": 2050.0,
-            "p05_padded": 730.0,
-            "p95_padded": 2170.0,
+            "p05_mean": 850,
+            "p95_mean": 2050,
+            "p05_padded": 730,
+            "p95_padded": 2170,
             "files": 1
           },
           "gov_type": {
-            "p05_mean": 1.0,
-            "p95_mean": 4.0,
+            "p05_mean": 1,
+            "p95_mean": 4,
             "p05_padded": 0.5,
             "p95_padded": 4.5,
             "files": 1
@@ -3314,22 +3318,22 @@
             "files": 1
           },
           "FPP_cmd_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FPP_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FPP1_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3349,8 +3353,8 @@
             "files": 1
           },
           "FPP2_idle": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
@@ -3370,8 +3374,8 @@
             "files": 1
           },
           "FPP1_rawfilt": {
-            "p05_mean": 7.631257903994992e-05,
-            "p95_mean": 7.631257903994992e-05,
+            "p05_mean": 0.00007631257903994992,
+            "p95_mean": 0.00007631257903994992,
             "p05_padded": -0.49992368742096005,
             "p95_padded": 0.50007631257904,
             "files": 1
@@ -3384,36 +3388,36 @@
             "files": 1
           },
           "IVS State": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "RS_speed": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "RS_speed_d": {
-            "p05_mean": 99.0,
-            "p95_mean": 99.0,
+            "p05_mean": 99,
+            "p95_mean": 99,
             "p05_padded": 98.5,
             "p95_padded": 99.5,
             "files": 1
           },
           "RS_pulses_per_km": {
-            "p05_mean": 259200.0,
-            "p95_mean": 259200.0,
+            "p05_mean": 259200,
+            "p95_mean": 259200,
             "p05_padded": 259199.5,
             "p95_padded": 259200.5,
             "files": 1
@@ -3426,8 +3430,8 @@
             "files": 1
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": 0.0,
+            "p05_mean": -2,
+            "p95_mean": 0,
             "p05_padded": -2.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3454,29 +3458,29 @@
             "files": 1
           },
           "AUX_PU1_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
           },
           "AUX_PU2_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
           },
           "AUX_PUD1_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "AUX_PD1_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3489,15 +3493,15 @@
             "files": 1
           },
           "AUX_PUD2_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
           },
           "AUX_PUD3_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
+            "p05_mean": 5,
+            "p95_mean": 5,
             "p05_padded": 4.5,
             "p95_padded": 5.5,
             "files": 1
@@ -3517,7 +3521,7 @@
             "files": 1
           },
           "CAN_Rx_packs": {
-            "p05_mean": 17277.0,
+            "p05_mean": 17277,
             "p95_mean": 174413.4,
             "p05_padded": 1563.3600000000006,
             "p95_padded": 190127.03999999998,
@@ -3531,15 +3535,15 @@
             "files": 1
           },
           "CAN2_Rx_packs": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "CAN2_Tx_packs": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3552,8 +3556,8 @@
             "files": 1
           },
           "ME0slv1_MAP": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -3562,733 +3566,257 @@
       },
       "5.7L": {
         "Power Systems": {
-          "Time": {
-            "p05_mean": 6504.994183333332,
-            "p95_mean": 7737.408916666667,
-            "p05_padded": 6381.752709999999,
-            "p95_padded": 7860.650390000001,
-            "files": 3
-          },
           "rpm": {
-            "p05_mean": 895.2543918918922,
-            "p95_mean": 1808.6388599942786,
-            "p05_padded": 803.9159450816535,
-            "p95_padded": 1899.9773068045172,
-            "files": 2
+            "p05_mean": 2904,
+            "p95_mean": 2931,
+            "p05_padded": 2897.25,
+            "p95_padded": 2937.75,
+            "files": 10
           },
           "MAP": {
-            "p05_mean": 8.841580756704326,
-            "p95_mean": 21.087010948176843,
-            "p05_padded": 7.617037737557075,
-            "p95_padded": 22.311553967324095,
-            "files": 3
-          },
-          "MILout_mirror": {
-            "p05_mean": 0.5,
-            "p95_mean": 0.5,
-            "p05_padded": 0.0,
-            "p95_padded": 1.0,
-            "files": 2
+            "p05_mean": 4,
+            "p95_mean": 12.757812,
+            "p05_padded": 3.124219,
+            "p95_padded": 13.633594,
+            "files": 10
           },
           "Vsw": {
-            "p05_mean": 9.051276457702409,
-            "p95_mean": 13.762445804112554,
-            "p05_padded": 8.580159523061395,
-            "p95_padded": 14.233562738753568,
-            "files": 3
+            "p05_mean": 13.246094,
+            "p95_mean": 13.410156,
+            "p05_padded": 13.205078,
+            "p95_padded": 13.451172,
+            "files": 10
           },
           "Vbat": {
-            "p05_mean": 13.63087476946101,
-            "p95_mean": 14.129712124325954,
-            "p05_padded": 13.506165430744776,
-            "p95_padded": 14.254421463042188,
-            "files": 3
+            "p05_mean": 13.721475,
+            "p95_mean": 13.808594,
+            "p05_padded": 13.699695,
+            "p95_padded": 13.830374,
+            "files": 10
           },
           "ECT": {
-            "p05_mean": 162.84266578159017,
-            "p95_mean": 173.75717898637822,
-            "p05_padded": 160.11403748039316,
-            "p95_padded": 176.48580728757523,
-            "files": 3
+            "p05_mean": 181.0625,
+            "p95_mean": 190.466694,
+            "p05_padded": 178.711451,
+            "p95_padded": 192.817743,
+            "files": 10
           },
           "IAT": {
-            "p05_mean": 119.12363873106058,
-            "p95_mean": 153.97484446597943,
-            "p05_padded": 114.12363873106058,
-            "p95_padded": 158.97484446597943,
-            "files": 3
-          },
-          "MJ_P_cmd": {
-            "p05_mean": -2.254676814551862,
-            "p95_mean": -0.42832387443334174,
-            "p05_padded": -2.711265049581492,
-            "p95_padded": 0.028264360596288285,
-            "files": 2
+            "p05_mean": 40.125,
+            "p95_mean": 73.4375,
+            "p05_padded": 35.125,
+            "p95_padded": 78.4375,
+            "files": 10
           },
           "MJ_P_act": {
-            "p05_mean": -2.2872914601908882,
-            "p95_mean": -0.25231686544311527,
-            "p05_padded": -2.7872914601908882,
-            "p95_padded": 0.24768313455688473,
-            "files": 2
+            "p05_mean": -3.001282,
+            "p95_mean": -0.003841,
+            "p05_padded": -3.501282,
+            "p95_padded": 0.496159,
+            "files": 10
           },
           "TIP": {
-            "p05_mean": 15.61256721550078,
-            "p95_mean": 22.882627061167508,
-            "p05_padded": 14.885561230934108,
-            "p95_padded": 23.60963304573418,
-            "files": 3
+            "p05_mean": 13.964844,
+            "p95_mean": 14.269531,
+            "p05_padded": 13.888672,
+            "p95_padded": 14.345703,
+            "files": 10
           },
           "EGO1_volts": {
-            "p05_mean": 0.07927164282681079,
-            "p95_mean": 0.823597403348046,
-            "p05_padded": -0.10680979730349802,
-            "p95_padded": 1.0096788434783548,
-            "files": 3
+            "p05_mean": 0.082031,
+            "p95_mean": 0.836426,
+            "p05_padded": -0.106567,
+            "p95_padded": 1.025024,
+            "files": 10
           },
           "OILP_press": {
-            "p05_mean": 31.40819375122146,
-            "p95_mean": 51.210769233501146,
-            "p05_padded": 29.427936202993493,
-            "p95_padded": 53.191026781729114,
-            "files": 3
+            "p05_mean": 48.69922,
+            "p95_mean": 56.464055,
+            "p05_padded": 47.69922,
+            "p95_padded": 57.464055,
+            "files": 10
           },
           "RMT_speed": {
-            "p05_mean": 1200.0,
-            "p95_mean": 1800.0,
-            "p05_padded": 1140.0,
-            "p95_padded": 1860.0,
-            "files": 3
+            "p05_mean": 1800,
+            "p95_mean": 1800,
+            "p05_padded": 1799.5,
+            "p95_padded": 1800.5,
+            "files": 10
+          },
+          "rECT": {
+            "p05_mean": 168.119832,
+            "p95_mean": 189.28125,
+            "p05_padded": 166.00369,
+            "p95_padded": 191.397392,
+            "files": 10
           },
           "spk_adv": {
-            "p05_mean": 18.9375,
-            "p95_mean": 31.087065339631085,
-            "p05_padded": 17.722543466036893,
-            "p95_padded": 32.30202187359419,
-            "files": 3
-          },
-          "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.3333333333333333,
-            "p05_padded": -0.08333333333333333,
-            "p95_padded": 0.41666666666666663,
-            "files": 3
-          },
-          "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 3
-          },
-          "fuel_type": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
-            "p05_padded": 1.5,
-            "p95_padded": 2.5,
-            "files": 3
-          },
-          "OILP_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.3333333333333333,
-            "p05_padded": -0.08333333333333333,
-            "p95_padded": 0.41666666666666663,
-            "files": 3
+            "p05_mean": 33.5,
+            "p95_mean": 34,
+            "p05_padded": 33.375,
+            "p95_padded": 34.125,
+            "files": 10
           },
           "MAT": {
-            "p05_mean": 129.1090590274939,
-            "p95_mean": 156.8750000000002,
-            "p05_padded": 126.33246493024329,
-            "p95_padded": 159.65159409725084,
-            "files": 3
-          },
-          "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 3
-          },
-          "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 3
+            "p05_mean": 52.90625,
+            "p95_mean": 121.554893,
+            "p05_padded": 46.041386,
+            "p95_padded": 128.419757,
+            "files": 10
           },
           "BP": {
-            "p05_mean": 14.55859375,
-            "p95_mean": 14.58203125,
-            "p05_padded": 14.552734375,
-            "p95_padded": 14.587890625,
-            "files": 2
+            "p05_mean": 13.964844,
+            "p95_mean": 14.269531,
+            "p05_padded": 13.888672,
+            "p95_padded": 14.345703,
+            "files": 10
           },
           "PWe_avg": {
-            "p05_mean": 8.632190677196796,
-            "p95_mean": 30.080074721987373,
-            "p05_padded": 6.487402272717738,
-            "p95_padded": 32.22486312646643,
-            "files": 3
+            "p05_mean": 4.642405,
+            "p95_mean": 18.46875,
+            "p05_padded": 2.642405,
+            "p95_padded": 20.46875,
+            "files": 10
           },
           "FPin": {
-            "p05_mean": 46.807291666666664,
-            "p95_mean": 46.809896,
-            "p05_padded": 46.80664058333333,
-            "p95_padded": 46.81054708333333,
-            "files": 3
+            "p05_mean": 46.796875,
+            "p95_mean": 46.796875,
+            "p05_padded": 46.296875,
+            "p95_padded": 47.296875,
+            "files": 10
           },
           "FT": {
-            "p05_mean": 91.55785660262796,
-            "p95_mean": 99.39541666666666,
-            "p05_padded": 89.59846658661829,
-            "p95_padded": 101.35480668267634,
-            "files": 3
+            "p05_mean": 48.46875,
+            "p95_mean": 83.46875,
+            "p05_padded": 43.46875,
+            "p95_padded": 88.46875,
+            "files": 10
           },
           "CL_BM1": {
-            "p05_mean": -0.7979626686961624,
-            "p95_mean": 0.8561096191406252,
-            "p05_padded": -1.2114807406553592,
-            "p95_padded": 1.269627691099822,
-            "files": 2
+            "p05_mean": -0.579834,
+            "p95_mean": 0.689697,
+            "p05_padded": -0.897217,
+            "p95_padded": 1.00708,
+            "files": 10
           },
           "Phi1_post_delt": {
-            "p05_mean": -0.002350059159682446,
-            "p95_mean": 0.004601349701752501,
-            "p05_padded": -0.004087911375041183,
-            "p95_padded": 0.006339201917111238,
-            "files": 2
+            "p05_mean": 0.001404,
+            "p95_mean": 0.007324,
+            "p05_padded": -0.000076,
+            "p95_padded": 0.008804,
+            "files": 10
           },
           "A_BM1": {
-            "p05_mean": -3.3462886959041467,
-            "p95_mean": 0.45682873850923034,
-            "p05_padded": -3.8462886959041467,
-            "p95_padded": 0.9568287385092303,
-            "files": 2
+            "p05_mean": -4.693604,
+            "p95_mean": -2.557373,
+            "p05_padded": -5.227661,
+            "p95_padded": -2.023315,
+            "files": 10
           },
           "EGO2_volts": {
-            "p05_mean": 0.03061930366666667,
-            "p95_mean": 1.0067138658333332,
-            "p05_padded": -0.21340433687499996,
-            "p95_padded": 1.250737506375,
-            "files": 3
+            "p05_mean": 0.710449,
+            "p95_mean": 0.76508,
+            "p05_padded": 0.696791,
+            "p95_padded": 0.778738,
+            "files": 10
           },
           "fuel_ctl_mode": {
-            "p05_mean": 1.5,
-            "p95_mean": 3.0,
-            "p05_padded": 1.125,
-            "p95_padded": 3.375,
-            "files": 2
+            "p05_mean": 3,
+            "p95_mean": 3,
+            "p05_padded": 2.5,
+            "p95_padded": 3.5,
+            "files": 10
           },
           "EGO1Z_ohms": {
-            "p05_mean": 82.16155196311755,
-            "p95_mean": 5100.323003259984,
-            "p05_padded": -419.65459316656916,
-            "p95_padded": 5602.1391483896705,
-            "files": 2
+            "p05_mean": 132,
+            "p95_mean": 202.7375,
+            "p05_padded": 124.92625,
+            "p95_padded": 209.81125,
+            "files": 10
           },
           "EGO2Z_ohms": {
-            "p05_mean": 7983.549999999999,
-            "p95_mean": 15920.0,
-            "p05_padded": 7189.904999999999,
-            "p95_padded": 16713.645,
-            "files": 2
+            "p05_mean": 100,
+            "p95_mean": 201,
+            "p05_padded": 89.9,
+            "p95_padded": 211.1,
+            "files": 10
           },
           "Phi_UEGO": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
-          },
-          "TPS_cmd_pct": {
-            "p05_mean": 19.118152115241458,
-            "p95_mean": 45.506241330313536,
-            "p05_padded": 16.47934319373425,
-            "p95_padded": 48.14505025182074,
-            "files": 3
+            "files": 10
           },
           "TPS_pct": {
-            "p05_mean": 16.447221797864753,
-            "p95_mean": 45.50976872426053,
-            "p05_padded": 13.540967105225175,
-            "p95_padded": 48.41602341690011,
-            "files": 3
+            "p05_mean": 14.938981,
+            "p95_mean": 60.49652,
+            "p05_padded": 10.383227,
+            "p95_padded": 65.052274,
+            "files": 10
           },
-          "gov_sw_state": {
-            "p05_mean": 2.0,
-            "p95_mean": 3.0,
-            "p05_padded": 1.75,
-            "p95_padded": 3.25,
-            "files": 3
-          },
-          "rpmd_gov": {
-            "p05_mean": 1700.0,
-            "p95_mean": 1800.0,
-            "p05_padded": 1690.0,
-            "p95_padded": 1810.0,
-            "files": 3
-          },
-          "gov_type": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.3333333333333335,
-            "p05_padded": 2.9166666666666665,
-            "p95_padded": 3.416666666666667,
-            "files": 3
-          },
-          "LoadLim_max": {
-            "p05_mean": 98.47005205729165,
-            "p95_mean": 99.99542353515625,
-            "p05_padded": 98.0887091878255,
-            "p95_padded": 100.3767664046224,
-            "files": 3
+          "LoadLim_max_pct": {
+            "p05_mean": 90.00244,
+            "p95_mean": 90.002441,
+            "p05_padded": 90.00244,
+            "p95_padded": 90.002442,
+            "files": 10
           },
           "LoadLim_max_TPS": {
-            "p05_mean": 57.85129484217231,
-            "p95_mean": 99.9303181184896,
-            "p05_padded": 53.64339251454058,
-            "p95_padded": 104.13822044612132,
-            "files": 3
-          },
-          "FPP_cmd_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 2
+            "p05_mean": 99.89624,
+            "p95_mean": 99.89624,
+            "p05_padded": 99.89624,
+            "p95_padded": 99.89624,
+            "files": 10
           },
           "FPP_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
+            "files": 10
           },
           "FPP1_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
+            "files": 10
           },
           "FPP2_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
-          },
-          "FPP1_idle": {
-            "p05_mean": 0.9999694228172302,
-            "p95_mean": 0.9999694228172302,
-            "p05_padded": 0.4999694228172302,
-            "p95_padded": 1.4999694228172302,
-            "files": 2
-          },
-          "FPP2_idle": {
-            "p05_mean": 0.9999694228172302,
-            "p95_mean": 0.9999694228172302,
-            "p05_padded": 0.4999694228172302,
-            "p95_padded": 1.4999694228172302,
-            "files": 2
-          },
-          "FPP1_full": {
-            "p05_mean": 3.499969482421875,
-            "p95_mean": 3.499969482421875,
-            "p05_padded": 2.999969482421875,
-            "p95_padded": 3.999969482421875,
-            "files": 2
-          },
-          "FPP2_full": {
-            "p05_mean": 3.499969482421875,
-            "p95_mean": 3.499969482421875,
-            "p05_padded": 2.999969482421875,
-            "p95_padded": 3.999969482421875,
-            "files": 2
-          },
-          "FPP1_rawfilt": {
-            "p05_mean": 7.636852387804538e-05,
-            "p95_mean": 7.636852387804538e-05,
-            "p05_padded": -0.49992363147612195,
-            "p95_padded": 0.500076368523878,
-            "files": 2
-          },
-          "FPP2_rawfilt": {
-            "p05_mean": 7.636852387804538e-05,
-            "p95_mean": 7.636852387804538e-05,
-            "p05_padded": -0.49992363147612195,
-            "p95_padded": 0.500076368523878,
-            "files": 2
-          },
-          "IVS State": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 3
+            "files": 10
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 3
+            "files": 10
           },
           "RS_speed": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
+            "files": 10
           },
           "RS_speed_d": {
-            "p05_mean": 12.0,
-            "p95_mean": 12.0,
+            "p05_mean": 12,
+            "p95_mean": 12,
             "p05_padded": 11.5,
             "p95_padded": 12.5,
-            "files": 2
+            "files": 10
           },
-          "RS_pulses_per_km": {
-            "p05_mean": 137000.0,
-            "p95_mean": 137000.0,
-            "p05_padded": 136999.5,
-            "p95_padded": 137000.5,
-            "files": 2
-          },
-          "start_tmr": {
-            "p05_mean": 3.400000035762787,
-            "p95_mean": 3.762500047683716,
-            "p05_padded": 3.3093750327825546,
-            "p95_padded": 3.853125050663948,
-            "files": 2
-          },
-          "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": -1.3333333333333333,
-            "p05_padded": -2.1666666666666665,
-            "p95_padded": -1.1666666666666665,
-            "files": 3
-          },
-          "AUX_DIG1_volt": {
-            "p05_mean": 2.7018229166666665,
-            "p95_mean": 2.7044270833333335,
-            "p05_padded": 2.701171875,
-            "p95_padded": 2.705078125,
-            "files": 3
-          },
-          "AUX_DIG2_volt": {
-            "p05_mean": 2.7083333333333335,
-            "p95_mean": 2.7083333333333335,
-            "p05_padded": 2.2083333333333335,
-            "p95_padded": 3.2083333333333335,
-            "files": 3
-          },
-          "AUX_DIG3_volt": {
-            "p05_mean": 2.49609375,
-            "p95_mean": 2.49609375,
-            "p05_padded": 1.99609375,
-            "p95_padded": 2.99609375,
-            "files": 3
-          },
-          "AUX_PU1_raw": {
-            "p05_mean": 4.166666666666667,
-            "p95_mean": 4.166666666666667,
-            "p05_padded": 3.666666666666667,
-            "p95_padded": 4.666666666666667,
-            "files": 3
-          },
-          "AUX_PU2_raw": {
-            "p05_mean": 4.166666666666667,
-            "p95_mean": 4.166666666666667,
-            "p05_padded": 3.666666666666667,
-            "p95_padded": 4.666666666666667,
-            "files": 3
-          },
-          "AUX_PUD1_raw": {
-            "p05_mean": 4.999593,
-            "p95_mean": 5.0,
-            "p05_padded": 4.99949125,
-            "p95_padded": 5.00010175,
-            "files": 3
-          },
-          "AUX_PD1_raw": {
-            "p05_mean": 3.6666666666666665,
-            "p95_mean": 3.6666666666666665,
-            "p05_padded": 3.1666666666666665,
-            "p95_padded": 4.166666666666666,
-            "files": 3
-          },
-          "AUX_PD2_raw": {
-            "p05_mean": 3.6666666666666665,
-            "p95_mean": 3.6666666666666665,
-            "p05_padded": 3.1666666666666665,
-            "p95_padded": 4.166666666666666,
-            "files": 3
-          },
-          "AUX_PUD2_raw": {
-            "p05_mean": 5.0,
-            "p95_mean": 5.0,
-            "p05_padded": 4.5,
-            "p95_padded": 5.5,
-            "files": 3
-          },
-          "AUX_PUD3_raw": {
-            "p05_mean": 3.3333333333333335,
-            "p95_mean": 3.3333333333333335,
-            "p05_padded": 2.8333333333333335,
-            "p95_padded": 3.8333333333333335,
-            "files": 3
-          },
-          "Gov1_volt": {
-            "p05_mean": 0.4583333333333333,
-            "p95_mean": 0.4583333333333333,
-            "p05_padded": -0.041666666666666685,
-            "p95_padded": 0.9583333333333333,
-            "files": 3
-          },
-          "Gov2_volt": {
-            "p05_mean": 0.4583333333333333,
-            "p95_mean": 0.4583333333333333,
-            "p05_padded": -0.041666666666666685,
-            "p95_padded": 0.9583333333333333,
-            "files": 3
-          },
-          "CAN_Rx_packs": {
-            "p05_mean": 101381.82841216374,
-            "p95_mean": 373684.67214694386,
-            "p05_padded": 74151.54403868574,
-            "p95_padded": 400914.9565204219,
-            "files": 2
-          },
-          "CAN_Tx_packs": {
-            "p05_mean": 175561.38071762276,
-            "p95_mean": 651380.4071035056,
-            "p05_padded": 127979.47807903448,
-            "p95_padded": 698962.3097420939,
-            "files": 2
-          },
-          "CAN2_Rx_packs": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+          "OILP_state": {
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
-            "files": 2
-          },
-          "CAN2_Tx_packs": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 2
-          },
-          "ME0mstr_MAP": {
-            "p05_mean": 7.893847907605936,
-            "p95_mean": 21.746459641168734,
-            "p05_padded": 6.508586734249656,
-            "p95_padded": 23.131720814525014,
-            "files": 2
-          },
-          "ME0slv1_MAP": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 2
-          },
-          "RPM": {
-            "p05_mean": 1703.75,
-            "p95_mean": 1810.0,
-            "p05_padded": 1677.1875,
-            "p95_padded": 1836.5625,
-            "files": 1
-          },
-          "MIL Status": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 1
-          },
-          "EPR Command Pressure": {
-            "p05_mean": -2.7573853,
-            "p95_mean": -0.8400879,
-            "p05_padded": -3.2367096500000003,
-            "p95_padded": -0.36076354999999993,
-            "files": 1
-          },
-          "EPR Actual Pressure": {
-            "p05_mean": -2.8115845,
-            "p95_mean": -0.9146118,
-            "p05_padded": -3.285827675,
-            "p95_padded": -0.44036862499999996,
-            "files": 1
-          },
-          "Distributor Align Actual": {
-            "p05_mean": 7.125,
-            "p95_mean": 7.625,
-            "p05_padded": 7.0,
-            "p95_padded": 7.75,
-            "files": 1
-          },
-          "Barometric Pressure - BP": {
-            "p05_mean": 14.078125,
-            "p95_mean": 14.078125,
-            "p05_padded": 13.578125,
-            "p95_padded": 14.578125,
-            "files": 1
-          },
-          "Closed Loop Fuel Trim - CL": {
-            "p05_mean": -2.545166,
-            "p95_mean": 0.18310547,
-            "p05_padded": -3.045166,
-            "p95_padded": 0.68310547,
-            "files": 1
-          },
-          "AUX_PU3_raw": {
-            "p05_mean": 2.5,
-            "p95_mean": 2.5,
-            "p05_padded": 2.0,
-            "p95_padded": 3.0,
-            "files": 1
-          },
-          "Adaptive Fuel Trim - AL": {
-            "p05_mean": -6.3415527,
-            "p95_mean": -2.7885437,
-            "p05_padded": -6.8415527,
-            "p95_padded": -2.2885437,
-            "files": 1
-          },
-          "Fuel Control Mode": {
-            "p05_mean": 0.0,
-            "p95_mean": 3.0,
-            "p05_padded": -0.5,
-            "p95_padded": 3.5,
-            "files": 1
-          },
-          "EGO1 Resistance Ohms": {
-            "p05_mean": 156.0,
-            "p95_mean": 10000.0,
-            "p05_padded": -828.4000000000001,
-            "p95_padded": 10984.4,
-            "files": 1
-          },
-          "EGO2 Resistance Ohms": {
-            "p05_mean": 178.0,
-            "p95_mean": 10000.0,
-            "p05_padded": -804.2,
-            "p95_padded": 10982.2,
-            "files": 1
-          },
-          "AUX_PD3_raw": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
-            "p05_padded": 0.5,
-            "p95_padded": 1.5,
-            "files": 1
-          },
-          "gov_min_abslimit": {
-            "p05_mean": 1450.0,
-            "p95_mean": 1450.0,
-            "p05_padded": 1449.5,
-            "p95_padded": 1450.5,
-            "files": 1
-          },
-          "gov_max_abslimit": {
-            "p05_mean": 1850.0,
-            "p95_mean": 1850.0,
-            "p05_padded": 1849.5,
-            "p95_padded": 1850.5,
-            "files": 1
-          },
-          "Gov1_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
-            "p05_padded": 1799.5,
-            "p95_padded": 1800.5,
-            "files": 1
-          },
-          "Gov2_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
-            "p05_padded": 1499.5,
-            "p95_padded": 1500.5,
-            "files": 1
-          },
-          "Hour Meter": {
-            "p05_mean": 0.8422222137451172,
-            "p95_mean": 0.856597229838374,
-            "p05_padded": 0.838628459721803,
-            "p95_padded": 0.8601909838616882,
-            "files": 1
-          },
-          "Gov3_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
-            "p05_padded": 1799.5,
-            "p95_padded": 1800.5,
-            "files": 1
-          },
-          "min_gov_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
-            "p05_padded": 1499.5,
-            "p95_padded": 1500.5,
-            "files": 1
-          },
-          "max_gov_rpm": {
-            "p05_mean": 2000.0,
-            "p95_mean": 2000.0,
-            "p05_padded": 1999.5,
-            "p95_padded": 2000.5,
-            "files": 1
-          },
-          "DERATE1_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 1
-          },
-          "DERATE2_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 1
-          },
-          "SD_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 1
-          },
-          "LoadLim_perf_stat": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
-            "p05_padded": -0.5,
-            "p95_padded": 0.5,
-            "files": 1
-          },
-          "LoadLim_T_active": {
-            "p05_mean": 2.0,
-            "p95_mean": 2.0,
-            "p05_padded": 1.5,
-            "p95_padded": 2.5,
-            "files": 1
-          },
-          "Distributor Align Desired": {
-            "p05_mean": 8.0,
-            "p95_mean": 8.0,
-            "p05_padded": 7.5,
-            "p95_padded": 8.5,
-            "files": 1
-          },
-          "Start Timer": {
-            "p05_mean": 1.79,
-            "p95_mean": 1.79,
-            "p05_padded": 1.29,
-            "p95_padded": 2.29,
-            "files": 1
+            "files": 10
           }
         }
       },
@@ -4302,8 +3830,8 @@
             "files": 1
           },
           "rpm": {
-            "p05_mean": 0.0,
-            "p95_mean": 2814.0,
+            "p05_mean": 0,
+            "p95_mean": 2814,
             "p05_padded": -281.40000000000003,
             "p95_padded": 3095.4,
             "files": 1
@@ -4316,22 +3844,22 @@
             "files": 1
           },
           "MILout_mirror": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "Vsw": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 13.95703125,
             "p05_padded": -1.395703125,
             "p95_padded": 15.352734375,
             "files": 1
           },
           "m_f_ww1": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4351,15 +3879,15 @@
             "files": 1
           },
           "MJ_P_cmd": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "MJ_P_act": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4379,14 +3907,14 @@
             "files": 1
           },
           "OILP_press": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 58.21482469512196,
             "p05_padded": -5.821482469512197,
             "p95_padded": 64.03630716463415,
             "files": 1
           },
           "mdot_f_ports": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 3.271484375,
             "p05_padded": -0.5,
             "p95_padded": 3.771484375,
@@ -4400,36 +3928,36 @@
             "files": 1
           },
           "spk_adv": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 24.875,
             "p05_padded": -2.4875000000000003,
             "p95_padded": 27.3625,
             "files": 1
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "mdot_a_equcarb": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 45.875,
             "p05_padded": -4.5875,
             "p95_padded": 50.4625,
             "files": 1
           },
           "OILP_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 1.0,
+            "p05_mean": 0,
+            "p95_mean": 1,
             "p05_padded": -0.25,
             "p95_padded": 1.25,
             "files": 1
@@ -4442,15 +3970,15 @@
             "files": 1
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4513,35 +4041,35 @@
           },
           "trim_m_a_Vdc": {
             "p05_mean": 197.25,
-            "p95_mean": 675.0,
+            "p95_mean": 675,
             "p05_padded": 149.475,
             "p95_padded": 722.775,
             "files": 1
           },
           "EGO1Z_ohms": {
-            "p05_mean": 97.0,
-            "p95_mean": 10000.0,
+            "p05_mean": 97,
+            "p95_mean": 10000,
             "p05_padded": -893.3000000000001,
             "p95_padded": 10990.3,
             "files": 1
           },
           "EGO2Z_ohms": {
-            "p05_mean": 98.0,
-            "p95_mean": 10000.0,
+            "p05_mean": 98,
+            "p95_mean": 10000,
             "p05_padded": -892.2,
             "p95_padded": 10990.2,
             "files": 1
           },
           "EGO1Z_Rd": {
-            "p05_mean": 100.0,
-            "p95_mean": 4000.0,
-            "p05_padded": -290.0,
-            "p95_padded": 4390.0,
+            "p05_mean": 100,
+            "p95_mean": 4000,
+            "p05_padded": -290,
+            "p95_padded": 4390,
             "files": 1
           },
           "Phi_UEGO": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
@@ -4568,10 +4096,10 @@
             "files": 1
           },
           "rpmd_gov": {
-            "p05_mean": 1200.0,
-            "p95_mean": 2800.0,
-            "p05_padded": 1040.0,
-            "p95_padded": 2960.0,
+            "p05_mean": 1200,
+            "p95_mean": 2800,
+            "p05_padded": 1040,
+            "p95_padded": 2960,
             "files": 1
           },
           "VE": {
@@ -4603,35 +4131,35 @@
             "files": 1
           },
           "FPP_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "FPP1_pct": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "ICam_timing_d": {
-            "p05_mean": 7.0,
-            "p95_mean": 7.0,
+            "p05_mean": 7,
+            "p95_mean": 7,
             "p05_padded": 6.5,
             "p95_padded": 7.5,
             "files": 1
           },
           "ICam_timing_a": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 7.3125,
             "p05_padded": -0.7312500000000001,
             "p95_padded": 8.04375,
             "files": 1
           },
           "ICam_PWM_DC": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 40.31982421875,
             "p05_padded": -4.031982421875,
             "p95_padded": 44.351806640625,
@@ -4645,57 +4173,57 @@
             "files": 1
           },
           "EGO2Z_Rd": {
-            "p05_mean": 100.0,
-            "p95_mean": 4000.0,
-            "p05_padded": -290.0,
-            "p95_padded": 4390.0,
+            "p05_mean": 100,
+            "p95_mean": 4000,
+            "p05_padded": -290,
+            "p95_padded": 4390,
             "files": 1
           },
           "FPP1_rawfilt": {
-            "p05_mean": 7.631257903994992e-05,
-            "p95_mean": 7.631257903994992e-05,
+            "p05_mean": 0.00007631257903994992,
+            "p95_mean": 0.00007631257903994992,
             "p05_padded": -0.49992368742096005,
             "p95_padded": 0.50007631257904,
             "files": 1
           },
           "EGO1H_V_d": {
-            "p05_mean": 0.0,
-            "p95_mean": 13.0,
+            "p05_mean": 0,
+            "p95_mean": 13,
             "p05_padded": -1.3,
             "p95_padded": 14.3,
             "files": 1
           },
           "VE_CWT_tau_idle": {
-            "p05_mean": 10.0,
-            "p95_mean": 10.0,
+            "p05_mean": 10,
+            "p95_mean": 10,
             "p05_padded": 9.5,
             "p95_padded": 10.5,
             "files": 1
           },
           "EGO2H_V_d": {
-            "p05_mean": 0.0,
-            "p95_mean": 13.0,
+            "p05_mean": 0,
+            "p95_mean": 13,
             "p05_padded": -1.3,
             "p95_padded": 14.3,
             "files": 1
           },
           "RS_speed": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "RS_speed_d": {
-            "p05_mean": 12.0,
-            "p95_mean": 12.0,
+            "p05_mean": 12,
+            "p95_mean": 12,
             "p05_padded": 11.5,
             "p95_padded": 12.5,
             "files": 1
           },
           "RS_pulses_per_km": {
-            "p05_mean": 137000.0,
-            "p95_mean": 137000.0,
+            "p05_mean": 137000,
+            "p95_mean": 137000,
             "p05_padded": 136999.5,
             "p95_padded": 137000.5,
             "files": 1
@@ -4708,15 +4236,15 @@
             "files": 1
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": 0.0,
+            "p05_mean": -2,
+            "p95_mean": 0,
             "p05_padded": -2.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4737,14 +4265,14 @@
           },
           "inj_timing": {
             "p05_mean": 281.375,
-            "p95_mean": 400.0,
+            "p95_mean": 400,
             "p05_padded": 269.5125,
             "p95_padded": 411.8625,
             "files": 1
           },
           "VE_CWT_C": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4764,22 +4292,22 @@
             "files": 1
           },
           "FPCcmd_DC": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 57.95722961425781,
             "p05_padded": -5.795722961425781,
             "p95_padded": 63.752952575683594,
             "files": 1
           },
           "FPCcmd_V": {
-            "p05_mean": 0.0,
-            "p95_mean": 8.0,
+            "p05_mean": 0,
+            "p95_mean": 8,
             "p05_padded": -0.8,
             "p95_padded": 8.8,
             "files": 1
           },
           "inj_timing_dz": {
-            "p05_mean": 20.0,
-            "p95_mean": 20.0,
+            "p05_mean": 20,
+            "p95_mean": 20,
             "p05_padded": 19.5,
             "p95_padded": 20.5,
             "files": 1
@@ -4813,15 +4341,15 @@
             "files": 1
           },
           "OILP_test": {
-            "p05_mean": 1.0,
-            "p95_mean": 1.0,
+            "p05_mean": 1,
+            "p95_mean": 1,
             "p05_padded": 0.5,
             "p95_padded": 1.5,
             "files": 1
           },
           "SD_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
@@ -4834,14 +4362,14 @@
             "files": 1
           },
           "ME0slv1_MAP": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 1
           },
           "mdot_a_ports": {
-            "p05_mean": 0.0,
+            "p05_mean": 0,
             "p95_mean": 45.875,
             "p05_padded": -4.5875,
             "p95_padded": 50.4625,
@@ -4873,8 +4401,8 @@
             "files": 2
           },
           "MIL Status": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -4908,15 +4436,15 @@
             "files": 2
           },
           "EPR Command Pressure": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "EPR Actual Pressure": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -4943,15 +4471,15 @@
             "files": 2
           },
           "RMT_speed": {
-            "p05_mean": 900.0,
+            "p05_mean": 900,
             "p95_mean": 2581.5,
             "p05_padded": 731.85,
             "p95_padded": 2749.65,
             "files": 2
           },
           "RMT_speed_SA": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 2
@@ -4964,29 +4492,29 @@
             "files": 2
           },
           "fuel_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "spark_shutoff_chk": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "fuel_type": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "OILP_state": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -4999,15 +4527,15 @@
             "files": 2
           },
           "LOWREVLIM_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "FORCEIDLE_active": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -5069,8 +4597,8 @@
             "files": 2
           },
           "Fuel Control Mode": {
-            "p05_mean": 1.0,
-            "p95_mean": 3.0,
+            "p05_mean": 1,
+            "p95_mean": 3,
             "p05_padded": 0.5,
             "p95_padded": 3.5,
             "files": 2
@@ -5083,7 +4611,7 @@
             "files": 2
           },
           "EGO2 Resistance Ohms": {
-            "p05_mean": 97.0,
+            "p05_mean": 97,
             "p95_mean": 131.7486634511223,
             "p05_padded": 93.52513365488777,
             "p95_padded": 135.22352979623452,
@@ -5097,8 +4625,8 @@
             "files": 2
           },
           "gov_min_abslimit": {
-            "p05_mean": 800.0,
-            "p95_mean": 800.0,
+            "p05_mean": 800,
+            "p95_mean": 800,
             "p05_padded": 799.5,
             "p95_padded": 800.5,
             "files": 2
@@ -5118,22 +4646,22 @@
             "files": 2
           },
           "gov_sw_state": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 2
           },
           "rpmd_gov": {
-            "p05_mean": 900.0,
-            "p95_mean": 2559.0,
+            "p05_mean": 900,
+            "p95_mean": 2559,
             "p05_padded": 734.1,
             "p95_padded": 2724.9,
             "files": 2
           },
           "gov_type": {
-            "p05_mean": 3.0,
-            "p95_mean": 3.0,
+            "p05_mean": 3,
+            "p95_mean": 3,
             "p05_padded": 2.5,
             "p95_padded": 3.5,
             "files": 2
@@ -5153,22 +4681,22 @@
             "files": 2
           },
           "gov_max_abslimit": {
-            "p05_mean": 2600.0,
-            "p95_mean": 2600.0,
+            "p05_mean": 2600,
+            "p95_mean": 2600,
             "p05_padded": 2599.5,
             "p95_padded": 2600.5,
             "files": 2
           },
           "Gov1_rpm": {
-            "p05_mean": 1800.0,
-            "p95_mean": 1800.0,
+            "p05_mean": 1800,
+            "p95_mean": 1800,
             "p05_padded": 1799.5,
             "p95_padded": 1800.5,
             "files": 2
           },
           "Gov2_rpm": {
-            "p05_mean": 1500.0,
-            "p95_mean": 1500.0,
+            "p05_mean": 1500,
+            "p95_mean": 1500,
             "p05_padded": 1499.5,
             "p95_padded": 1500.5,
             "files": 2
@@ -5181,36 +4709,36 @@
             "files": 2
           },
           "Gov3_rpm": {
-            "p05_mean": 2600.0,
-            "p95_mean": 2600.0,
+            "p05_mean": 2600,
+            "p95_mean": 2600,
             "p05_padded": 2599.5,
             "p95_padded": 2600.5,
             "files": 2
           },
           "min_gov_rpm": {
-            "p05_mean": 800.0,
-            "p95_mean": 800.0,
+            "p05_mean": 800,
+            "p95_mean": 800,
             "p05_padded": 799.5,
             "p95_padded": 800.5,
             "files": 2
           },
           "max_gov_rpm": {
-            "p05_mean": 2600.0,
-            "p95_mean": 2600.0,
+            "p05_mean": 2600,
+            "p95_mean": 2600,
             "p05_padded": 2599.5,
             "p95_padded": 2600.5,
             "files": 2
           },
           "IVS State": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
           },
           "KNK_retard": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -5230,8 +4758,8 @@
             "files": 2
           },
           "sync_state": {
-            "p05_mean": -2.0,
-            "p95_mean": -2.0,
+            "p05_mean": -2,
+            "p95_mean": -2,
             "p05_padded": -2.5,
             "p95_padded": -1.5,
             "files": 2
@@ -5259,14 +4787,14 @@
           },
           "AUX_PU1_raw": {
             "p05_mean": 4.99857427084285,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.998217838553563,
             "p95_padded": 5.000356432289287,
             "files": 2
           },
           "AUX_PU2_raw": {
             "p05_mean": 4.99859309196472,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.9982413649559,
             "p95_padded": 5.00035172700882,
             "files": 2
@@ -5279,8 +4807,8 @@
             "files": 2
           },
           "AUX_PD1_raw": {
-            "p05_mean": 0.0,
-            "p95_mean": 0.0,
+            "p05_mean": 0,
+            "p95_mean": 0,
             "p05_padded": -0.5,
             "p95_padded": 0.5,
             "files": 2
@@ -5294,14 +4822,14 @@
           },
           "AUX_PUD2_raw": {
             "p05_mean": 4.997990259745798,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.997487824682247,
             "p95_padded": 5.0005024350635505,
             "files": 2
           },
           "AUX_PUD3_raw": {
             "p05_mean": 4.99776061610021,
-            "p95_mean": 5.0,
+            "p95_mean": 5,
             "p05_padded": 4.9972007701252625,
             "p95_padded": 5.000559845974948,
             "files": 2

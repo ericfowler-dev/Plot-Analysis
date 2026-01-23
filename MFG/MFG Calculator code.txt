@@ -1,0 +1,339 @@
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title></title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style type="text/css">body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: white;
+            line-height: 1.0;
+        }
+        .controls {
+            margin: 0 0 15px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            background: #f0f0f0;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .controls button:hover {
+            background: #4CAF50;
+            color: white;
+        }
+        .controls button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
+        }
+
+        #calculator-section {
+            margin-left: 20px;
+        }
+
+        /* Engine Serial Number and Case File */
+        .serial-info {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .serial-info input {
+            width: 300px; /* Adjust width as needed */
+            max-width: calc(100% - 4px);
+            padding: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            height: 40px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .ecm-column select {
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        table {
+            border-collapse: collapse;
+            background: white;
+            min-width: 600px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        th {
+            background: #4CAF50;
+            color: white;
+            font-size: 13px;
+            position: relative;
+        }
+        td { font-size: 12px; }
+
+        input, select {
+            width: 100%;
+            padding: 6px;
+            font-size: 12px;
+            box-sizing: border-box;
+            height: 32px;
+        }
+
+        /* Tooltip */
+        .help-icon {
+            font-size: 12px;
+            background: #212f3d;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 160px;
+            background: #d3d3d3;
+            color: black;
+            text-align: center;
+            padding: 8px;
+            position: absolute;
+            top: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.3;
+            z-index: 1;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #d3d3d3 transparent;
+        }
+
+        /* Conditional formatting */
+        .measured-green { background: #4CAF50; color: white; }
+        .measured-red { background: #d9534f; color: white; }
+        .delta-within-range { background: #4CAF50; color: white; }
+        .delta-out-of-range { background: #d9534f; color: white; }
+
+        @media only screen and (max-width: 768px) {
+            body { margin: 10px; }
+            table { font-size: 12px; }
+            th, td { padding: 6px; }
+            .serial-info input { width: 100%; }
+        }
+        @media print {
+            @page { size: landscape; }
+        }
+</style>
+<div class="controls"><button id="clearBtn">Clear</button><button id="downloadPdfBtn">Download PDF</button><button id="downloadImgBtn">Download Image</button><button onclick="window.print()">Print</button></div>
+
+<div id="calculator-section">
+<div id="export-content">
+<div class="serial-info"><input id="engineSerial" placeholder="Engine Serial Number" type="text" /> <input id="caseFile" placeholder="Case File" type="text" /></div>
+
+<table>
+	<colgroup>
+		<col class="notes-column" />
+		<col class="map-column" />
+		<col class="mfg-column" />
+		<col class="baro-column" />
+		<col class="measured-column" />
+		<col class="minspec-column" />
+		<col class="delta-column" />
+		<col class="ecm-column" />
+	</colgroup>
+	<thead>
+		<tr>
+			<th>Notes</th>
+			<th>MAP
+			<div class="tooltip"><span class="help-icon">?</span> <span class="tooltiptext">Enter MAP value from 4G Display.</span></div>
+			</th>
+			<th>MFG Upstream Pressure (psia)
+			<div class="tooltip"><span class="help-icon">?</span> <span class="tooltiptext">Enter MFG Upstream Pressure from 4G Display.</span></div>
+			</th>
+			<th>Barometric Pressure (psi)
+			<div class="tooltip"><span class="help-icon">?</span> <span class="tooltiptext">Input barometric pressure from local source.</span></div>
+			</th>
+			<th>in H<sub>2</sub>O at MFG<br />
+			(Measured)</th>
+			<th>Required Fuel Pressure<br />
+			at MFG</th>
+			<th>Delta Pressure H<sub>2</sub>O
+			<div class="tooltip"><span class="help-icon">?</span> <span class="tooltiptext">Difference from the specified range.</span></div>
+			</th>
+			<th>Primary or Secondary</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><input placeholder="Enter notes" type="text" /></td>
+			<td><input id="map1" step="0.01" type="number" /></td>
+			<td><input id="mfg1" step="0.01" type="number" /></td>
+			<td><input id="baro1" step="0.01" type="number" /></td>
+			<td class="result measured-red" id="measured1">0.00</td>
+			<td id="minspec1">20-30 in H<sub>2</sub>O</td>
+			<td class="result delta-out-of-range" id="delta1">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+		<tr>
+			<td><input type="text" /></td>
+			<td><input id="map2" step="0.01" type="number" /></td>
+			<td><input id="mfg2" step="0.01" type="number" /></td>
+			<td><input id="baro2" step="0.01" type="number" /></td>
+			<td class="result" id="measured2">0.00</td>
+			<td id="minspec2">20-30 in H<sub>2</sub>O</td>
+			<td class="result" id="delta2">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+		<tr>
+			<td><input type="text" /></td>
+			<td><input id="map3" step="0.01" type="number" /></td>
+			<td><input id="mfg3" step="0.01" type="number" /></td>
+			<td><input id="baro3" step="0.01" type="number" /></td>
+			<td class="result" id="measured3">0.00</td>
+			<td id="minspec3">20-30 in H<sub>2</sub>O</td>
+			<td class="result" id="delta3">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+		<tr>
+			<td><input type="text" /></td>
+			<td><input id="map4" step="0.01" type="number" /></td>
+			<td><input id="mfg4" step="0.01" type="number" /></td>
+			<td><input id="baro4" step="0.01" type="number" /></td>
+			<td class="result" id="measured4">0.00</td>
+			<td id="minspec4">20-30 in H<sub>2</sub>O</td>
+			<td class="result" id="delta4">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+		<tr>
+			<td><input type="text" /></td>
+			<td><input id="map5" step="0.01" type="number" /></td>
+			<td><input id="mfg5" step="0.01" type="number" /></td>
+			<td><input id="baro5" step="0.01" type="number" /></td>
+			<td class="result" id="measured5">0.00</td>
+			<td id="minspec5">20-30 in H<sub>2</sub>O</td>
+			<td class="result" id="delta5">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+		<tr>
+			<td><input type="text" /></td>
+			<td><input id="map6" step="0.01" type="number" /></td>
+			<td><input id="mfg6" step="0.01" type="number" /></td>
+			<td><input id="baro6" step="0.01" type="number" /></td>
+			<td class="result" id="measured6">0.00</td>
+			<td id="minspec6">20-30 in H<sub>2</sub>O</td>
+			<td class="result" id="delta6">0.00</td>
+			<td><select><option selected="selected" value=""></option><option value="Primary">Primary</option><option value="Secondary">Secondary</option></select></td>
+		</tr>
+	</tbody>
+</table>
+</div>
+&nbsp;
+
+<h1><strong>How to Use the Fuel Pressure Analysis Calculator</strong></h1>
+
+<p>You can choose to either use a single data point or take the average between two cursors on the plot from the 4G Display software, depending on your needs:</p>
+
+<ul>
+	<li><strong>Single Data Point:</strong> Use a single cursor if you&rsquo;re interested in checking a specific pressure point on the plot.</li>
+	<li><strong>Average Between Two Cursors:</strong> Select two points in the plot and input the average value from this section.</li>
+</ul>
+
+<p>Once you&rsquo;ve decided which method you want to use, follow the steps below:</p>
+
+<ol>
+	<li><strong>Enter the MAP (Manifold Absolute Pressure):</strong> Input the MAP value from the 4G Display software.</li>
+	<li><strong>Enter the MFG Upstream Pressure:</strong> Input the upstream pressure value from the 4G Display software.</li>
+	<li><strong>Enter the Barometric Pressure:</strong> Input the barometric pressure, available from local weather sources or the 4G Display software.</li>
+	<li><strong>Check the Calculated Pressures:</strong> The calculator will display the Measured Pressure in H2O.</li>
+	<li><strong>View the Delta Pressure:</strong> The Delta Pressure will show the difference between the Measured Pressure and the Minimum Specified Pressure.</li>
+	<li><strong>Review and Print/Email:</strong> After analyzing your results, print or email the report.</li>
+</ol>
+</div>
+<script>
+        const MIN_SPEC_MIN = 20, MIN_SPEC_MAX = 30;
+
+        function calculate(n) {
+            const m = parseFloat(document.getElementById(`mfg${n}`).value) || 0;
+            const b = parseFloat(document.getElementById(`baro${n}`).value) || 0;
+            const measured = (m - b) * 27;
+            const mCell = document.getElementById(`measured${n}`);
+            mCell.textContent = measured.toFixed(2);
+            mCell.classList.toggle("measured-green", measured >= MIN_SPEC_MIN && measured < MIN_SPEC_MAX);
+            mCell.classList.toggle("measured-red", measured < MIN_SPEC_MIN || measured >= MIN_SPEC_MAX);
+
+            let delta = 0;
+            if (measured < MIN_SPEC_MIN) delta = measured - MIN_SPEC_MIN;
+            else if (measured >= MIN_SPEC_MAX) delta = measured - MIN_SPEC_MAX;
+
+            const dCell = document.getElementById(`delta${n}`);
+            dCell.textContent = delta.toFixed(2);
+            dCell.classList.toggle("delta-within-range", delta === 0);
+            dCell.classList.toggle("delta-out-of-range", delta !== 0);
+        }
+
+        // Loop through all 6 rows for calculations
+        document.querySelectorAll('input[type="number"]').forEach(i =>
+            i.addEventListener('input', () => calculate(i.id.match(/\d+$/)[0]))
+        );
+
+        document.getElementById('clearBtn').onclick = () => {
+            document.querySelectorAll('#calculator-section input, #calculator-section select').forEach(el => {
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else el.value = '';
+            });
+            // Clear all 6 rows
+            [1,2,3,4,5,6].forEach(n => {
+                document.getElementById(`measured${n}`).textContent = '0.00';
+                document.getElementById(`delta${n}`).textContent = '0.00';
+                document.getElementById(`measured${n}`).className = 'result';
+                document.getElementById(`delta${n}`).className = 'result';
+            });
+        };
+
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            const fileName = `${document.getElementById('engineSerial').value || 'report'}${document.getElementById('caseFile').value ? `_${document.getElementById('caseFile').value}` : ''}.pdf`;
+            html2pdf()
+                .set({ margin:10, filename: fileName })
+                .from(document.getElementById('export-content')) // Export only the specific section
+                .save();
+        };
+
+        document.getElementById('downloadImgBtn').onclick = () => {
+            html2canvas(document.getElementById('export-content')).then(canvas => { // Export only the specific section
+                canvas.toBlob(blob => {
+                    const fileName = `${document.getElementById('engineSerial').value || 'report'}${document.getElementById('caseFile').value ? `_${document.getElementById('caseFile').value}` : ''}.png`;
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                });
+            });
+        };
+    </script>
+
+<div>&nbsp;</div>
+
+<div>&nbsp;</div>
