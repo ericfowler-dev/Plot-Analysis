@@ -253,6 +253,7 @@ export default function ConfiguratorLayout({
   hasChanges = false,
   isSaving = false,
   validationErrors = [],
+  saveMessage = null,
   children
 }) {
   const [expandedSections, setExpandedSections] = useState(['thresholds']);
@@ -394,6 +395,49 @@ export default function ConfiguratorLayout({
             </div>
           </div>
         </header>
+
+        {/* Save Message Banner */}
+        {saveMessage && (
+          <div className={`px-6 py-3 ${
+            saveMessage.type === 'success' ? 'bg-green-50 border-b border-green-200' :
+            saveMessage.type === 'error' ? 'bg-red-50 border-b border-red-200' :
+            'bg-blue-50 border-b border-blue-200'
+          }`}>
+            <div className={`flex items-center gap-2 text-sm font-medium ${
+              saveMessage.type === 'success' ? 'text-green-700' :
+              saveMessage.type === 'error' ? 'text-red-700' :
+              'text-blue-700'
+            }`}>
+              {saveMessage.type === 'success' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : saveMessage.type === 'error' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ) : null}
+              {saveMessage.text}
+            </div>
+          </div>
+        )}
+
+        {/* Validation Errors Banner */}
+        {validationErrors.length > 0 && (
+          <div className="px-6 py-3 bg-red-50 border-b border-red-200">
+            <div className="text-sm font-medium text-red-700 mb-2">
+              {validationErrors.length} validation error{validationErrors.length > 1 ? 's' : ''}:
+            </div>
+            <ul className="text-sm text-red-600 list-disc list-inside space-y-1">
+              {validationErrors.slice(0, 5).map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+              {validationErrors.length > 5 && (
+                <li>...and {validationErrors.length - 5} more</li>
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">

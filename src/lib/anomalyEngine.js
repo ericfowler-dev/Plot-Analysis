@@ -1455,15 +1455,42 @@ function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
 
 /**
  * Evaluate a single condition against a row
- * Supports both signal comparisons and engine state predicates
+ * Supports signal comparisons, engine state predicates, and delta conditions (v3.1)
  *
- * @param {Object} condition - Condition to evaluate { param, operator, value }
+ * @param {Object} condition - Condition to evaluate
+ *   - Simple: { param, operator, value }
+ *   - Delta (v3.1): { type: 'delta', param1, param2, operator, value } where (param1 - param2) [op] value
  * @param {Object} row - Current data row
  * @param {Object} columnMap - Column name mapping
  * @param {Object} engineState - Current engine state (optional, for predicates)
  * @returns {boolean} True if condition is met
  */
 function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
+  // v3.1: Handle delta conditions (param1 - param2 vs value)
+  if (condition.type === 'delta') {
+    const param1Key = condition.param1 || condition.param; // fallback for migration
+    const param2Key = condition.param2;
+    if (!param1Key || !param2Key) return false;
+
+    const value1 = row[param1Key] ?? getParamValue(row, param1Key, columnMap);
+    const value2 = row[param2Key] ?? getParamValue(row, param2Key, columnMap);
+
+    const numeric1 = coerceNumber(value1);
+    const numeric2 = coerceNumber(value2);
+    if (numeric1 === null || numeric2 === null) return false;
+
+    const delta = numeric1 - numeric2;
+    switch (condition.operator) {
+      case '>': return delta > condition.value;
+      case '<': return delta < condition.value;
+      case '>=': return delta >= condition.value;
+      case '<=': return delta <= condition.value;
+      case '==': return delta == condition.value;
+      case '!=': return delta != condition.value;
+      default: return false;
+    }
+  }
+
   // Check if this is an engine state predicate
   if (isEngineStatePredicate(condition.param)) {
     const predicateResult = evaluateEngineStatePredicate(condition.param, engineState, row, columnMap);

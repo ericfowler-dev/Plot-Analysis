@@ -663,6 +663,7 @@ export default function Config3Editor({
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [saveMessage, setSaveMessage] = useState(null); // v3.1: Add save feedback message
 
   // Track initial mount to avoid marking hasChanges on load
   const isInitialMount = useRef(true);
@@ -764,9 +765,16 @@ export default function Config3Editor({
   }, [profile, thresholds, anomalyRules]);
 
   const handleSave = useCallback(async () => {
+    // Clear previous messages
+    setSaveMessage(null);
+
     // Validate before saving (v3.1 fix)
     const isValid = handleValidate();
     if (!isValid) {
+      // v3.1: Show prominent validation failure message
+      setSaveMessage({ type: 'error', text: 'Cannot save: Please fix validation errors below' });
+      // Scroll to top to show error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return; // Don't save if validation fails
     }
 
@@ -788,9 +796,13 @@ export default function Config3Editor({
         signalQuality: JSON.stringify(signalQuality)
       };
       setHasChanges(false);
+      // v3.1: Show success message
+      setSaveMessage({ type: 'success', text: 'Profile saved successfully!' });
+      setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       console.error('Failed to save:', error);
       setValidationErrors([error.message || 'Failed to save profile']);
+      setSaveMessage({ type: 'error', text: error.message || 'Failed to save profile' });
     } finally {
       setIsSaving(false);
     }
@@ -890,6 +902,7 @@ export default function Config3Editor({
       hasChanges={hasChanges}
       isSaving={isSaving}
       validationErrors={validationErrors}
+      saveMessage={saveMessage}
     >
       {renderContent()}
     </ConfiguratorLayout>

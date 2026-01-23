@@ -1,6 +1,10 @@
 /**
- * RuleBuilder - Config 3.0
+ * RuleBuilder - Config 3.1
  * Visual anomaly rule builder with condition editing
+ *
+ * v3.1 Changes:
+ * - Fixed parameter duplicates (RPM, rpm, Rpm now show as single "Engine Speed" option)
+ * - Added delta condition support for comparing two parameters
  */
 
 import React, { useState, useCallback } from 'react';
@@ -35,7 +39,14 @@ const OPERATOR_OPTIONS = [
   { value: '!=', label: '!= (not equals)' }
 ];
 
+// v3.1: Condition types for simple vs delta comparisons
+const CONDITION_TYPES = [
+  { value: 'simple', label: 'Simple (param vs value)', description: 'Compare a parameter to a fixed value' },
+  { value: 'delta', label: 'Delta (param1 - param2)', description: 'Compare the difference between two parameters' }
+];
+
 // Get all available parameters for condition dropdowns
+// v3.1: Use parameter IDs instead of dataColumns to avoid duplicates (RPM, rpm, Rpm)
 const getAvailableParams = () => {
   const params = [];
 
@@ -49,16 +60,17 @@ const getAvailableParams = () => {
     });
   }
 
-  // Add parameters from catalog
+  // Add parameters from catalog - use canonical ID, not dataColumns
   for (const param of Object.values(PARAMETER_CATALOG)) {
-    for (const col of param.dataColumns) {
-      params.push({
-        value: col,
-        label: `${param.name} (${col})`,
-        group: param.category,
-        description: param.description
-      });
-    }
+    // Use the first dataColumn as the value (primary column name for data matching)
+    const primaryColumn = param.dataColumns[0] || param.id;
+    params.push({
+      value: primaryColumn,
+      label: param.name,
+      group: param.category,
+      description: param.description,
+      unit: param.unit
+    });
   }
 
   return params;
@@ -67,92 +79,175 @@ const getAvailableParams = () => {
 const AVAILABLE_PARAMS = getAvailableParams();
 
 /**
+ * Parameter select dropdown - reusable component
+ */
+function ParameterSelect({ value, onChange, includeEngineState = true, className = '' }) {
+  return (
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      className={`px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 ${className}`}
+    >
+      <option value="">Select parameter...</option>
+      {includeEngineState && (
+        <optgroup label="Engine State">
+          {ENGINE_STATE_PREDICATE_OPTIONS.map(p => (
+            <option key={p.key} value={p.key}>{p.label}</option>
+          ))}
+        </optgroup>
+      )}
+      {Object.entries(
+        AVAILABLE_PARAMS.filter(p => p.group !== 'Engine State')
+          .reduce((acc, p) => {
+            if (!acc[p.group]) acc[p.group] = [];
+            acc[p.group].push(p);
+            return acc;
+          }, {})
+      ).map(([group, params]) => (
+        <optgroup key={group} label={group}>
+          {params.map(p => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+/**
  * Condition block component
+ * v3.1: Supports both simple and delta condition types
  */
 function ConditionBlock({ condition, onChange, onRemove }) {
   const handleChange = (field, value) => {
     onChange({ ...condition, [field]: value });
   };
 
+  const conditionType = condition.type || 'simple';
   const isEnginePredicate = ENGINE_STATE_PREDICATE_OPTIONS.some(p => p.key === condition.param);
+  const isDelta = conditionType === 'delta';
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-      {/* Parameter select */}
-      <select
-        value={condition.param || ''}
-        onChange={(e) => handleChange('param', e.target.value)}
-        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Select parameter...</option>
-        <optgroup label="Engine State">
-          {ENGINE_STATE_PREDICATE_OPTIONS.map(p => (
-            <option key={p.key} value={p.key}>{p.label}</option>
+    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+      {/* Condition type toggle */}
+      <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+        <span className="text-xs text-gray-500">Type:</span>
+        <div className="flex bg-gray-100 rounded p-0.5">
+          {CONDITION_TYPES.map(ct => (
+            <button
+              key={ct.value}
+              onClick={() => handleChange('type', ct.value)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                conditionType === ct.value
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title={ct.description}
+            >
+              {ct.label}
+            </button>
           ))}
-        </optgroup>
-        {Object.entries(
-          AVAILABLE_PARAMS.filter(p => p.group !== 'Engine State')
-            .reduce((acc, p) => {
-              if (!acc[p.group]) acc[p.group] = [];
-              acc[p.group].push(p);
-              return acc;
-            }, {})
-        ).map(([group, params]) => (
-          <optgroup key={group} label={group}>
-            {params.map(p => (
-              <option key={p.value} value={p.value}>{p.label}</option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
+        </div>
+        <div className="flex-1" />
+        {/* Remove button */}
+        <button
+          onClick={onRemove}
+          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+          title="Remove condition"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-      {/* Operator select */}
-      <select
-        value={condition.operator || '>='}
-        onChange={(e) => handleChange('operator', e.target.value)}
-        className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-      >
-        {isEnginePredicate ? (
+      {/* Condition inputs */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {isDelta ? (
+          /* Delta condition: param1 - param2 > value */
           <>
-            <option value="==">is</option>
-            <option value="!=">is not</option>
+            <ParameterSelect
+              value={condition.param1 || condition.param}
+              onChange={(v) => handleChange('param1', v)}
+              includeEngineState={false}
+              className="flex-1 min-w-[140px]"
+            />
+            <span className="text-gray-500 font-medium px-1">−</span>
+            <ParameterSelect
+              value={condition.param2}
+              onChange={(v) => handleChange('param2', v)}
+              includeEngineState={false}
+              className="flex-1 min-w-[140px]"
+            />
+            <select
+              value={condition.operator || '>'}
+              onChange={(e) => handleChange('operator', e.target.value)}
+              className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              {OPERATOR_OPTIONS.map(op => (
+                <option key={op.value} value={op.value}>{op.label}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={condition.value ?? 0}
+              onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
+              className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              placeholder="Δ"
+            />
           </>
         ) : (
-          OPERATOR_OPTIONS.map(op => (
-            <option key={op.value} value={op.value}>{op.label}</option>
-          ))
+          /* Simple condition: param > value */
+          <>
+            <ParameterSelect
+              value={condition.param}
+              onChange={(v) => handleChange('param', v)}
+              includeEngineState={true}
+              className="flex-1 min-w-[200px]"
+            />
+            <select
+              value={condition.operator || '>='}
+              onChange={(e) => handleChange('operator', e.target.value)}
+              className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              {isEnginePredicate ? (
+                <>
+                  <option value="==">is</option>
+                  <option value="!=">is not</option>
+                </>
+              ) : (
+                OPERATOR_OPTIONS.map(op => (
+                  <option key={op.value} value={op.value}>{op.label}</option>
+                ))
+              )}
+            </select>
+            {isEnginePredicate ? (
+              <select
+                value={condition.value ?? 1}
+                onChange={(e) => handleChange('value', parseInt(e.target.value))}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={1}>true</option>
+                <option value={0}>false</option>
+              </select>
+            ) : (
+              <input
+                type="number"
+                value={condition.value ?? 0}
+                onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              />
+            )}
+          </>
         )}
-      </select>
+      </div>
 
-      {/* Value input */}
-      {isEnginePredicate ? (
-        <select
-          value={condition.value ?? 1}
-          onChange={(e) => handleChange('value', parseInt(e.target.value))}
-          className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-        >
-          <option value={1}>true</option>
-          <option value={0}>false</option>
-        </select>
-      ) : (
-        <input
-          type="number"
-          value={condition.value ?? 0}
-          onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
-          className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-        />
+      {/* Helper text for delta conditions */}
+      {isDelta && (
+        <p className="text-xs text-gray-500 italic">
+          Example: If MAP − TIP &gt; 5, triggers when MAP is more than 5 units above TIP
+        </p>
       )}
-
-      {/* Remove button */}
-      <button
-        onClick={onRemove}
-        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-        title="Remove condition"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
     </div>
   );
 }
