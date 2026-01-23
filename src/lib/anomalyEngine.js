@@ -4,6 +4,7 @@
  */
 
 import { ENGINE_STATE, EngineStateTracker } from './engineState.js';
+import baselineAlertConfig from './baselineAlertConfig.json';
 
 /**
  * Alert severity levels
@@ -87,6 +88,16 @@ function findColumnName(data, paramKey, customMappings = {}) {
     }
   }
   return null;
+}
+
+const DEFAULT_BASELINE_PARAMETERS = new Set(baselineAlertConfig?.trackedParameters || []);
+
+function shouldTrackBaselineParam(param, overrideSet, overrideProvided) {
+  if (!param) return false;
+  if (overrideProvided) {
+    return overrideSet.has(param);
+  }
+  return DEFAULT_BASELINE_PARAMETERS.has(param);
 }
 
 /**
@@ -840,7 +851,8 @@ export function detectAnomalies(data, thresholds, options = {}) {
     baseline = null,
     baselineAlertsEnabled = false,
     baselineAlertSeverity = SEVERITY.INFO,
-    baselineMinDuration = 0
+    baselineMinDuration = 0,
+    baselineParameters = null
   } = options;
 
   if (!data || data.length === 0) {
@@ -903,8 +915,15 @@ export function detectAnomalies(data, thresholds, options = {}) {
     severity: baselineAlertSeverity,
     minDuration: baselineMinDuration
   };
+  const providedBaselineParams = Array.isArray(baselineParameters)
+    ? new Set(baselineParameters)
+    : new Set();
+  const overrideProvided = Array.isArray(baselineParameters);
+
   const baselineChannels = baselineConfig.enabled
-    ? Object.keys(baseline || {}).filter(param => param && param !== 'Time')
+    ? Object.keys(baseline || {}).filter(
+        param => param && param !== 'Time' && shouldTrackBaselineParam(param, providedBaselineParams, overrideProvided)
+      )
     : [];
 
   // Initialize oil pressure filter for noise reduction

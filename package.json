@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
+    ,"baseline:stats": "node scripts/generateBaselineParameterStats.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
