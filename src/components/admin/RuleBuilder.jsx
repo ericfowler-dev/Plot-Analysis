@@ -117,10 +117,28 @@ function ParameterSelect({ value, onChange, includeEngineState = true, className
 /**
  * Condition block component
  * v3.1: Supports both simple and delta condition types
+ * v3.1.1: Auto-fix operator when switching to/from engine state predicates
  */
 function ConditionBlock({ condition, onChange, onRemove }) {
   const handleChange = (field, value) => {
-    onChange({ ...condition, [field]: value });
+    const updates = { ...condition, [field]: value };
+
+    // v3.1.1: When changing parameter, auto-fix operator for engine predicates
+    if (field === 'param') {
+      const willBeEnginePredicate = ENGINE_STATE_PREDICATE_OPTIONS.some(p => p.key === value);
+      if (willBeEnginePredicate) {
+        // Force operator to '==' for engine predicates if it's not already '==' or '!='
+        if (condition.operator !== '==' && condition.operator !== '!=') {
+          updates.operator = '==';
+        }
+        // Set default value to 1 (true) if not set
+        if (updates.value === undefined || updates.value === 0) {
+          updates.value = 1;
+        }
+      }
+    }
+
+    onChange(updates);
   };
 
   const conditionType = condition.type || 'simple';

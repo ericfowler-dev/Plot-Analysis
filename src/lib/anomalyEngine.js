@@ -1612,6 +1612,54 @@ function checkBaselineBounds(row, time, baseline, baselineChannels, columnMap, a
 }
 
 /**
+ * Build debug info for custom rule trigger (v3.1.1)
+ * Returns an object with the actual values that caused the rule to trigger
+ */
+function buildRuleDebugInfo(rule, row, columnMap, engineState) {
+  const debug = {
+    engineState: engineState?.state || 'unknown',
+    conditions: []
+  };
+
+  // Add condition values
+  for (const condition of (rule.conditions || [])) {
+    if (condition.type === 'delta') {
+      const param1 = condition.param1 || condition.param;
+      const param2 = condition.param2;
+      const val1 = getValueFromRow(row, param1, columnMap);
+      const val2 = getValueFromRow(row, param2, columnMap);
+      debug.conditions.push({
+        type: 'delta',
+        param1,
+        param2,
+        value1: val1,
+        value2: val2,
+        delta: (coerceNumber(val1) || 0) - (coerceNumber(val2) || 0),
+        operator: condition.operator,
+        threshold: condition.value
+      });
+    } else if (isEngineStatePredicate(condition.param)) {
+      debug.conditions.push({
+        type: 'predicate',
+        param: condition.param,
+        result: evaluateEngineStatePredicate(condition.param, engineState, row, columnMap)
+      });
+    } else {
+      const val = getValueFromRow(row, condition.param, columnMap);
+      debug.conditions.push({
+        type: 'simple',
+        param: condition.param,
+        value: val,
+        operator: condition.operator,
+        threshold: condition.value
+      });
+    }
+  }
+
+  return debug;
+}
+
+/**
  * Check custom anomaly rules with timing and engine state support
  *
  * Enhanced rule evaluation supporting:
@@ -1687,6 +1735,11 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
     const hasTiming = rule.triggerPersistenceSec || rule.clearPersistenceSec ||
                       rule.windowSec || rule.startDelaySec || rule.stopDelaySec;
 
+    // v3.1.1: Build debug info when rule triggers (only on first trigger)
+    const debugInfo = conditionsMet && !startTimes.has(alertId)
+      ? buildRuleDebugInfo(rule, row, columnMap, engineState)
+      : null;
+
     if (ruleTimingTracker && hasTiming) {
       const persistence = ruleTimingTracker.checkPersistence(alertId, conditionsMet, time, rule);
 
@@ -1698,7 +1751,8 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
           severity: rule.severity || SEVERITY.WARNING,
           category: rule.category || CATEGORIES.CUSTOM,
           ruleId: rule.id,
-          minDuration: 0 // Persistence already applied
+          minDuration: 0, // Persistence already applied
+          debugInfo
         });
       } else if (persistence.shouldClear) {
         // Conditions not met for clear persistence - clear alert
@@ -1715,7 +1769,8 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
           severity: rule.severity || SEVERITY.WARNING,
           category: rule.category || CATEGORIES.CUSTOM,
           ruleId: rule.id,
-          minDuration: rule.duration || 0
+          minDuration: rule.duration || 0,
+          debugInfo
         });
       } else if (startTimes.has(alertId)) {
         handleAlertState(alertId, false, time, null, alerts, startTimes, values, {});
@@ -1807,7 +1862,8 @@ function handleAlertState(alertId, isActive, time, value, alerts, startTimes, va
         duration: null,
         value: value,
         minValue: value,
-        maxValue: value
+        maxValue: value,
+        debugInfo: config.debugInfo || null  // v3.1.1: Include debug info for custom rules
       });
     } else {
       // Update existing alert
