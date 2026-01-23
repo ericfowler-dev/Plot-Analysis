@@ -279,7 +279,7 @@ export default function ConfiguratorLayout({
   }, [onSectionChange]);
 
   return (
-    <div className="flex h-full bg-gray-100">
+    <div className="configurator-layout flex h-full bg-gray-100">
       {/* Sidebar */}
       <aside
         className={`

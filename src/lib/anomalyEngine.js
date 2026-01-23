@@ -1454,6 +1454,33 @@ function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
 }
 
 /**
+ * Helper function for case-insensitive parameter lookup in data row
+ * v3.1: Added to fix requireWhen/ignoreWhen conditions not finding parameters
+ */
+function getValueFromRow(row, paramKey, columnMap) {
+  // Try direct access first
+  let value = row[paramKey];
+
+  // If not found, try case-insensitive lookup
+  if (value === undefined && paramKey) {
+    const paramLower = paramKey.toLowerCase();
+    for (const key of Object.keys(row)) {
+      if (key.toLowerCase() === paramLower) {
+        value = row[key];
+        break;
+      }
+    }
+  }
+
+  // Fall back to column map lookup
+  if (value === undefined) {
+    value = getParamValue(row, paramKey, columnMap);
+  }
+
+  return value;
+}
+
+/**
  * Evaluate a single condition against a row
  * Supports signal comparisons, engine state predicates, and delta conditions (v3.1)
  *
@@ -1472,8 +1499,9 @@ function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
     const param2Key = condition.param2;
     if (!param1Key || !param2Key) return false;
 
-    const value1 = row[param1Key] ?? getParamValue(row, param1Key, columnMap);
-    const value2 = row[param2Key] ?? getParamValue(row, param2Key, columnMap);
+    // v3.1: Use case-insensitive lookup for delta parameters
+    const value1 = getValueFromRow(row, param1Key, columnMap);
+    const value2 = getValueFromRow(row, param2Key, columnMap);
 
     const numeric1 = coerceNumber(value1);
     const numeric2 = coerceNumber(value2);
@@ -1505,8 +1533,8 @@ function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
     }
   }
 
-  // Standard signal comparison
-  const value = row[condition.param] ?? getParamValue(row, condition.param, columnMap);
+  // Standard signal comparison - v3.1: Use case-insensitive lookup
+  const value = getValueFromRow(row, condition.param, columnMap);
   const numericValue = coerceNumber(value);
   if (numericValue === null) return false;
 
