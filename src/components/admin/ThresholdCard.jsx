@@ -5,6 +5,13 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { THRESHOLD_TYPES, supportsHysteresis, supportsConditions } from '../../lib/parameterCatalog';
+import {
+  ENGINE_STATE_OPTIONS,
+  SIGNAL_PARAMETER_OPTIONS,
+  CONDITION_OPERATORS,
+  ALL_CONDITION_LOOKUP,
+  isEnginePredicate
+} from '../../lib/conditionParameters';
 
 /**
  * Range slider component with visual zones
@@ -162,43 +169,65 @@ function ConditionEditor({ conditions, onChange, label }) {
 
       {expanded && (
         <div className="mt-3 space-y-2">
-          {conditions.map((condition, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={condition.param}
-                onChange={(e) => updateCondition(index, 'param', e.target.value)}
-                placeholder="Parameter"
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-              />
-              <select
-                value={condition.operator}
-                onChange={(e) => updateCondition(index, 'operator', e.target.value)}
-                className="px-2 py-1 text-sm border border-gray-300 rounded"
-              >
-                <option value="<">&lt;</option>
-                <option value="<=">&le;</option>
-                <option value=">">&gt;</option>
-                <option value=">=">&ge;</option>
-                <option value="==">==</option>
-                <option value="!=">!=</option>
-              </select>
-              <input
-                type="number"
-                value={condition.value}
-                onChange={(e) => updateCondition(index, 'value', parseFloat(e.target.value) || 0)}
-                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
-              />
-              <button
-                onClick={() => removeCondition(index)}
-                className="p-1 text-red-500 hover:bg-red-50 rounded"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
+          {conditions.map((condition, index) => {
+            const isPredicate = isEnginePredicate(condition.param);
+            const paramMeta = ALL_CONDITION_LOOKUP.get(condition.param);
+            return (
+              <div key={index} className="flex flex-wrap gap-2">
+                  <select
+                    value={condition.param}
+                    onChange={(e) => updateCondition(index, 'param', e.target.value)}
+                    className="flex-1 min-w-[160px] px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                  >
+                    <option value="">Select parameter</option>
+                    <optgroup label="Engine State">
+                      {ENGINE_STATE_OPTIONS.map(option => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Signals">
+                      {SIGNAL_PARAMETER_OPTIONS.map(option => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}{option.unit ? ` (${option.unit})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                <select
+                  value={condition.operator}
+                  onChange={(e) => updateCondition(index, 'operator', e.target.value)}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                >
+                  {CONDITION_OPERATORS.map(op => (
+                    <option key={op} value={op}>{op}</option>
+                  ))}
+                </select>
+                <div className="relative w-24">
+                  <input
+                    type="number"
+                    value={condition.value}
+                    onChange={(e) => updateCondition(index, 'value', parseFloat(e.target.value) || 0)}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  />
+                  {!isPredicate && paramMeta?.unit && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">
+                      {paramMeta.unit}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => removeCondition(index)}
+                  className="p-1 text-red-500 hover:bg-red-50 rounded"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })}
           <button
             onClick={addCondition}
             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
