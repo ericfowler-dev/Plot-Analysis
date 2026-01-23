@@ -1,7 +1,12 @@
 /**
- * Parameter Catalog - Config 3.0
+ * Parameter Catalog - Config 3.1
  * Centralized definitions for all configurable engine parameters
  * This catalog drives the UI generation and validation
+ *
+ * v3.1 Changes:
+ * - Added 'evaluated' flag to indicate which parameters are actually
+ *   checked by the anomaly detection engine vs. metadata-only
+ * - Tightened battery max default from 32V to 15V
  */
 
 // Parameter categories with metadata
@@ -97,11 +102,12 @@ export const PARAMETER_CATALOG = {
     description: 'System battery/alternator voltage. Monitors charging system health and detects low voltage conditions.',
     dataColumns: ['Vbat', 'battery_voltage', 'VBAT', 'vbat'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: true, // v3.1: Evaluated by anomaly engine
     defaults: {
       enabled: true,
-      warning: { min: 11.5, max: 30 },
-      critical: { min: 10.5, max: 32 },
-      hysteresis: { lowClear: 12.0, highClear: 29 }
+      warning: { min: 11.5, max: 14.8 },
+      critical: { min: 10.5, max: 15.5 }, // v3.1: Tightened from 32V to 15.5V to reduce false positives
+      hysteresis: { lowClear: 12.0, highClear: 14.5 }
     },
     validation: { min: 0, max: 50, step: 0.1 },
     advanced: ['hysteresis', 'ignoreWhen', 'requireWhen'],
@@ -116,6 +122,7 @@ export const PARAMETER_CATALOG = {
     description: 'Ignition switch voltage. Used to detect key-on state and power status.',
     dataColumns: ['Vsw', 'vsw', 'VSW', 'switch_voltage'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 8, max: 32 },
@@ -135,6 +142,7 @@ export const PARAMETER_CATALOG = {
     description: 'Engine coolant temperature. High values indicate overheating.',
     dataColumns: ['ECT', 'coolant_temp', 'engine_coolant_temp', 'ect'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: true, // v3.1: Evaluated by anomaly engine
     defaults: {
       enabled: true,
       warning: { max: 220 },
@@ -154,8 +162,9 @@ export const PARAMETER_CATALOG = {
     description: 'Engine oil temperature. High values may indicate cooling issues or excessive load.',
     dataColumns: ['OILT', 'oil_temp', 'OIL_TEMP', 'oilt'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
-      enabled: true,
+      enabled: false, // v3.1: Disabled by default since not evaluated
       warning: { max: 250 },
       critical: { max: 270 }
     },
@@ -172,8 +181,9 @@ export const PARAMETER_CATALOG = {
     description: 'Intake air temperature. High values reduce engine efficiency and increase detonation risk.',
     dataColumns: ['IAT', 'intake_air_temp', 'INTAKE_AIR_TEMP', 'iat'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
-      enabled: true,
+      enabled: false, // v3.1: Disabled by default since not evaluated
       warning: { max: 140 },
       critical: { max: 160 }
     },
@@ -190,6 +200,7 @@ export const PARAMETER_CATALOG = {
     description: 'Exhaust gas temperature (when equipped). High values indicate lean mixture or ignition issues.',
     dataColumns: ['EGT', 'exhaust_gas_temp', 'egt', 'EXHAUST_TEMP'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 1400 },
@@ -208,6 +219,7 @@ export const PARAMETER_CATALOG = {
     description: 'Intercooler outlet temperature. Monitors charge air cooling effectiveness.',
     dataColumns: ['ICOT', 'intercooler_temp', 'charge_air_temp'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 180 },
@@ -226,6 +238,7 @@ export const PARAMETER_CATALOG = {
     description: 'Catalyst bed temperature. Monitors catalyst operating range.',
     dataColumns: ['CAT_TEMP', 'catalyst_temp', 'cat_temp'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 1200 },
@@ -245,6 +258,7 @@ export const PARAMETER_CATALOG = {
     description: 'Engine oil pressure. Low values during running indicate lubrication issues.',
     dataColumns: ['OILP_press', 'oil_pressure', 'OIL_PRESS', 'oilp_press'],
     thresholdType: THRESHOLD_TYPES.MIN_ONLY,
+    evaluated: true, // v3.1: Evaluated by anomaly engine
     defaults: {
       enabled: true,
       warning: { min: 8 },
@@ -265,8 +279,9 @@ export const PARAMETER_CATALOG = {
     description: 'Intake manifold absolute pressure. Indicates engine load and turbo boost.',
     dataColumns: ['MAP', 'manifold_pressure', 'MANIFOLD_ABS_PRESS', 'map'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
-      enabled: true,
+      enabled: false, // v3.1: Disabled by default since not evaluated
       warning: { min: 2, max: 35 },
       critical: { min: 0.5, max: 40 }
     },
@@ -283,6 +298,7 @@ export const PARAMETER_CATALOG = {
     description: 'Pressure at throttle body inlet. Used for TIP/MAP delta calculations.',
     dataColumns: ['TIP', 'throttle_inlet_pressure', 'tip'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 2, max: 38 },
@@ -301,6 +317,7 @@ export const PARAMETER_CATALOG = {
     description: 'Fuel system pressure. Low values may cause lean conditions.',
     dataColumns: ['FUEL_PRESS', 'fuel_pressure', 'fp'],
     thresholdType: THRESHOLD_TYPES.MIN_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 35 },
@@ -319,6 +336,7 @@ export const PARAMETER_CATALOG = {
     description: 'Crankcase pressure. High values indicate blowby or PCV issues.',
     dataColumns: ['CRANKCASE_PRESS', 'crankcase_pressure', 'ccp'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 3 },
@@ -337,6 +355,7 @@ export const PARAMETER_CATALOG = {
     description: 'Turbocharger boost pressure (gauge). Monitors turbo output.',
     dataColumns: ['BOOST', 'boost_pressure', 'boost', 'BP'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 18 },
@@ -356,6 +375,7 @@ export const PARAMETER_CATALOG = {
     description: 'Bank 1 closed-loop fuel trim. Large positive values indicate lean, negative values indicate rich.',
     dataColumns: ['CL_BM1', 'closed_loop_fuel', 'CL_FUEL_TRIM', 'cl_bm1'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: true, // v3.1: Evaluated via fuelTrim mapping
     defaults: {
       enabled: true,
       warning: { min: -25, max: 25 },
@@ -374,6 +394,7 @@ export const PARAMETER_CATALOG = {
     description: 'Bank 2 closed-loop fuel trim (V-engines). Large positive values indicate lean.',
     dataColumns: ['CL_BM2', 'cl_bm2', 'closed_loop_b2'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: true, // v3.1: Evaluated via fuelTrim mapping
     defaults: {
       enabled: false,
       warning: { min: -25, max: 25 },
@@ -392,6 +413,7 @@ export const PARAMETER_CATALOG = {
     description: 'Bank 1 long-term adaptive fuel trim. Indicates chronic mixture correction.',
     dataColumns: ['A_BM1', 'adaptive_fuel', 'ADAPTIVE_FUEL_TRIM', 'a_bm1'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: true, // v3.1: Evaluated via fuelTrim mapping
     defaults: {
       enabled: true,
       warning: { min: -20, max: 20 },
@@ -410,6 +432,7 @@ export const PARAMETER_CATALOG = {
     description: 'Bank 2 long-term adaptive fuel trim (V-engines).',
     dataColumns: ['A_BM2', 'a_bm2', 'adaptive_b2'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: true, // v3.1: Evaluated via fuelTrim mapping
     defaults: {
       enabled: false,
       warning: { min: -20, max: 20 },
@@ -428,6 +451,7 @@ export const PARAMETER_CATALOG = {
     description: 'Air-fuel ratio from wideband oxygen sensor. 1.0 = stoichiometric.',
     dataColumns: ['Phi_UEGO', 'lambda', 'AFR', 'afr'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 0.85, max: 1.15 },
@@ -446,6 +470,7 @@ export const PARAMETER_CATALOG = {
     description: 'Fuel injector duty cycle. High values may indicate undersized injectors.',
     dataColumns: ['INJ_DUTY', 'injector_duty', 'inj_duty_pct'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 80 },
@@ -464,6 +489,7 @@ export const PARAMETER_CATALOG = {
     description: 'Volumetric efficiency feedback correction. Indicates VE table accuracy.',
     dataColumns: ['VE5a_FB_raw', 've_feedback', 'VE_FB'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: -15, max: 15 },
@@ -483,6 +509,7 @@ export const PARAMETER_CATALOG = {
     description: 'Engine rotational speed. High values risk mechanical damage.',
     dataColumns: ['rpm', 'RPM', 'engine_speed', 'ENGINE_SPEED'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: true, // v3.1: Evaluated by anomaly engine
     defaults: {
       enabled: true,
       warning: { max: 3200 },
@@ -502,6 +529,7 @@ export const PARAMETER_CATALOG = {
     description: 'Calculated engine load percentage. 100% = wide open throttle.',
     dataColumns: ['eng_load', 'engine_load', 'ENG_LOAD', 'load'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 95 },
@@ -520,6 +548,7 @@ export const PARAMETER_CATALOG = {
     description: 'Throttle plate position percentage.',
     dataColumns: ['TPS_pct', 'throttle_position', 'TPS', 'tps'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 95 },
@@ -538,6 +567,7 @@ export const PARAMETER_CATALOG = {
     description: 'Ignition timing advance. Monitors timing stability.',
     dataColumns: ['spk_adv', 'spark_advance', 'IGN_ADV', 'ign_adv'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 5, max: 50 },
@@ -556,6 +586,7 @@ export const PARAMETER_CATALOG = {
     description: 'Governor RPM setpoint 1 (idle speed target).',
     dataColumns: ['Gov1_rpm', 'gov1_rpm', 'GOV1_RPM'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 500, max: 1000 },
@@ -574,6 +605,7 @@ export const PARAMETER_CATALOG = {
     description: 'Governor RPM setpoint 2 (rated speed target).',
     dataColumns: ['Gov2_rpm', 'gov2_rpm', 'GOV2_RPM'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 1200, max: 2000 },
@@ -592,6 +624,7 @@ export const PARAMETER_CATALOG = {
     description: 'Governor RPM setpoint 3 (high idle target).',
     dataColumns: ['Gov3_rpm', 'gov3_rpm', 'GOV3_RPM'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 1500, max: 3000 },
@@ -610,6 +643,7 @@ export const PARAMETER_CATALOG = {
     description: 'Engine run time since start. Used for warmup detection.',
     dataColumns: ['run_tmr_sec', 'run_timer', 'RUN_TIMER'],
     thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false
     },
@@ -627,6 +661,7 @@ export const PARAMETER_CATALOG = {
     description: 'Timing retard due to knock detection. High values indicate detonation.',
     dataColumns: ['KNK_retard', 'knock_retard', 'KNOCK_RETARD', 'knk_retard'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: true, // v3.1: Evaluated via knock.maxRetard mapping
     defaults: {
       enabled: true,
       warning: { max: 10 },
@@ -645,6 +680,7 @@ export const PARAMETER_CATALOG = {
     description: 'Total knock events detected.',
     dataColumns: ['KNK_COUNT', 'knock_count', 'knock_events'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 50 },
@@ -663,6 +699,7 @@ export const PARAMETER_CATALOG = {
     description: 'Percentage of run time with active knock retard.',
     dataColumns: ['KNK_PCT', 'knock_percentage', 'knock_pct'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: true, // v3.1: Evaluated via knock.percentageThreshold mapping
     defaults: {
       enabled: true,
       warning: { max: 5 },
@@ -682,6 +719,7 @@ export const PARAMETER_CATALOG = {
     description: 'Mass Flow Gas valve differential pressure. Monitors fuel flow consistency.',
     dataColumns: ['MFG_DPPress', 'mfg_dp', 'mfg_delta_pressure'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 1, max: 8 },
@@ -700,6 +738,7 @@ export const PARAMETER_CATALOG = {
     description: 'Pressure upstream of MFG valve. Monitors fuel supply.',
     dataColumns: ['MFG_USPress', 'mfg_us', 'mfg_upstream'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 5, max: 25 },
@@ -718,6 +757,7 @@ export const PARAMETER_CATALOG = {
     description: 'Pressure downstream of MFG valve. Monitors fuel delivery.',
     dataColumns: ['MFG_DSPress', 'mfg_ds', 'mfg_downstream'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 3, max: 20 },
@@ -736,6 +776,7 @@ export const PARAMETER_CATALOG = {
     description: 'Actual MFG throttle position. Monitors actuator response.',
     dataColumns: ['MFG_TPS_act_pct', 'mfg_throttle_actual', 'mfg_tps_act'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 0, max: 100 },
@@ -754,6 +795,7 @@ export const PARAMETER_CATALOG = {
     description: 'Commanded MFG throttle position. Compare with actual for following error.',
     dataColumns: ['MFG_TPS_cmd_pct', 'mfg_throttle_command', 'mfg_tps_cmd'],
     thresholdType: THRESHOLD_TYPES.RANGE,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { min: 0, max: 100 },
@@ -772,6 +814,7 @@ export const PARAMETER_CATALOG = {
     description: 'Difference between commanded and actual MFG throttle position.',
     dataColumns: ['MFG_TPS_err', 'mfg_throttle_error'],
     thresholdType: THRESHOLD_TYPES.MAX_ONLY,
+    evaluated: false, // v3.1: Not evaluated by anomaly engine (metadata only)
     defaults: {
       enabled: false,
       warning: { max: 5 },
@@ -791,6 +834,7 @@ export const PARAMETER_CATALOG = {
     description: 'Detect missing/NaN values in sensor signals during engine operation.',
     dataColumns: [],
     thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: true, // v3.1: Evaluated by anomaly engine
     defaults: {
       enabled: true,
       alertSeverity: 'info',
@@ -893,6 +937,33 @@ export function supportsHysteresis(parameterId) {
 export function supportsConditions(parameterId) {
   const param = PARAMETER_CATALOG[parameterId];
   return param?.advanced?.includes('ignoreWhen') || param?.advanced?.includes('requireWhen') || false;
+}
+
+/**
+ * v3.1: Check if parameter is evaluated by the anomaly detection engine
+ * Parameters with evaluated: false are metadata-only and won't trigger alerts
+ */
+export function isParameterEvaluated(parameterId) {
+  const param = PARAMETER_CATALOG[parameterId];
+  return param?.evaluated === true;
+}
+
+/**
+ * v3.1: Get all evaluated parameter IDs
+ */
+export function getEvaluatedParameterIds() {
+  return Object.values(PARAMETER_CATALOG)
+    .filter(p => p.evaluated === true)
+    .map(p => p.id);
+}
+
+/**
+ * v3.1: Get all non-evaluated parameter IDs (metadata only)
+ */
+export function getNonEvaluatedParameterIds() {
+  return Object.values(PARAMETER_CATALOG)
+    .filter(p => p.evaluated === false)
+    .map(p => p.id);
 }
 
 export default PARAMETER_CATALOG;

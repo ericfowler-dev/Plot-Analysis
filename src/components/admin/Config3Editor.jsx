@@ -1,10 +1,16 @@
 /**
- * Config3Editor - Config 3.0
+ * Config3Editor - Config 3.1
  * Main threshold profile editor component
  * Combines ConfiguratorLayout with all section components
+ *
+ * v3.1 Changes:
+ * - Fixed unsaved changes flag triggering on mount
+ * - Added validation before save
+ * - Fixed Raw JSON editor desync
+ * - Added non-evaluated parameter warnings
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import ConfiguratorLayout from './ConfiguratorLayout';
 import ParameterGrid, { CategoryParameterGrid } from './ParameterGrid';
 import RuleBuilder from './RuleBuilder';
@@ -495,8 +501,56 @@ function SignalQualityEditor({ config, onChange }) {
 
 /**
  * Advanced settings section
+ * v3.1: Fixed Raw JSON editor to sync all state (profile, thresholds, anomalyRules, signalQuality)
  */
-function AdvancedSettings({ profile, onChange }) {
+function AdvancedSettings({
+  profile,
+  thresholds,
+  anomalyRules,
+  signalQuality,
+  onProfileChange,
+  onThresholdsChange,
+  onAnomalyRulesChange,
+  onSignalQualityChange
+}) {
+  // Build full profile object for JSON display
+  const fullProfile = useMemo(() => ({
+    ...profile,
+    thresholds: { ...thresholds, signalQuality },
+    anomalyRules
+  }), [profile, thresholds, anomalyRules, signalQuality]);
+
+  const [jsonError, setJsonError] = useState(null);
+
+  const handleJsonChange = useCallback((e) => {
+    try {
+      const parsed = JSON.parse(e.target.value);
+      setJsonError(null);
+
+      // Extract and update all state objects (v3.1 fix)
+      const { thresholds: newThresholds, anomalyRules: newRules, ...newProfile } = parsed;
+
+      // Update profile metadata
+      onProfileChange(newProfile);
+
+      // Update thresholds (extract signalQuality separately)
+      if (newThresholds) {
+        const { signalQuality: newSignalQuality, ...restThresholds } = newThresholds;
+        onThresholdsChange(restThresholds);
+        if (newSignalQuality) {
+          onSignalQualityChange(newSignalQuality);
+        }
+      }
+
+      // Update anomaly rules
+      if (newRules) {
+        onAnomalyRulesChange(newRules);
+      }
+    } catch (err) {
+      setJsonError(err.message);
+    }
+  }, [onProfileChange, onThresholdsChange, onAnomalyRulesChange, onSignalQualityChange]);
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -508,7 +562,7 @@ function AdvancedSettings({ profile, onChange }) {
             <input
               type="text"
               value={profile?.version || '1.0.0'}
-              onChange={(e) => onChange({ ...profile, version: e.target.value })}
+              onChange={(e) => onProfileChange({ ...profile, version: e.target.value })}
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -517,7 +571,7 @@ function AdvancedSettings({ profile, onChange }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               value={profile?.status || 'active'}
-              onChange={(e) => onChange({ ...profile, status: e.target.value })}
+              onChange={(e) => onProfileChange({ ...profile, status: e.target.value })}
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="active">Active</option>
@@ -530,7 +584,7 @@ function AdvancedSettings({ profile, onChange }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
             <select
               value={profile?.fuelType || ''}
-              onChange={(e) => onChange({ ...profile, fuelType: e.target.value || null })}
+              onChange={(e) => onProfileChange({ ...profile, fuelType: e.target.value || null })}
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">Any</option>
@@ -545,7 +599,7 @@ function AdvancedSettings({ profile, onChange }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Application</label>
             <select
               value={profile?.application || ''}
-              onChange={(e) => onChange({ ...profile, application: e.target.value || null })}
+              onChange={(e) => onProfileChange({ ...profile, application: e.target.value || null })}
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">Any</option>
@@ -561,20 +615,20 @@ function AdvancedSettings({ profile, onChange }) {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Raw JSON</h3>
         <p className="text-sm text-gray-500 mb-4">
-          View and edit the raw profile JSON. Changes made here will update the visual editor.
+          View and edit the raw profile JSON. Changes made here will update all editors.
         </p>
+        {jsonError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            JSON Parse Error: {jsonError}
+          </div>
+        )}
         <textarea
-          value={JSON.stringify(profile, null, 2)}
-          onChange={(e) => {
-            try {
-              const parsed = JSON.parse(e.target.value);
-              onChange(parsed);
-            } catch {
-              // Invalid JSON, ignore
-            }
-          }}
+          value={JSON.stringify(fullProfile, null, 2)}
+          onChange={handleJsonChange}
           rows={20}
-          className="w-full font-mono text-sm px-3 py-2 border border-gray-300 rounded-lg"
+          className={`w-full font-mono text-sm px-3 py-2 border rounded-lg ${
+            jsonError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+          }`}
           spellCheck={false}
         />
       </div>
@@ -610,9 +664,37 @@ export default function Config3Editor({
   const [isSaving, setIsSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
 
-  // Track changes
+  // Track initial mount to avoid marking hasChanges on load
+  const isInitialMount = useRef(true);
+  const initialStateRef = useRef({
+    profile: JSON.stringify(profile),
+    thresholds: JSON.stringify(thresholds),
+    anomalyRules: JSON.stringify(anomalyRules),
+    signalQuality: JSON.stringify(signalQuality)
+  });
+
+  // Track changes - only after initial mount and when state actually differs from initial
   useEffect(() => {
-    setHasChanges(true);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Compare current state with initial to detect actual changes
+    const currentState = {
+      profile: JSON.stringify(profile),
+      thresholds: JSON.stringify(thresholds),
+      anomalyRules: JSON.stringify(anomalyRules),
+      signalQuality: JSON.stringify(signalQuality)
+    };
+
+    const hasActualChanges =
+      currentState.profile !== initialStateRef.current.profile ||
+      currentState.thresholds !== initialStateRef.current.thresholds ||
+      currentState.anomalyRules !== initialStateRef.current.anomalyRules ||
+      currentState.signalQuality !== initialStateRef.current.signalQuality;
+
+    setHasChanges(hasActualChanges);
   }, [profile, thresholds, anomalyRules, signalQuality]);
 
   const handleSectionChange = useCallback((section, subsection) => {
@@ -620,25 +702,7 @@ export default function Config3Editor({
     setActiveSubsection(subsection);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const fullProfile = {
-        ...profile,
-        thresholds: mapThresholdsToExistingSchema(thresholds, signalQuality),
-        anomalyRules,
-        lastModified: new Date().toISOString()
-      };
-      await onSave?.(fullProfile);
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Failed to save:', error);
-      setValidationErrors([error.message || 'Failed to save profile']);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [profile, thresholds, anomalyRules, signalQuality, onSave]);
-
+  // Validation must be defined before handleSave (v3.1 reorder)
   const handleValidate = useCallback(() => {
     const errors = [];
 
@@ -657,7 +721,7 @@ export default function Config3Editor({
       const param = PARAMETER_CATALOG[id];
       if (!param) continue;
 
-      // Check warning vs critical
+      // Check warning vs critical ordering
       if (config.warning?.min !== undefined && config.critical?.min !== undefined) {
         if (config.warning.min <= config.critical.min) {
           errors.push(`${param.name}: Warning min must be > critical min`);
@@ -666,6 +730,18 @@ export default function Config3Editor({
       if (config.warning?.max !== undefined && config.critical?.max !== undefined) {
         if (config.warning.max >= config.critical.max) {
           errors.push(`${param.name}: Warning max must be < critical max`);
+        }
+      }
+
+      // v3.1: Check min < max within each tier
+      if (config.warning?.min !== undefined && config.warning?.max !== undefined) {
+        if (config.warning.min >= config.warning.max) {
+          errors.push(`${param.name}: Warning min must be < warning max`);
+        }
+      }
+      if (config.critical?.min !== undefined && config.critical?.max !== undefined) {
+        if (config.critical.min >= config.critical.max) {
+          errors.push(`${param.name}: Critical min must be < critical max`);
         }
       }
     }
@@ -686,6 +762,39 @@ export default function Config3Editor({
     setValidationErrors(errors);
     return errors.length === 0;
   }, [profile, thresholds, anomalyRules]);
+
+  const handleSave = useCallback(async () => {
+    // Validate before saving (v3.1 fix)
+    const isValid = handleValidate();
+    if (!isValid) {
+      return; // Don't save if validation fails
+    }
+
+    setIsSaving(true);
+    try {
+      const fullProfile = {
+        ...profile,
+        thresholds: mapThresholdsToExistingSchema(thresholds, signalQuality),
+        anomalyRules,
+        lastModified: new Date().toISOString()
+      };
+      await onSave?.(fullProfile);
+
+      // Update initial state ref after successful save (v3.1 fix)
+      initialStateRef.current = {
+        profile: JSON.stringify(profile),
+        thresholds: JSON.stringify(thresholds),
+        anomalyRules: JSON.stringify(anomalyRules),
+        signalQuality: JSON.stringify(signalQuality)
+      };
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Failed to save:', error);
+      setValidationErrors([error.message || 'Failed to save profile']);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [profile, thresholds, anomalyRules, signalQuality, onSave, handleValidate]);
 
   // Render section content
   const renderContent = () => {
@@ -754,7 +863,13 @@ export default function Config3Editor({
         return (
           <AdvancedSettings
             profile={profile}
-            onChange={setProfile}
+            thresholds={thresholds}
+            anomalyRules={anomalyRules}
+            signalQuality={signalQuality}
+            onProfileChange={setProfile}
+            onThresholdsChange={setThresholds}
+            onAnomalyRulesChange={setAnomalyRules}
+            onSignalQualityChange={setSignalQuality}
           />
         );
 

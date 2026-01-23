@@ -1,6 +1,9 @@
 /**
  * Threshold Merger Utility
  * Handles inheritance resolution and merging of threshold profiles
+ *
+ * v3.1 Changes:
+ * - Added min < max validation within each tier (warning/critical)
  */
 
 import { loadProfile, getProfileHierarchy } from './profileLoader.js';
@@ -190,10 +193,30 @@ export async function compareProfiles(profileId1, profileId2) {
 
 /**
  * Validate that a profile's thresholds are within acceptable ranges
+ * v3.1: Added min < max validation within each tier
  */
 export function validateThresholdValues(thresholds) {
   const warnings = [];
   const errors = [];
+
+  // v3.1: Generic min < max validation within tiers for all parameters
+  for (const [paramId, config] of Object.entries(thresholds || {})) {
+    if (!config || typeof config !== 'object') continue;
+
+    // Check warning tier: min should be less than max
+    if (config.warning?.min !== undefined && config.warning?.max !== undefined) {
+      if (config.warning.min >= config.warning.max) {
+        errors.push(`${paramId}: Warning min (${config.warning.min}) must be less than warning max (${config.warning.max})`);
+      }
+    }
+
+    // Check critical tier: min should be less than max
+    if (config.critical?.min !== undefined && config.critical?.max !== undefined) {
+      if (config.critical.min >= config.critical.max) {
+        errors.push(`${paramId}: Critical min (${config.critical.min}) must be less than critical max (${config.critical.max})`);
+      }
+    }
+  }
 
   // Battery voltage checks
   if (thresholds.battery) {
@@ -206,6 +229,10 @@ export function validateThresholdValues(thresholds) {
     }
     if (critical?.min && critical.min < 8) {
       warnings.push('Battery critical min below 8V is unusually low');
+    }
+    // v3.1: Warning for high battery max threshold
+    if (critical?.max && critical.max > 16) {
+      warnings.push('Battery critical max above 16V may cause false positives during alternator spikes');
     }
   }
 

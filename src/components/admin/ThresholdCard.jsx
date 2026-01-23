@@ -1,10 +1,13 @@
 /**
- * ThresholdCard - Config 3.0
+ * ThresholdCard - Config 3.1
  * Individual parameter configuration card with visual threshold editing
+ *
+ * v3.1 Changes:
+ * - Added non-evaluated parameter warning badge
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { THRESHOLD_TYPES, supportsHysteresis, supportsConditions } from '../../lib/parameterCatalog';
+import { THRESHOLD_TYPES, supportsHysteresis, supportsConditions, isParameterEvaluated } from '../../lib/parameterCatalog';
 import {
   ENGINE_STATE_OPTIONS,
   SIGNAL_PARAMETER_OPTIONS,
@@ -274,6 +277,7 @@ export default function ThresholdCard({
 
   const isEnabled = config?.enabled !== false;
   const hasErrors = validation.errors && validation.errors.length > 0;
+  const isEvaluated = isParameterEvaluated(parameter.id); // v3.1: Check if parameter is evaluated
 
   // Determine threshold type and render appropriate controls
   const renderThresholdControls = () => {
@@ -462,7 +466,18 @@ export default function ThresholdCard({
           </button>
 
           <div>
-            <h3 className="font-medium text-gray-900">{parameter.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-gray-900">{parameter.name}</h3>
+              {/* v3.1: Non-evaluated warning badge */}
+              {!isEvaluated && (
+                <span
+                  className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded"
+                  title="This parameter is not evaluated by the anomaly engine. Configuration is stored as metadata only."
+                >
+                  METADATA ONLY
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500">{parameter.unit}</p>
           </div>
         </div>
@@ -495,6 +510,19 @@ export default function ThresholdCard({
       <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600">
         {parameter.description}
       </div>
+
+      {/* v3.1: Non-evaluated warning banner */}
+      {!isEvaluated && isEnabled && (
+        <div className="px-4 py-2 bg-amber-50 border-t border-b border-amber-100 flex items-start gap-2">
+          <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="text-xs text-amber-700">
+            <strong>Note:</strong> This parameter is not currently evaluated by the anomaly detection engine.
+            Thresholds are stored for future use but will not trigger alerts.
+          </p>
+        </div>
+      )}
 
       {/* Main Controls */}
       <div className="px-4 py-4">
