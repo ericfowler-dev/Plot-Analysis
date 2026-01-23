@@ -8,6 +8,10 @@
  * - Added validation before save
  * - Fixed Raw JSON editor desync
  * - Added non-evaluated parameter warnings
+ *
+ * v3.1.2 Changes:
+ * - Added engine size selection with engine-specific parameters
+ * - Engine families and sizes now loaded from server index
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -16,6 +20,7 @@ import ParameterGrid, { CategoryParameterGrid } from './ParameterGrid';
 import RuleBuilder from './RuleBuilder';
 import ThresholdPreview from './ThresholdPreview';
 import { PARAMETER_CATALOG, PARAMETER_CATEGORIES } from '../../lib/parameterCatalog';
+import { getIndex } from '../../lib/thresholdService';
 
 const EXCLUDED_THRESHOLD_CATEGORY_IDS = ['signals'];
 
@@ -140,8 +145,9 @@ const mapThresholdsToExistingSchema = (thresholds, signalQuality) => {
 
 /**
  * Profile Overview section
+ * v3.1.2: Added engine size selection with engine-specific parameters
  */
-function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onChange }) {
+function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onChange, indexData }) {
   // Count enabled parameters by category
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -162,6 +168,42 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
   const enabledRulesCount = useMemo(() => {
     return (anomalyRules || []).filter(r => r.enabled).length;
   }, [anomalyRules]);
+
+  // v3.1.2: Filter engine sizes by selected family
+  const availableEngineSizes = useMemo(() => {
+    if (!indexData?.engineSizes || !profile?.engineFamily) return [];
+    return indexData.engineSizes.filter(size => size.family === profile.engineFamily);
+  }, [indexData?.engineSizes, profile?.engineFamily]);
+
+  // v3.1.2: Get selected engine size details
+  const selectedEngineSize = useMemo(() => {
+    if (!indexData?.engineSizes || !profile?.engineSize) return null;
+    return indexData.engineSizes.find(size => size.id === profile.engineSize);
+  }, [indexData?.engineSizes, profile?.engineSize]);
+
+  // v3.1.2: Handle engine family change - clear engine size if family changes
+  const handleEngineFamilyChange = (newFamily) => {
+    const updates = { ...profile, engineFamily: newFamily || null };
+    // Clear engine size if family changes or is cleared
+    if (profile?.engineSize) {
+      const currentSize = indexData?.engineSizes?.find(s => s.id === profile.engineSize);
+      if (!newFamily || currentSize?.family !== newFamily) {
+        updates.engineSize = null;
+        updates.engineParams = null;
+      }
+    }
+    onChange(updates);
+  };
+
+  // v3.1.2: Handle engine size change - store engine-specific params
+  const handleEngineSizeChange = (sizeId) => {
+    const size = indexData?.engineSizes?.find(s => s.id === sizeId);
+    onChange({
+      ...profile,
+      engineSize: sizeId || null,
+      engineParams: size?.params || null
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -200,13 +242,31 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
             <label className="block text-sm font-medium text-gray-700 mb-1">Engine Family</label>
             <select
               value={profile?.engineFamily || ''}
-              onChange={(e) => onChange({ ...profile, engineFamily: e.target.value || null })}
+              onChange={(e) => handleEngineFamilyChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">None (Universal)</option>
-              <option value="psi-hd">PSI HD</option>
-              <option value="psi-industrial">PSI Industrial</option>
+              {(indexData?.engineFamilies || []).map(family => (
+                <option key={family.id} value={family.id}>{family.name}</option>
+              ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Engine Size</label>
+            <select
+              value={profile?.engineSize || ''}
+              onChange={(e) => handleEngineSizeChange(e.target.value)}
+              disabled={!profile?.engineFamily || availableEngineSizes.length === 0}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+            >
+              <option value="">Select engine size...</option>
+              {availableEngineSizes.map(size => (
+                <option key={size.id} value={size.id}>{size.name}</option>
+              ))}
+            </select>
+            {!profile?.engineFamily && (
+              <p className="text-xs text-gray-500 mt-1">Select an engine family first</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Parent Profile</label>
@@ -220,6 +280,49 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
           </div>
         </div>
       </div>
+
+      {/* Engine-specific parameters - v3.1.2 */}
+      {selectedEngineSize?.params && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Engine Parameters ({selectedEngineSize.name})
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {selectedEngineSize.description}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(selectedEngineSize.params).map(([key, value]) => {
+              const labels = {
+                fullLoadTpsThreshold: 'Full Load TPS',
+                ratedRpm: 'Rated RPM',
+                idleRpm: 'Idle RPM',
+                tipMapDeltaThreshold: 'TIP-MAP Delta Max'
+              };
+              const units = {
+                fullLoadTpsThreshold: '%',
+                ratedRpm: 'RPM',
+                idleRpm: 'RPM',
+                tipMapDeltaThreshold: 'psi'
+              };
+              return (
+                <div key={key} className="bg-white rounded-lg p-3 border border-blue-100">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">{labels[key] || key}</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {value}{units[key] ? <span className="text-sm text-gray-500 ml-1">{units[key]}</span> : null}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            These parameters are available as <code className="bg-gray-100 px-1 rounded">engineParams.*</code> in custom rule conditions.
+          </p>
+        </div>
+      )}
 
       {/* Configuration summary */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -502,6 +605,7 @@ function SignalQualityEditor({ config, onChange }) {
 /**
  * Advanced settings section
  * v3.1: Fixed Raw JSON editor to sync all state (profile, thresholds, anomalyRules, signalQuality)
+ * v3.1.2: Use index data for fuel types and applications
  */
 function AdvancedSettings({
   profile,
@@ -511,7 +615,8 @@ function AdvancedSettings({
   onProfileChange,
   onThresholdsChange,
   onAnomalyRulesChange,
-  onSignalQualityChange
+  onSignalQualityChange,
+  indexData
 }) {
   // Build full profile object for JSON display
   const fullProfile = useMemo(() => ({
@@ -588,10 +693,9 @@ function AdvancedSettings({
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">Any</option>
-              <option value="natural_gas">Natural Gas</option>
-              <option value="propane">Propane/LPG</option>
-              <option value="gasoline">Gasoline</option>
-              <option value="diesel">Diesel</option>
+              {(indexData?.fuelTypes || []).map(fuel => (
+                <option key={fuel.id} value={fuel.id}>{fuel.name}</option>
+              ))}
             </select>
           </div>
 
@@ -603,10 +707,9 @@ function AdvancedSettings({
               className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">Any</option>
-              <option value="generator">Generator</option>
-              <option value="compressor">Compressor</option>
-              <option value="pump">Pump</option>
-              <option value="vehicle">Vehicle</option>
+              {(indexData?.applications || []).map(app => (
+                <option key={app.id} value={app.id}>{app.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -664,6 +767,15 @@ export default function Config3Editor({
   const [isSaving, setIsSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [saveMessage, setSaveMessage] = useState(null); // v3.1: Add save feedback message
+
+  // v3.1.2: Load index data for engine families, sizes, and applications
+  const [indexData, setIndexData] = useState(null);
+
+  useEffect(() => {
+    getIndex()
+      .then(index => setIndexData(index))
+      .catch(err => console.error('Failed to load profile index:', err));
+  }, []);
 
   // Track initial mount to avoid marking hasChanges on load
   const isInitialMount = useRef(true);
@@ -819,6 +931,7 @@ export default function Config3Editor({
             anomalyRules={anomalyRules}
             signalQuality={signalQuality}
             onChange={setProfile}
+            indexData={indexData}
           />
         );
 
@@ -882,6 +995,7 @@ export default function Config3Editor({
             onThresholdsChange={setThresholds}
             onAnomalyRulesChange={setAnomalyRules}
             onSignalQualityChange={setSignalQuality}
+            indexData={indexData}
           />
         );
 

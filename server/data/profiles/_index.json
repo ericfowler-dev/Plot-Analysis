@@ -76,31 +76,68 @@
       "id": "40L",
       "name": "40L",
       "family": "psi-hd",
-      "description": "PSI HD 40 liter engine with MFG fuel system"
+      "description": "PSI HD 40 liter engine with MFG fuel system",
+      "params": {
+        "fullLoadTpsThreshold": 85,
+        "ratedRpm": 1800,
+        "idleRpm": 700
+      }
     },
     {
       "id": "53L",
       "name": "53L",
       "family": "psi-hd",
-      "description": "PSI HD 53 liter engine with MFG fuel system"
+      "description": "PSI HD 53 liter engine with MFG fuel system",
+      "params": {
+        "fullLoadTpsThreshold": 85,
+        "ratedRpm": 1800,
+        "idleRpm": 700
+      }
     },
     {
       "id": "22L",
       "name": "22L",
       "family": "psi-hd",
-      "description": "PSI HD 22 liter engine"
+      "description": "PSI HD 22 liter engine",
+      "params": {
+        "fullLoadTpsThreshold": 80,
+        "ratedRpm": 1800,
+        "idleRpm": 700
+      }
     },
     {
       "id": "8.8L",
       "name": "8.8L",
       "family": "psi-industrial",
-      "description": "PSI Industrial 8.8 liter engine"
+      "description": "PSI Industrial 8.8 liter engine",
+      "params": {
+        "fullLoadTpsThreshold": 45,
+        "ratedRpm": 1800,
+        "idleRpm": 700
+      }
+    },
+    {
+      "id": "5.7L",
+      "name": "5.7L",
+      "family": "psi-industrial",
+      "description": "PSI Industrial 5.7 liter CAC turbocharged engine",
+      "params": {
+        "fullLoadTpsThreshold": 38,
+        "ratedRpm": 1800,
+        "idleRpm": 700,
+        "tipMapDeltaThreshold": 2.5
+      }
     },
     {
       "id": "4.3L",
       "name": "4.3L",
       "family": "psi-industrial",
-      "description": "PSI Industrial 4.3 liter engine"
+      "description": "PSI Industrial 4.3 liter engine",
+      "params": {
+        "fullLoadTpsThreshold": 50,
+        "ratedRpm": 1800,
+        "idleRpm": 700
+      }
     }
   ],
   "fuelSystems": [
