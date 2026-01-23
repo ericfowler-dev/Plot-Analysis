@@ -6,6 +6,11 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a lightweight Python virtual environment for pip installs
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip setuptools wheel
+
 # Install Python dependencies via pip (matching requirements.txt)
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
