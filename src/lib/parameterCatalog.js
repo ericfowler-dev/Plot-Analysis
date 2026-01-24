@@ -727,7 +727,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 20, step: 0.1 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   mfgUpstreamPressure: {
@@ -746,7 +747,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 50, step: 0.5 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   mfgDownstreamPressure: {
@@ -765,7 +767,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 50, step: 0.5 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   mfgThrottleActual: {
@@ -784,7 +787,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 100, step: 1 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   mfgThrottleCommand: {
@@ -803,7 +807,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 100, step: 1 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   mfgThrottleError: {
@@ -822,7 +827,8 @@ export const PARAMETER_CATALOG = {
     },
     validation: { min: 0, max: 100, step: 1 },
     advanced: ['ignoreWhen', 'requireWhen'],
-    engineFamilies: ['psi-hd']
+    engineFamilies: ['psi-hd'],
+    applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
   // ============== SIGNAL QUALITY ==============

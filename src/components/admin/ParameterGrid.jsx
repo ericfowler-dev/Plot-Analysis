@@ -145,11 +145,13 @@ function EmptyState({ searchQuery, activeCategory }) {
 
 /**
  * Main ParameterGrid component
+ * v3.1.3: Added engineSize prop to filter MFG parameters for non-MFG engines
  */
 export default function ParameterGrid({
   thresholds,
   onChange,
   engineFamily = null,
+  engineSize = null, // v3.1.3: Filter by engine size for fuel-system-specific params
   filterCategory = null,
   showSearch = true,
   showCategoryTabs = true,
@@ -196,6 +198,17 @@ export default function ParameterGrid({
       );
     }
 
+    // v3.1.3: Filter by engine size if specified (for fuel-system-specific params like MFG)
+    // Parameters with applicableEngines set are only shown if the engine size matches
+    if (engineSize) {
+      params = params.filter(p =>
+        !p.applicableEngines || p.applicableEngines.includes(engineSize)
+      );
+    } else if (engineFamily) {
+      // If engine family is set but no specific size, hide params requiring specific engines
+      params = params.filter(p => !p.applicableEngines);
+    }
+
     // Filter by category
     if (activeCategory) {
       params = params.filter(p => p.category === activeCategory);
@@ -212,7 +225,7 @@ export default function ParameterGrid({
     }
 
     return params;
-  }, [engineFamily, activeCategory, searchQuery, excludedCategorySet, excludedParameterSet]);
+  }, [engineFamily, engineSize, activeCategory, searchQuery, excludedCategorySet, excludedParameterSet]);
 
   // Group parameters by category for display
   const groupedParameters = useMemo(() => {
@@ -395,12 +408,14 @@ export default function ParameterGrid({
 
 /**
  * Single category view component (for sidebar subsection navigation)
+ * v3.1.3: Added engineSize prop for fuel-system-specific filtering
  */
 export function CategoryParameterGrid({
   categoryId,
   thresholds,
   onChange,
   engineFamily = null,
+  engineSize = null, // v3.1.3: Filter by engine size for MFG params
   excludedCategoryIds = [],
   excludedParameterIds = []
 }) {
@@ -409,6 +424,7 @@ export function CategoryParameterGrid({
       thresholds={thresholds}
       onChange={onChange}
       engineFamily={engineFamily}
+      engineSize={engineSize}
       filterCategory={categoryId}
       showSearch={true}
       showCategoryTabs={false}

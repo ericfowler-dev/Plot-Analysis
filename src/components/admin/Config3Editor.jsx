@@ -12,6 +12,10 @@
  * v3.1.2 Changes:
  * - Added engine size selection with engine-specific parameters
  * - Engine families and sizes now loaded from server index
+ *
+ * v3.1.3 Changes:
+ * - MFG parameters now only visible for 40L/53L engines (MFG fuel system)
+ * - Non-MFG PSI HD engines (22L) no longer show MFG-related parameters
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -943,6 +947,7 @@ export default function Config3Editor({
               thresholds={thresholds}
               onChange={setThresholds}
               engineFamily={profile?.engineFamily}
+              engineSize={profile?.engineSize} // v3.1.3: Filter MFG params by engine size
               excludedCategoryIds={EXCLUDED_THRESHOLD_CATEGORY_IDS}
             />
           );
@@ -952,6 +957,7 @@ export default function Config3Editor({
             thresholds={thresholds}
             onChange={setThresholds}
             engineFamily={profile?.engineFamily}
+            engineSize={profile?.engineSize} // v3.1.3: Filter MFG params by engine size
             showSearch={true}
             showCategoryTabs={true}
             showQuickActions={true}
