@@ -24,7 +24,7 @@ import ParameterGrid, { CategoryParameterGrid } from './ParameterGrid';
 import RuleBuilder from './RuleBuilder';
 import ThresholdPreview from './ThresholdPreview';
 import { PARAMETER_CATALOG, PARAMETER_CATEGORIES } from '../../lib/parameterCatalog';
-import { getIndex } from '../../lib/thresholdService';
+import { getIndex, addEngineSize, updateEngineSize, setEngineSizeArchived } from '../../lib/thresholdService';
 
 const EXCLUDED_THRESHOLD_CATEGORY_IDS = ['signals'];
 
@@ -151,7 +151,26 @@ const mapThresholdsToExistingSchema = (thresholds, signalQuality) => {
  * Profile Overview section
  * v3.1.2: Added engine size selection with engine-specific parameters
  */
-function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onChange, indexData }) {
+function ProfileOverview({
+  profile,
+  thresholds,
+  anomalyRules,
+  signalQuality,
+  onChange,
+  indexData,
+  onOpenEngineSizeModal
+}) {
+  const isAdmin = typeof window !== 'undefined' && Boolean(localStorage.getItem('adminToken'));
+
+  const engineFamilyEntry = useMemo(() => {
+    if (!indexData?.engineFamilies || !profile?.engineFamily) return null;
+    return indexData.engineFamilies.find(
+      family => family.id === profile.engineFamily || family.name === profile.engineFamily
+    ) || null;
+  }, [indexData?.engineFamilies, profile?.engineFamily]);
+
+  const engineFamilyValue = engineFamilyEntry?.name || profile?.engineFamily || '';
+
   // Count enabled parameters by category
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -176,8 +195,14 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
   // v3.1.2: Filter engine sizes by selected family
   const availableEngineSizes = useMemo(() => {
     if (!indexData?.engineSizes || !profile?.engineFamily) return [];
-    return indexData.engineSizes.filter(size => size.family === profile.engineFamily);
-  }, [indexData?.engineSizes, profile?.engineFamily]);
+    const familyId = engineFamilyEntry?.id || profile?.engineFamily;
+    return indexData.engineSizes.filter(size => size.family === familyId);
+  }, [engineFamilyEntry?.id, indexData?.engineSizes, profile?.engineFamily]);
+
+  const selectableEngineSizes = useMemo(() => {
+    if (!availableEngineSizes.length) return [];
+    return availableEngineSizes.filter(size => !size.archived || size.id === profile?.engineSize);
+  }, [availableEngineSizes, profile?.engineSize]);
 
   // v3.1.2: Get selected engine size details
   const selectedEngineSize = useMemo(() => {
@@ -191,7 +216,10 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
     // Clear engine size if family changes or is cleared
     if (profile?.engineSize) {
       const currentSize = indexData?.engineSizes?.find(s => s.id === profile.engineSize);
-      if (!newFamily || currentSize?.family !== newFamily) {
+      const nextFamilyEntry = indexData?.engineFamilies?.find(
+        family => family.name === newFamily || family.id === newFamily
+      );
+      if (!newFamily || currentSize?.family !== nextFamilyEntry?.id) {
         updates.engineSize = null;
         updates.engineParams = null;
       }
@@ -245,31 +273,45 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Engine Family</label>
             <select
-              value={profile?.engineFamily || ''}
+              value={engineFamilyValue}
               onChange={(e) => handleEngineFamilyChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">None (Universal)</option>
               {(indexData?.engineFamilies || []).map(family => (
-                <option key={family.id} value={family.id}>{family.name}</option>
+                <option key={family.id} value={family.name}>{family.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Engine Size</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">Engine Size</label>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={onOpenEngineSizeModal}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Manage
+                </button>
+              )}
+            </div>
             <select
               value={profile?.engineSize || ''}
               onChange={(e) => handleEngineSizeChange(e.target.value)}
-              disabled={!profile?.engineFamily || availableEngineSizes.length === 0}
+              disabled={!profile?.engineFamily || selectableEngineSizes.length === 0}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
             >
               <option value="">Select engine size...</option>
-              {availableEngineSizes.map(size => (
+              {selectableEngineSizes.map(size => (
                 <option key={size.id} value={size.id}>{size.name}</option>
               ))}
             </select>
             {!profile?.engineFamily && (
               <p className="text-xs text-gray-500 mt-1">Select an engine family first</p>
+            )}
+            {profile?.engineFamily && selectableEngineSizes.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">No sizes available for this family yet.</p>
             )}
           </div>
           <div>
@@ -415,6 +457,426 @@ function ProfileOverview({ profile, thresholds, anomalyRules, signalQuality, onC
             </svg>
             Export Profile
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EngineSizeModal({
+  isOpen,
+  onClose,
+  indexData,
+  defaultFamilyId,
+  selectedSizeId,
+  onIndexUpdate,
+  onSelectSize
+}) {
+  const [mode, setMode] = useState('add');
+  const [familyFilter, setFamilyFilter] = useState('');
+  const [selectedId, setSelectedId] = useState('');
+  const [form, setForm] = useState({
+    id: '',
+    name: '',
+    family: '',
+    description: '',
+    fullLoadTpsThreshold: '',
+    ratedRpm: '',
+    idleRpm: '',
+    tipMapDeltaThreshold: ''
+  });
+  const [archived, setArchived] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const engineFamilies = indexData?.engineFamilies || [];
+  const engineSizes = indexData?.engineSizes || [];
+
+  const toNumber = (value) => {
+    if (value === null || value === undefined) return null;
+    const trimmed = String(value).trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const filteredSizes = useMemo(() => {
+    if (!familyFilter) return engineSizes;
+    return engineSizes.filter(size => size.family === familyFilter);
+  }, [engineSizes, familyFilter]);
+
+  const loadFormFromSize = useCallback((size, fallbackFamily = '') => {
+    if (!size) {
+      setForm({
+        id: '',
+        name: '',
+        family: fallbackFamily,
+        description: '',
+        fullLoadTpsThreshold: '',
+        ratedRpm: '',
+        idleRpm: '',
+        tipMapDeltaThreshold: ''
+      });
+      setArchived(false);
+      return;
+    }
+
+    setForm({
+      id: size.id || '',
+      name: size.name || '',
+      family: size.family || fallbackFamily,
+      description: size.description || '',
+      fullLoadTpsThreshold: size.params?.fullLoadTpsThreshold ?? '',
+      ratedRpm: size.params?.ratedRpm ?? '',
+      idleRpm: size.params?.idleRpm ?? '',
+      tipMapDeltaThreshold: size.params?.tipMapDeltaThreshold ?? ''
+    });
+    setArchived(Boolean(size.archived));
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const initialFamily = defaultFamilyId || engineFamilies[0]?.id || '';
+    setFamilyFilter(initialFamily);
+
+    if (selectedSizeId) {
+      const size = engineSizes.find(entry => entry.id === selectedSizeId);
+      setMode('edit');
+      setSelectedId(size?.id || '');
+      loadFormFromSize(size, initialFamily);
+    } else if (engineSizes.length > 0) {
+      const firstSize = engineSizes[0];
+      setMode('edit');
+      setSelectedId(firstSize.id);
+      loadFormFromSize(firstSize, initialFamily);
+    } else {
+      setMode('add');
+      setSelectedId('');
+      loadFormFromSize(null, initialFamily);
+    }
+    setError(null);
+  }, [isOpen, defaultFamilyId, engineFamilies, engineSizes, selectedSizeId, loadFormFromSize]);
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'edit') return;
+    const size = engineSizes.find(entry => entry.id === selectedId);
+    if (size) {
+      loadFormFromSize(size, size.family);
+    }
+  }, [isOpen, mode, selectedId, engineSizes, loadFormFromSize]);
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'add') return;
+    const defaults = engineSizes.find(size => size.family === form.family)?.params || {};
+    setForm(prev => ({
+      ...prev,
+      fullLoadTpsThreshold: prev.fullLoadTpsThreshold || defaults.fullLoadTpsThreshold || '',
+      ratedRpm: prev.ratedRpm || defaults.ratedRpm || '',
+      idleRpm: prev.idleRpm || defaults.idleRpm || '',
+      tipMapDeltaThreshold: prev.tipMapDeltaThreshold || defaults.tipMapDeltaThreshold || ''
+    }));
+  }, [isOpen, mode, form.family, engineSizes]);
+
+  const handleFieldChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const buildParams = () => {
+    const params = {};
+    const fullLoadTpsThreshold = toNumber(form.fullLoadTpsThreshold);
+    if (fullLoadTpsThreshold !== null) params.fullLoadTpsThreshold = fullLoadTpsThreshold;
+    const ratedRpm = toNumber(form.ratedRpm);
+    if (ratedRpm !== null) params.ratedRpm = ratedRpm;
+    const idleRpm = toNumber(form.idleRpm);
+    if (idleRpm !== null) params.idleRpm = idleRpm;
+    const tipMapDeltaThreshold = toNumber(form.tipMapDeltaThreshold);
+    if (tipMapDeltaThreshold !== null) params.tipMapDeltaThreshold = tipMapDeltaThreshold;
+    return params;
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    const params = buildParams();
+
+    if (!form.name.trim()) {
+      setError('Engine size name is required.');
+      return;
+    }
+
+    if (mode === 'add') {
+      if (!form.id.trim()) {
+        setError('Engine size ID is required.');
+        return;
+      }
+      if (!form.family) {
+        setError('Engine family is required.');
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      if (mode === 'add') {
+        const updatedIndex = await addEngineSize({
+          id: form.id.trim(),
+          name: form.name.trim(),
+          family: form.family,
+          description: form.description.trim(),
+          params
+        });
+        onIndexUpdate?.(updatedIndex);
+        setMode('edit');
+        setSelectedId(form.id.trim());
+        onSelectSize?.(form.id.trim());
+      } else {
+        const updatedIndex = await updateEngineSize(selectedId, {
+          name: form.name.trim(),
+          family: form.family,
+          description: form.description.trim(),
+          params
+        });
+        onIndexUpdate?.(updatedIndex);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to save engine size.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleArchiveToggle = async () => {
+    if (!selectedId) return;
+    try {
+      setLoading(true);
+      const updatedIndex = await setEngineSizeArchived(selectedId, !archived);
+      onIndexUpdate?.(updatedIndex);
+      setArchived(!archived);
+    } catch (err) {
+      setError(err.message || 'Failed to update archive status.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Manage Engine Sizes</h2>
+            <p className="text-xs text-gray-500">Add, edit, or archive engine size definitions.</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMode('add')}
+              className={`px-3 py-1 rounded-full text-sm ${
+                mode === 'add' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              Add New
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('edit')}
+              className={`px-3 py-1 rounded-full text-sm ${
+                mode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              Edit Existing
+            </button>
+          </div>
+
+          {mode === 'edit' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Filter by Family
+                </label>
+                <select
+                  value={familyFilter}
+                  onChange={(e) => setFamilyFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">All Families</option>
+                  {engineFamilies.map(family => (
+                    <option key={family.id} value={family.id}>{family.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Engine Size
+                </label>
+                <select
+                  value={selectedId}
+                  onChange={(e) => setSelectedId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {filteredSizes.map(size => (
+                    <option key={size.id} value={size.id}>
+                      {size.name}{size.archived ? ' (Archived)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Engine Size ID
+              </label>
+              <input
+                type="text"
+                value={form.id}
+                onChange={(e) => handleFieldChange('id', e.target.value)}
+                disabled={mode === 'edit'}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                placeholder="e.g., 11L"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="e.g., 11L"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Engine Family
+              </label>
+              <select
+                value={form.family}
+                onChange={(e) => handleFieldChange('family', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">Select family...</option>
+                {engineFamilies.map(family => (
+                  <option key={family.id} value={family.id}>{family.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Description
+              </label>
+              <input
+                type="text"
+                value={form.description}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Full Load TPS Threshold (%)
+              </label>
+              <input
+                type="number"
+                value={form.fullLoadTpsThreshold}
+                onChange={(e) => handleFieldChange('fullLoadTpsThreshold', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Rated RPM
+              </label>
+              <input
+                type="number"
+                value={form.ratedRpm}
+                onChange={(e) => handleFieldChange('ratedRpm', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Idle RPM
+              </label>
+              <input
+                type="number"
+                value={form.idleRpm}
+                onChange={(e) => handleFieldChange('idleRpm', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                TIP-MAP Delta Threshold (psi)
+              </label>
+              <input
+                type="number"
+                value={form.tipMapDeltaThreshold}
+                onChange={(e) => handleFieldChange('tipMapDeltaThreshold', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+          <div>
+            {mode === 'edit' && (
+              <button
+                type="button"
+                onClick={handleArchiveToggle}
+                disabled={loading || !selectedId}
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  archived ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                }`}
+              >
+                {archived ? 'Unarchive' : 'Archive'}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -775,6 +1237,9 @@ export default function Config3Editor({
   // v3.1.2: Load index data for engine families, sizes, and applications
   const [indexData, setIndexData] = useState(null);
 
+  // v3.1.4: Engine size management modal state
+  const [engineSizeModalOpen, setEngineSizeModalOpen] = useState(false);
+
   useEffect(() => {
     getIndex()
       .then(index => setIndexData(index))
@@ -936,6 +1401,7 @@ export default function Config3Editor({
             signalQuality={signalQuality}
             onChange={setProfile}
             indexData={indexData}
+            onOpenEngineSizeModal={() => setEngineSizeModalOpen(true)}
           />
         );
 
@@ -1011,20 +1477,32 @@ export default function Config3Editor({
   };
 
   return (
-    <ConfiguratorLayout
-      profile={profile}
-      activeSection={activeSection}
-      activeSubsection={activeSubsection}
-      onSectionChange={handleSectionChange}
-      onSave={handleSave}
-      onValidate={handleValidate}
-      onBack={onBack}
-      hasChanges={hasChanges}
-      isSaving={isSaving}
-      validationErrors={validationErrors}
-      saveMessage={saveMessage}
-    >
-      {renderContent()}
-    </ConfiguratorLayout>
+    <>
+      <ConfiguratorLayout
+        profile={profile}
+        activeSection={activeSection}
+        activeSubsection={activeSubsection}
+        onSectionChange={handleSectionChange}
+        onSave={handleSave}
+        onValidate={handleValidate}
+        onBack={onBack}
+        hasChanges={hasChanges}
+        isSaving={isSaving}
+        validationErrors={validationErrors}
+        saveMessage={saveMessage}
+      >
+        {renderContent()}
+      </ConfiguratorLayout>
+
+      <EngineSizeModal
+        isOpen={engineSizeModalOpen}
+        onClose={() => setEngineSizeModalOpen(false)}
+        indexData={indexData}
+        defaultFamilyId={profile?.engineFamily || ''}
+        selectedSizeId={profile?.engineSize || ''}
+        onIndexUpdate={setIndexData}
+        onSelectSize={(sizeId) => setProfile(prev => ({ ...prev, engineSize: sizeId }))}
+      />
+    </>
   );
 }

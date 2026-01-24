@@ -44,6 +44,29 @@ function isCacheValid() {
   return Date.now() - cacheTimestamp < CACHE_TTL;
 }
 
+function toNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function saveIndex(index) {
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    await pool.query(
+      `INSERT INTO profile_index (id, payload, updated_at)
+       VALUES (1, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
+      [index]
+    );
+  }
+
+  const indexPath = path.join(PROFILES_DIR, '_index.json');
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
+  indexCache = index;
+  cacheTimestamp = Date.now();
+}
+
 /**
  * Load the profiles index file
  */
@@ -65,13 +88,186 @@ export async function loadIndex(forceReload = false) {
   try {
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     const content = await fs.readFile(indexPath, 'utf8');
-    indexCache = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    indexCache = {
+      ...parsed,
+      engineFamilies: Array.isArray(parsed.engineFamilies) ? parsed.engineFamilies : [],
+      engineSizes: Array.isArray(parsed.engineSizes) ? parsed.engineSizes : [],
+      fuelTypes: Array.isArray(parsed.fuelTypes) ? parsed.fuelTypes : [],
+      applications: Array.isArray(parsed.applications) ? parsed.applications : [],
+      profiles: Array.isArray(parsed.profiles) ? parsed.profiles : []
+    };
     cacheTimestamp = Date.now();
     return indexCache;
   } catch (error) {
     console.error('Error loading profiles index:', error);
     throw new Error('Failed to load profiles index');
   }
+}
+
+/**
+ * Add a new engine size to the profiles index
+ */
+export async function addEngineSize(payload = {}) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const rawId = String(payload.id || '').trim();
+  if (!rawId) {
+    throw new Error('Engine size id is required');
+  }
+  const rawName = String(payload.name || rawId).trim();
+
+  const familyValue = String(payload.family || '').trim();
+  if (!familyValue) {
+    throw new Error('Engine family is required');
+  }
+  const familyEntry = (index.engineFamilies || []).find(
+    entry => entry.id === familyValue || entry.name === familyValue
+  );
+  if (!familyEntry) {
+    throw new Error(`Unknown engine family: ${familyValue}`);
+  }
+
+  if (engineSizes.some(size => size.id === rawId)) {
+    throw new Error(`Engine size already exists: ${rawId}`);
+  }
+
+  const familyDefaults = engineSizes.find(size => size.family === familyEntry.id)?.params || {};
+  const paramsInput = payload.params || {};
+  const params = {
+    fullLoadTpsThreshold: toNumber(paramsInput.fullLoadTpsThreshold ?? payload.fullLoadTpsThreshold)
+      ?? familyDefaults.fullLoadTpsThreshold
+      ?? 80,
+    ratedRpm: toNumber(paramsInput.ratedRpm ?? payload.ratedRpm)
+      ?? familyDefaults.ratedRpm
+      ?? 1800,
+    idleRpm: toNumber(paramsInput.idleRpm ?? payload.idleRpm)
+      ?? familyDefaults.idleRpm
+      ?? 700
+  };
+
+  const tipMapDelta = toNumber(paramsInput.tipMapDeltaThreshold ?? payload.tipMapDeltaThreshold);
+  if (tipMapDelta !== null) {
+    params.tipMapDeltaThreshold = tipMapDelta;
+  } else if (familyDefaults.tipMapDeltaThreshold !== undefined) {
+    params.tipMapDeltaThreshold = familyDefaults.tipMapDeltaThreshold;
+  }
+
+  const description = String(payload.description || '').trim();
+
+  engineSizes.push({
+    id: rawId,
+    name: rawName,
+    family: familyEntry.id,
+    description,
+    params,
+    archived: false
+  });
+
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
+}
+
+/**
+ * Update an existing engine size definition in the index
+ */
+export async function updateEngineSize(engineSizeId, updates = {}) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const targetId = String(engineSizeId || '').trim();
+  if (!targetId) {
+    throw new Error('Engine size id is required');
+  }
+
+  const sizeEntry = engineSizes.find(size => size.id === targetId);
+  if (!sizeEntry) {
+    throw new Error(`Engine size not found: ${targetId}`);
+  }
+
+  const nextName = updates.name !== undefined ? String(updates.name).trim() : sizeEntry.name;
+  if (!nextName) {
+    throw new Error('Engine size name is required');
+  }
+
+  let nextFamily = sizeEntry.family;
+  if (updates.family) {
+    const familyValue = String(updates.family).trim();
+    const familyEntry = (index.engineFamilies || []).find(
+      entry => entry.id === familyValue || entry.name === familyValue
+    );
+    if (!familyEntry) {
+      throw new Error(`Unknown engine family: ${familyValue}`);
+    }
+    nextFamily = familyEntry.id;
+  }
+
+  const nextDescription = updates.description !== undefined
+    ? String(updates.description).trim()
+    : (sizeEntry.description || '');
+
+  const paramsInput = updates.params || {};
+  const mergedParams = {
+    ...sizeEntry.params
+  };
+
+  const fullLoadTpsThreshold = toNumber(paramsInput.fullLoadTpsThreshold);
+  if (fullLoadTpsThreshold !== null) {
+    mergedParams.fullLoadTpsThreshold = fullLoadTpsThreshold;
+  }
+  const ratedRpm = toNumber(paramsInput.ratedRpm);
+  if (ratedRpm !== null) {
+    mergedParams.ratedRpm = ratedRpm;
+  }
+  const idleRpm = toNumber(paramsInput.idleRpm);
+  if (idleRpm !== null) {
+    mergedParams.idleRpm = idleRpm;
+  }
+  if (paramsInput.tipMapDeltaThreshold !== undefined) {
+    const tipMapDelta = toNumber(paramsInput.tipMapDeltaThreshold);
+    if (tipMapDelta !== null) {
+      mergedParams.tipMapDeltaThreshold = tipMapDelta;
+    } else {
+      delete mergedParams.tipMapDeltaThreshold;
+    }
+  }
+
+  sizeEntry.name = nextName;
+  sizeEntry.family = nextFamily;
+  sizeEntry.description = nextDescription;
+  sizeEntry.params = mergedParams;
+
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
+}
+
+/**
+ * Archive/unarchive an engine size definition in the index
+ */
+export async function setEngineSizeArchived(engineSizeId, archived = true) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const targetId = String(engineSizeId || '').trim();
+  if (!targetId) {
+    throw new Error('Engine size id is required');
+  }
+
+  const sizeEntry = engineSizes.find(size => size.id === targetId);
+  if (!sizeEntry) {
+    throw new Error(`Engine size not found: ${targetId}`);
+  }
+
+  sizeEntry.archived = Boolean(archived);
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
 }
 
 /**
@@ -238,20 +434,7 @@ async function updateIndex(profileId) {
     index.profiles.push(profileId);
     index.lastUpdated = new Date().toISOString();
 
-    // Save to DB if available
-    const dbReady = await useDatabase();
-    if (dbReady) {
-      await pool.query(
-        `INSERT INTO profile_index (id, payload, updated_at)
-         VALUES (1, $1, NOW())
-         ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
-        [index]
-      );
-    }
-
-    const indexPath = path.join(PROFILES_DIR, '_index.json');
-    await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
-    indexCache = index;
+    await saveIndex(index);
   }
 }
 

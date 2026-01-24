@@ -16,7 +16,10 @@ import {
   duplicateProfile,
   exportAllProfiles,
   importProfiles,
-  clearCache
+  clearCache,
+  addEngineSize,
+  updateEngineSize,
+  setEngineSizeArchived
 } from '../utils/profileLoader.js';
 import {
   resolveProfile,
@@ -67,6 +70,64 @@ router.get('/index', async (req, res) => {
   } catch (error) {
     console.error('Error loading index:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/thresholds/index/engine-sizes
+ * Add a new engine size definition to the index
+ */
+router.post('/index/engine-sizes', requireAdmin, async (req, res) => {
+  try {
+    const index = await addEngineSize(req.body);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'engineSize.create',
+      details: { id: req.body?.id, family: req.body?.family }
+    });
+    res.json({ success: true, index });
+  } catch (error) {
+    console.error('Error adding engine size:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/thresholds/index/engine-sizes/:id
+ * Update an existing engine size definition
+ */
+router.put('/index/engine-sizes/:id', requireAdmin, async (req, res) => {
+  try {
+    const index = await updateEngineSize(req.params.id, req.body);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'engineSize.update',
+      details: { id: req.params.id }
+    });
+    res.json({ success: true, index });
+  } catch (error) {
+    console.error('Error updating engine size:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PATCH /api/thresholds/index/engine-sizes/:id
+ * Archive/unarchive an engine size definition
+ */
+router.patch('/index/engine-sizes/:id', requireAdmin, async (req, res) => {
+  try {
+    const { archived } = req.body;
+    const index = await setEngineSizeArchived(req.params.id, archived);
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'engineSize.archive',
+      details: { id: req.params.id, archived: Boolean(archived) }
+    });
+    res.json({ success: true, index });
+  } catch (error) {
+    console.error('Error archiving engine size:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
