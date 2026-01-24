@@ -8,12 +8,14 @@ import {
   ThermometerSun, Battery, Gauge, TrendingUp, Play,
   ChevronDown, ChevronRight, Droplets, Settings, FileText, Eye, EyeOff, Upload
 } from 'lucide-react';
-import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
+import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncState } from '../lib/bplotThresholds';
 import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
 import { getAllFaultOverlayLines, getChannelsWithFaultData } from '../lib/faultSnapshotMapping';
 import AppHeader from './AppHeader';
 import { useThresholds } from '../contexts/ThresholdContext';
+import ChartErrorBoundary from './charts/ChartErrorBoundary';
+import { sanitizeChartData } from '../lib/chartUtils';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 20;
@@ -36,23 +38,20 @@ const MILStatusIndicator = ({ isActive }) => (
           : 'bg-slate-600'
       }`}
     />
-    <span className={`text-sm font-medium ${isActive ? 'text-red-400' : 'text-slate-400'}`}>
-      MIL {isActive ? 'ON' : 'OFF'}
-    </span>
+    <span className={`text-sm font-medium ${isActive ? 'text-red-400' : 'text-slate-400'}`}>{`MIL ${isActive ? 'ON' : 'OFF'}`}</span>
   </div>
 );
 
 const MetricCard = ({ icon, label, value, sub, unit, alert }) => (
-  <div className={`bg-slate-900/50 rounded-xl border p-6 ${alert ? 'border-red-500/50' : 'border-slate-800'}`}>
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center">{icon}</div>
-      <div className="text-sm text-slate-400 uppercase tracking-wider font-medium">{label}</div>
-    </div>
-    <div className="text-2xl font-bold text-white font-mono">
-      {value} {unit && <span className="text-lg text-slate-400">{unit}</span>}
-    </div>
-    {sub && <div className="text-sm text-slate-400 mt-2 font-mono">{sub}</div>}
+  <div className={`bg-slate-900/50 rounded-xl border p-6 ${alert ? 'border-red-500/50' : 'border-slate-800'}`}>  <div className="flex items-center gap-2 mb-4">
+    <div className="w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center">{icon}</div>
+    <div className="text-sm text-slate-400 uppercase tracking-wider font-medium">{label}</div>
   </div>
+  <div className="text-2xl font-bold text-white font-mono">
+    {value} {unit && <span className="text-lg text-slate-400">{unit}</span>}
+  </div>
+  {sub && <div className="text-sm text-slate-400 mt-2 font-mono">{sub}</div>}
+</div>
 );
 
 const StatRow = ({ label, value, unit }) => (
@@ -223,9 +222,7 @@ const AlertCard = ({ alert, onClick, isHighlighted, onToggleShow }) => {
       <div className="flex items-start gap-3">
         <IconComponent className={`w-5 h-5 ${iconColor} mt-0.5`} />
         <div className="flex-1 min-w-0">
-          <div className={`font-medium ${iconColor}`}>
-            {alertTitle}
-          </div>
+          <div className={`font-medium ${iconColor}`}>{alertTitle}</div>
           <div className="text-slate-300 text-sm mt-1">
             {alertBody}
             {alert.startTime !== undefined && alert.endTime !== undefined && (
@@ -254,7 +251,6 @@ const AlertCard = ({ alert, onClick, isHighlighted, onToggleShow }) => {
 // =============================================================================
 // MAIN B-PLOT ANALYSIS COMPONENT
 // =============================================================================
-
 const BPlotAnalysis = ({
   data,
   processedData,
@@ -386,6 +382,10 @@ const BPlotAnalysis = ({
       return point;
     });
   }, [chartData, selectedChannels]);
+
+  // Sanitize chart data to avoid NaN / non-numeric issues
+  const safeChartData = useMemo(() => sanitizeChartData(chartData || []), [chartData]);
+  const safeDisplayChartData = useMemo(() => sanitizeChartData(displayChartData || []), [displayChartData]);
 
   // Calculate unique Y-axes needed based on selected channels' unit types
   const chartAxes = useMemo(() => {
@@ -556,7 +556,7 @@ const BPlotAnalysis = ({
                 {ecmFaults.length === 0 && onAddEcmFile && (
                   <button
                     onClick={onAddEcmFile}
-                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-white hover:border-orange-500/40 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800/50 border border-slate-700 text-slate-400 hover:text-white hover:border-white"
                     style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
                     title="Add ECM file to overlay fault snapshot data on charts"
                   >
@@ -598,7 +598,7 @@ const BPlotAnalysis = ({
       )}
 
       {/* Main Content - Full width for overview and charts, constrained for other tabs */}
-      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6"}>
+      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6">}
         {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
         {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
           <div className="mb-6 space-y-2">
@@ -709,507 +709,3 @@ const BPlotAnalysis = ({
                       </div>
                     </div>
                   </div>
-                  <div className="bg-slate-900/50 rounded-xl border border-orange-400/20 p-4 transition-colors hover:border-orange-400/40 hover:shadow-[0_0_18px_rgba(251,146,60,0.18)] h-full flex flex-col">
-                    <div className="mb-4">
-                      <h3 className="text-[11px] font-black uppercase tracking-widest text-orange-400">Thermal Management</h3>
-                    </div>
-                    <div className="divide-y divide-orange-400/30">
-                      <div className="py-2.5 first:pt-0 last:pb-0">
-                        <TelemetryRange label="Engine Coolant Temp" stats={channelStats.ECT} unit="F" decimals={0} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-xl border border-yellow-400/20 p-4 transition-colors hover:border-yellow-400/40 hover:shadow-[0_0_18px_rgba(250,204,21,0.18)] h-full flex flex-col">
-                    <div className="mb-4">
-                      <h3 className="text-[11px] font-black uppercase tracking-widest text-yellow-400">Lubrication</h3>
-                    </div>
-                    <div className="divide-y divide-yellow-400/30">
-                      <div className="py-2.5 first:pt-0 last:pb-0">
-                        <TelemetryRange label="Oil Pressure" stats={channelStats.OILP_press} unit="psi" decimals={1} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-xl border border-green-400/20 p-4 transition-colors hover:border-green-400/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.18)] h-full flex flex-col">
-                    <div className="mb-4">
-                      <h3 className="text-[11px] font-black uppercase tracking-widest text-green-400">Fuel & Combustion</h3>
-                    </div>
-                    <div className="divide-y divide-emerald-400/30">
-                      <div className="py-2.5 first:pt-0 last:pb-0">
-                        <TelemetryRange label="Phi UEGO" stats={channelStats.Phi_UEGO} decimals={2} />
-                      </div>
-                      <div className="py-2.5 first:pt-0 last:pb-0">
-                        <TelemetryRange label="Closed Loop Fuel Correction" stats={channelStats.CL_BM1} unit="%" decimals={2} />
-                      </div>
-                      <div className="py-2.5 first:pt-0 last:pb-0">
-                        <TelemetryRange label="Adaptive Learn Fuel Correction" stats={channelStats.A_BM1} unit="%" decimals={2} />
-                      </div>
-                    </div>
-                    {(timeInStateStats?.fuel_type?.length || channelStats.fuel_type) && (
-                      <div className="mt-4 border-t border-slate-800/80 pt-3">
-                        <DiscreteStat label="Fuel Type" value={fuelTypeLabel} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Chart Preview - RPM & MAP */}
-            <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-              <h3 className="text-lg font-semibold mb-4">RPM & MAP Over Time</h3>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis
-                      dataKey="Time"
-                      stroke="#64748b"
-                      fontSize={12}
-                      type="number"
-                      domain={['dataMin', 'dataMax']}
-                      tickFormatter={(v) => {
-                        if (typeof v !== 'number' || Number.isNaN(v)) return '';
-                        if (v < 60) return `${safeToFixed(v, 0)}s`;
-                        if (v < 3600) return `${safeToFixed(v / 60, 1)}m`;
-                        return `${safeToFixed(v / 3600, 1)}h`;
-                      }}
-                    />
-                    <YAxis yAxisId="rpm" stroke="#3b82f6" fontSize={12} domain={[0, 'auto']} />
-                    <YAxis yAxisId="map" orientation="right" stroke="#8b5cf6" fontSize={12} />
-                    <Tooltip
-                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '8px', maxWidth: '280px' }}
-                      labelFormatter={(v) => `Time: ${formatDuration(v)}`}
-                      formatter={(value, name) => {
-                        if (typeof value === 'number') {
-                          return [safeToFixed(value, 1), name];
-                        }
-                        return [value ?? '—', name];
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      yAxisId="rpm"
-                      type="monotone"
-                      dataKey="rpm"
-                      stroke="#3b82f6"
-                      dot={false}
-                      strokeWidth={2}
-                      name="RPM"
-                    />
-                    <Line
-                      yAxisId="map"
-                      type="monotone"
-                      dataKey="MAP"
-                      stroke="#8b5cf6"
-                      dot={false}
-                      strokeWidth={2}
-                      name="MAP (psia)"
-                    />
-                    <Brush
-                      dataKey="Time"
-                      height={18}
-                      stroke="#22c55e"
-                      travellerWidth={8}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Alerts Section (overview, below chart) */}
-            {alerts.length > 0 && (
-              <div className="space-y-2">
-                {alerts.map((alert, i) => (
-                  <AlertCard
-                    key={i}
-                    alert={alert}
-                    onClick={() => handleAlertClick(alert)}
-                    isHighlighted={isAlertSelected(alert)}
-                    onToggleShow={() => handleAlertClick(alert)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'charts' && (
-          <>
-          <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
-            {/* Sidebar - Channel Selection */}
-            <aside className="w-full lg:w-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
-              <div className="p-4 border-b border-slate-700">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-slate-300">
-                    Channels ({selectedChannels.length}/{MAX_CHART_CHANNELS})
-                  </h3>
-                  {selectedChannels.length > 0 && (
-                    <button
-                      onClick={() => setSelectedChannels([])}
-                      className="text-xs text-slate-400 hover:text-red-400 transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="py-2">
-                {Object.entries(orderedCategories).map(([category, channels]) => (
-                  <div key={category} className="border-b border-slate-800/50">
-                    <div
-                      className="px-4 py-3 text-xs text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-800/30 flex justify-between items-center"
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: CATEGORY_COLORS[category] || '#6b7280' }}
-                        />
-                        {CATEGORY_LABELS[category] || category}
-                      </span>
-                      <span>{expandedCategories[category] ? '▾' : '▸'}</span>
-                    </div>
-                    {expandedCategories[category] && (
-                      <div className="pb-2">
-                        {channels.map(channel => (
-                          <label
-                            key={channel}
-                            className="flex items-center gap-3 px-5 py-2 text-sm text-slate-200 hover:bg-slate-800/40 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedChannels.includes(channel)}
-                              onChange={() => toggleChannel(channel)}
-                              disabled={!selectedChannels.includes(channel) && selectedChannels.length >= MAX_CHART_CHANNELS}
-                              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-green-500 focus:ring-green-500 focus:ring-offset-slate-900"
-                            />
-                            <span className={selectedChannels.includes(channel) ? 'text-white' : ''}>
-                              {BPLOT_PARAMETERS[channel]?.name || channel}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </aside>
-
-            {/* Main Chart Area */}
-            <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
-              <div className="flex-1 h-[300px] lg:h-auto">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis
-                      dataKey="Time"
-                      stroke="#64748b"
-                      fontSize={12}
-                      type="number"
-                      domain={['dataMin', 'dataMax']}
-                      tickFormatter={(v) => {
-                        if (typeof v !== 'number' || Number.isNaN(v)) return '';
-                        if (v < 60) return `${safeToFixed(v, 0)}s`;
-                        if (v < 3600) return `${safeToFixed(v / 60, 1)}m`;
-                        return `${safeToFixed(v / 3600, 1)}h`;
-                      }}
-                    />
-                    {/* Dynamic Y-axes based on selected channels' unit types */}
-                    {chartAxes.axes.map((axis, index) => (
-                      <YAxis
-                        key={axis.id}
-                        yAxisId={axis.id}
-                        orientation={axis.orientation}
-                        stroke={index === 0 ? '#64748b' : '#94a3b8'}
-                        fontSize={12}
-                        tickFormatter={(v) => safeToFixed(v, axis.decimals, '')}
-                        label={{
-                          value: axis.label,
-                          angle: axis.orientation === 'left' ? -90 : 90,
-                          position: axis.orientation === 'left' ? 'insideLeft' : 'insideRight',
-                          style: { textAnchor: 'middle', fill: '#64748b', fontSize: 10 }
-                        }}
-                      />
-                    ))}
-                    <Tooltip
-                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
-                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px' }}
-                      labelFormatter={(v, payload) => {
-                        const sourceFile = payload?.[0]?.payload?._sourceFile;
-                        if (sourceFile && fileBoundaries.length > 1) {
-                          return `Time: ${formatDuration(v)} | File: ${sourceFile}`;
-                        }
-                        return `Time: ${formatDuration(v)}`;
-                      }}
-                      formatter={(value, name, entry) => {
-                        const channelName = entry?.dataKey || name;
-                        const param = BPLOT_PARAMETERS[channelName];
-                        const decimals = getDecimalPlaces(channelName);
-                        const isCategorical = VALUE_MAPPINGS[channelName] || channelName === 'sync_state';
-                        if (isCategorical) {
-                          const displayText = getDisplayValue(channelName, Math.round(value));
-                          return [displayText, param ? `${param.name}` : channelName];
-                        }
-                        return [
-                          typeof value === 'number' ? safeToFixed(value, decimals) : value,
-                          param ? `${param.name} (${param.unit})` : channelName
-                        ];
-                      }}
-                    />
-                    <Legend />
-                    {selectedChannels.map((channel, i) => (
-                      <Line
-                        key={channel}
-                        yAxisId={chartAxes.channelToAxis[channel]}
-                        type="monotone"
-                        dataKey={channel}
-                        stroke={Object.values(CATEGORY_COLORS)[i % Object.values(CATEGORY_COLORS).length]}
-                        dot={false}
-                        strokeWidth={highlightedChannel === channel ? 4 : 2}
-                        name={BPLOT_PARAMETERS[channel]?.name || channel}
-                        style={highlightedChannel === channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
-                      />
-                    ))}
-                    {/* File boundary markers for multi-file view */}
-                    {showFileBoundaries && fileBoundaries.length > 1 && fileBoundaries.map((boundary, idx) => (
-                      idx > 0 && (
-                        <ReferenceLine
-                          key={`file-boundary-${boundary.fileId}`}
-                          x={boundary.startTime}
-                          stroke="#22c55e"
-                          strokeDasharray="5 5"
-                          strokeWidth={2}
-                          label={{
-                            value: boundary.fileName.replace(/\.[^.]+$/, ''),
-                            position: 'top',
-                            fill: '#22c55e',
-                            fontSize: 10
-                          }}
-                        />
-                      )
-                    ))}
-                    {/* Alert overlay for selected alert only */}
-                    {selectedAlert && selectedAlert.startTime !== undefined && selectedAlert.endTime !== undefined && (() => {
-                      const persistence = selectedAlert.minDuration || 0;
-                      // Place the band starting at estimated onset (start minus persistence)
-                      const bandStart = Math.max(0, selectedAlert.startTime - persistence);
-                      const labelText = `${selectedAlert.severity === 'critical' ? 'Critical' : 'Warning'}: ${selectedAlert.channel}` +
-                        (persistence > 0 ? ` (delay ${formatDuration(persistence)})` : '');
-
-                      return (
-                        <ReferenceArea
-                          x1={bandStart}
-                          x2={selectedAlert.endTime}
-                          yAxisId={chartAxes.channelToAxis[selectedAlert.channel] || chartAxes.axes[0]?.id}
-                          stroke={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
-                          fill={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
-                          fillOpacity={0.08}
-                          ifOverflow="extendDomain"
-                          label={{
-                            value: labelText,
-                            position: 'insideTopLeft',
-                            fill: '#ffffff',
-                            fontSize: 11
-                          }}
-                        />
-                      );
-                    })()}
-                    {/* ECM fault snapshot overlay lines */}
-                    {showFaultOverlays && faultOverlayLines.map((line, idx) => (
-                      <ReferenceLine
-                        key={`fault-${line.faultCode}-${line.channel}-${idx}`}
-                        y={line.value}
-                        yAxisId={chartAxes.channelToAxis[line.channel]}
-                        stroke={line.color}
-                        strokeDasharray="8 4"
-                        strokeWidth={2}
-                        label={{
-                          value: line.shortLabel,
-                          position: 'right',
-                          fill: line.color,
-                          fontSize: 9,
-                          fontWeight: 'bold'
-                        }}
-                      />
-                    ))}
-                    <Brush
-                      dataKey="Time"
-                      height={20}
-                      stroke="#22c55e"
-                      travellerWidth={8}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-          {/* Alerts Section - Below charts */}
-          {alerts.length > 0 && (
-            <div className="mt-6 space-y-2 max-w-7xl mx-auto">
-              {alerts.map((alert, i) => (
-                <AlertCard
-                  key={i}
-                  alert={alert}
-                  onClick={() => handleAlertClick(alert)}
-                  isHighlighted={isAlertSelected(alert)}
-                  onToggleShow={() => handleAlertClick(alert)}
-                />
-              ))}
-            </div>
-          )}
-          </>
-        )}
-
-        {activeTab === 'channels' && (
-          <div className="space-y-4">
-            {Object.entries(orderedCategories).map(([category, channels]) => (
-              <div key={category} className="bg-slate-900/50 rounded-xl border border-slate-800">
-                <button
-                  onClick={() => toggleCategory(category)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: CATEGORY_COLORS[category] || '#6b7280' }}
-                    />
-                    <span className="font-medium">{CATEGORY_LABELS[category] || category}</span>
-                    <span className="text-slate-500 text-sm">({channels.length} channels)</span>
-                  </div>
-                  {expandedCategories[category] ?
-                    <ChevronDown className="w-5 h-5 text-slate-400" /> :
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
-                  }
-                </button>
-                {expandedCategories[category] && (
-                  <div className="px-6 pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {channels.map(channel => {
-                        const stats = channelStats[channel];
-                        const param = BPLOT_PARAMETERS[channel];
-                        const fallbackDescription = !param ? get4GDefinition(channel) : null;
-                        const description = param?.description || fallbackDescription;
-                        const hideAvg = param?.hideAverage;
-                        const showMinOnly = param?.showMinOnly;
-                        const showMaxOnly = param?.showMaxOnly;
-                        const showTimeInState = param?.showTimeInState || TIME_IN_STATE_CHANNELS.includes(channel);
-                        const stateStats = timeInStateStats?.[channel];
-                        const displayStateStats = channel === 'sync_state' || channel === 'OILP_state'
-                          ? mergeTimeInStateByLabel(stateStats)
-                          : stateStats;
-                        const decimals = getDecimalPlaces(channel);
-
-                        return (
-                          <div
-                            key={channel}
-                            className="bg-slate-800/50 rounded-lg p-3"
-                          >
-                            <div className="font-medium text-sm">{param?.name || channel}</div>
-                            {description && (
-                              <div className="text-xs text-slate-500 mb-1">{description}</div>
-                            )}
-                            {showTimeInState && displayStateStats && displayStateStats.length > 0 ? (
-                              // Show time-in-state breakdown for categorical channels with progress bars
-                              <div className="text-xs mt-2 space-y-2">
-                                {displayStateStats.map((s, i) => (
-                                  <div key={i}>
-                                    <div className="flex justify-between items-center mb-0.5">
-                                      <span className="text-green-400">{s.displayName}</span>
-                                      <span className="text-slate-400">
-                                        {s.durationFormatted} ({s.percentage.toFixed(0)}%)
-                                      </span>
-                                    </div>
-                                    {/* Progress bar */}
-                                    <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full bg-green-500 rounded-full transition-all"
-                                        style={{ width: `${Math.min(100, s.percentage)}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : stats && stats.noValidData ? (
-                              // Show message when no valid running data exists
-                              <div className="text-xs text-amber-500/80 mt-1 italic">
-                                No valid running data in range
-                              </div>
-                            ) : stats && (
-                              <div className="text-xs text-slate-400 mt-1 space-y-0.5">
-                                {showMinOnly ? (
-                                  <div>Min: {stats.min?.toFixed(decimals) ?? '-'} {param?.unit}</div>
-                                ) : showMaxOnly ? (
-                                  <div>Max: {stats.max?.toFixed(decimals) ?? '-'} {param?.unit}</div>
-                                ) : (
-                                  <>
-                                    <div>Min: {stats.min?.toFixed(decimals) ?? '-'} {param?.unit}</div>
-                                    <div>Max: {stats.max?.toFixed(decimals) ?? '-'} {param?.unit}</div>
-                                    {!hideAvg && (
-                                      <div>Avg: {stats.avg?.toFixed(decimals) ?? '-'} {param?.unit}</div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'events' && (
-          <div className="space-y-4">
-            <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Play className="w-5 h-5 text-green-400" />
-                Engine Events
-              </h3>
-              {engineEvents.length === 0 ? (
-                <p className="text-slate-400">No engine events detected</p>
-              ) : (
-                <div className="space-y-2">
-                  {engineEvents.map((event, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-4 p-3 rounded-lg ${
-                        event.type === 'start' ? 'bg-green-950/30' : 'bg-red-950/30'
-                      }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${
-                        event.type === 'start' ? 'bg-green-400' : 'bg-red-400'
-                      }`} />
-                      <div className="flex-1">
-                        <span className="font-medium">
-                          {event.type === 'start' ? 'Engine Start' : 'Engine Stop'}
-                        </span>
-                        <span className="text-slate-400 ml-2">
-                          at {formatDuration(event.time)}
-                        </span>
-                        {event.runDuration && (
-                          <span className="text-slate-400 ml-2">
-                            (ran for {formatDuration(event.runDuration)})
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm font-mono text-slate-400">
-                        {safeToFixed(event.rpm, 0)} RPM
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-};
-
-export default BPlotAnalysis;
