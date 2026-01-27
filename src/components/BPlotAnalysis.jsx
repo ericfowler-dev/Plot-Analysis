@@ -598,7 +598,7 @@ const BPlotAnalysis = ({
       )}
 
       {/* Main Content - Full width for overview and charts, constrained for other tabs */}
-      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6">}
+      <main className={"w-[90%] max-w-[1920px] mx-auto " + (activeTab === 'charts' || activeTab === 'overview' ? 'px-6 md:px-16 lg:px-24' : 'max-w-7xl mx-auto px-6') + " py-6"}>
         {/* Alerts Section (non-overview, non-charts tabs - charts shows alerts below) */}
         {activeTab !== 'overview' && activeTab !== 'charts' && alerts.length > 0 && (
           <div className="mb-6 space-y-2">
