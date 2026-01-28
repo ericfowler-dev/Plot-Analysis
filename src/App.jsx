@@ -1615,7 +1615,7 @@ const PlotAnalyzer = () => {
         // Worker failed to initialize - will fall back to main thread processing
       };
       workerRef.current = worker;
-      console.log('Plot Analyzer worker initialized');
+      if (DEBUG) console.log('Plot Analyzer worker initialized');
     } catch (err) {
       console.warn('Web Worker not supported, using main thread:', err);
     }
@@ -1835,7 +1835,7 @@ const PlotAnalyzer = () => {
           (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
 
         if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
-          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
             // Update the UI profile selector to match
@@ -1868,7 +1868,6 @@ const PlotAnalyzer = () => {
 
       // Detect file type
       const detectedType = detectFileType(text, file.name);
-      console.log('Detected file type:', detectedType);
 
       if (detectedType === FILE_TYPES.BPLOT) {
         // Process as B-Plot time-series data
@@ -1886,7 +1885,7 @@ const PlotAnalyzer = () => {
           (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
 
         if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
-          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
             // Update the UI profile selector to match
@@ -1911,9 +1910,7 @@ const PlotAnalyzer = () => {
         setRawFileContent(text);
 
         // Parse ECM data
-        console.log('Starting ECM data parsing...');
         const parsedData = parseECMData(text);
-        console.log('Parsed data:', parsedData);
 
         if (!parsedData.parsed) {
           throw new Error(parsedData.error || 'Failed to parse ECM data');
@@ -1921,7 +1918,6 @@ const PlotAnalyzer = () => {
 
         // Extract statistics
         const stats = extractECMStats(parsedData);
-        console.log('Extracted stats:', stats);
 
         // Dispatch to state management
         dispatch({
@@ -1996,7 +1992,7 @@ const PlotAnalyzer = () => {
           if (!profileAutoDetected) {
             const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
-              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
                 profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
                 selectProfile(detectedFuelSystem.profileId);
@@ -2035,7 +2031,7 @@ const PlotAnalyzer = () => {
           if (!profileAutoDetected) {
             const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
-              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
                 profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
                 selectProfile(detectedFuelSystem.profileId);
