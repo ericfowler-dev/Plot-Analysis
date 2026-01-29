@@ -1,4 +1,10 @@
-import 'dotenv/config';
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    await import('dotenv/config');
+  } catch (err) {
+    console.warn('dotenv not loaded:', err?.message || err);
+  }
+}
 import express from 'express';
 import cors from 'cors';
 import path from 'path';

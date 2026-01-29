@@ -1,0 +1,5600 @@
+{
+  "updated": "2026-01-23T16:24:58.553Z",
+  "parameters": {
+    "rpm": {
+      "occurrences": 6,
+      "averageSpan": 1221.9756835074995,
+      "maxSpan": 3376.8,
+      "minSpan": 18.771141246864772,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 118.5
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 18.771141246864772
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1302.882959798132
+        }
+      ]
+    },
+    "FT": {
+      "occurrences": 7,
+      "averageSpan": 24.020691063804083,
+      "maxSpan": 45,
+      "minSpan": 3.890625,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.34375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 27.0703125
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 41.1875
+        }
+      ]
+    },
+    "TIP": {
+      "occurrences": 8,
+      "averageSpan": 8.681857817827433,
+      "maxSpan": 23.385937499999997,
+      "minSpan": 0.029296875,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 23.385937499999997
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 16.574577167659655
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 19.115625
+        }
+      ]
+    },
+    "CL_BM1": {
+      "occurrences": 6,
+      "averageSpan": 3.71750897265625,
+      "maxSpan": 10.767333984375,
+      "minSpan": 1.7120361328125,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.7008056640625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.776123046875
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 10.767333984375
+        }
+      ]
+    },
+    "A_BM1": {
+      "occurrences": 6,
+      "averageSpan": 5.718218662646293,
+      "maxSpan": 9.815968611340175,
+      "minSpan": 1.3644069671353385,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.07473688177724
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.3644069671353385
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 9.815968611340175
+        }
+      ]
+    },
+    "spk_adv": {
+      "occurrences": 8,
+      "averageSpan": 18.907180741673194,
+      "maxSpan": 40.05,
+      "minSpan": 0.75,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 11.774999999999999
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 12.475714201090856
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 40.05
+        }
+      ]
+    },
+    "mdot_a_ports": {
+      "occurrences": 3,
+      "averageSpan": 140.05486241649533,
+      "maxSpan": 331.7925,
+      "minSpan": 33.322087249485946,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 331.7925
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 33.322087249485946
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 55.05
+        }
+      ]
+    },
+    "mdot_f_ports": {
+      "occurrences": 3,
+      "averageSpan": 8.885183472258609,
+      "maxSpan": 19.846874999999997,
+      "minSpan": 2.5371910417758308,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 19.846874999999997
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 2.5371910417758308
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 4.271484375
+        }
+      ]
+    },
+    "I_Gov1_acc": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rMAP": {
+      "occurrences": 3,
+      "averageSpan": 8.500870608590247,
+      "maxSpan": 21.084375,
+      "minSpan": 1.7175018050397295,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 21.084375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.700735020731008
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.7175018050397295
+        }
+      ]
+    },
+    "Vbat": {
+      "occurrences": 8,
+      "averageSpan": 1.0375518314154846,
+      "maxSpan": 1.971627843802434,
+      "minSpan": 0.13067900000000066,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.134765625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.4736244169984829
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.5787695312500603
+        }
+      ]
+    },
+    "AUX_PWM4_FB_raw": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "BM1_crct": {
+      "occurrences": 1,
+      "averageSpan": 0.15032958984375,
+      "maxSpan": 0.15032958984375,
+      "minSpan": 0.15032958984375,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.15032958984375
+        }
+      ]
+    },
+    "CB1pre_phiFB": {
+      "occurrences": 2,
+      "averageSpan": 0.08268759942725368,
+      "maxSpan": 0.100616455078125,
+      "minSpan": 0.06475874377638235,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.100616455078125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.06475874377638235
+        }
+      ]
+    },
+    "TPS_min_gov_pct": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LoadLim_max_TPS": {
+      "occurrences": 8,
+      "averageSpan": 29.65987477867794,
+      "maxSpan": 61.5179443359375,
+      "minSpan": 0,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 56.12109375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 26.20697021484375
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 42.97119140625
+        }
+      ]
+    },
+    "spk_off_ECTvL": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_pavg": {
+      "occurrences": 2,
+      "averageSpan": 0.01171875,
+      "maxSpan": 0.0146484375,
+      "minSpan": 0.0087890625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.0146484375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.0087890625
+        }
+      ]
+    },
+    "KNK_retard": {
+      "occurrences": 8,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "HM_RAM_seconds": {
+      "occurrences": 3,
+      "averageSpan": 0.7758602872647012,
+      "maxSpan": 1.5321960210799261,
+      "minSpan": 0.2729158401489258,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.2729158401489258
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.5224690005652519
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.5321960210799261
+        }
+      ]
+    },
+    "KNK_0_V": {
+      "occurrences": 2,
+      "averageSpan": 0.0146484375,
+      "maxSpan": 0.017578125,
+      "minSpan": 0.01171875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.01171875
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.017578125
+        }
+      ]
+    },
+    "KNK_100_V": {
+      "occurrences": 2,
+      "averageSpan": 0.021240234375,
+      "maxSpan": 0.0234375,
+      "minSpan": 0.01904296875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.01904296875
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.0234375
+        }
+      ]
+    },
+    "OILP_press": {
+      "occurrences": 8,
+      "averageSpan": 56.133993874373786,
+      "maxSpan": 122.2730875,
+      "minSpan": 5.173828125,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.173828125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 74.81835730716104
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 122.2730875
+        }
+      ]
+    },
+    "spk_adv_altOCT": {
+      "occurrences": 1,
+      "averageSpan": 8.137500000000792,
+      "maxSpan": 8.137500000000792,
+      "minSpan": 8.137500000000792,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 8.137500000000792
+        }
+      ]
+    },
+    "TPS_pct": {
+      "occurrences": 7,
+      "averageSpan": 28.41640423490542,
+      "maxSpan": 54.669047,
+      "minSpan": 16.1142578125,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 16.1142578125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 29.765032572771947
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 34.7431814711736
+        }
+      ]
+    },
+    "MJ_P_cmd": {
+      "occurrences": 5,
+      "averageSpan": 3.18913821277244,
+      "maxSpan": 5.875378563862198,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.9132080078125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 5.875378563862198
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MJ_P_act": {
+      "occurrences": 6,
+      "averageSpan": 5.8315839762680355,
+      "maxSpan": 19.1296142578125,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.9945068359375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 5.867941763858215
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rIAT": {
+      "occurrences": 3,
+      "averageSpan": 13.512878643489733,
+      "maxSpan": 19.912499999999998,
+      "minSpan": 3.246976302090829,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 19.912499999999998
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 3.246976302090829
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 17.379159628378375
+        }
+      ]
+    },
+    "rECT": {
+      "occurrences": 4,
+      "averageSpan": 25.194167336133802,
+      "maxSpan": 67.27531875000005,
+      "minSpan": 2.1388985945351635,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.96875
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.1388985945351635
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 25.39370199999999
+        }
+      ]
+    },
+    "MAPdt_dz_acttrg": {
+      "occurrences": 1,
+      "averageSpan": 6.15234375,
+      "maxSpan": 6.15234375,
+      "minSpan": 6.15234375,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 6.15234375
+        }
+      ]
+    },
+    "rpmdtdz_Kd": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "spk_off_ECT": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_I_frz": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "TPS_max_gov_pct": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_MAP_d": {
+      "occurrences": 2,
+      "averageSpan": 22.68545324625832,
+      "maxSpan": 25.00840649251664,
+      "minSpan": 20.362499999999997,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 20.362499999999997
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 25.00840649251664
+        }
+      ]
+    },
+    "rpmdt": {
+      "occurrences": 2,
+      "averageSpan": 381.9200880513407,
+      "maxSpan": 560.15625,
+      "minSpan": 203.68392610268143,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 560.15625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 203.68392610268143
+        }
+      ]
+    },
+    "Phi1_post_delt": {
+      "occurrences": 7,
+      "averageSpan": 0.011896919307107349,
+      "maxSpan": 0.019134521484375,
+      "minSpan": 0.00604248046875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.015289306640625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.008864987884126454
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.00604248046875
+        }
+      ]
+    },
+    "CB1pst_volts": {
+      "occurrences": 1,
+      "averageSpan": 0.713232421875,
+      "maxSpan": 0.713232421875,
+      "minSpan": 0.713232421875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.713232421875
+        }
+      ]
+    },
+    "Phi_post_d": {
+      "occurrences": 3,
+      "averageSpan": 0.0043166588092685325,
+      "maxSpan": 0.007598876953125,
+      "minSpan": 0.0015974373653055984,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.007598876953125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.0015974373653055984
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 0.003753662109375
+        }
+      ]
+    },
+    "run_mode": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_MAPdt_d": {
+      "occurrences": 2,
+      "averageSpan": 5.888446352770037,
+      "maxSpan": 6.626502080540074,
+      "minSpan": 5.150390625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.150390625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 6.626502080540074
+        }
+      ]
+    },
+    "fuel_type": {
+      "occurrences": 6,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "fuel_supply": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "mdot_a_equcarb": {
+      "occurrences": 2,
+      "averageSpan": 193.42125000000001,
+      "maxSpan": 331.7925,
+      "minSpan": 55.05,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 331.7925
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 55.05
+        }
+      ]
+    },
+    "fuel_ctl_mode": {
+      "occurrences": 4,
+      "averageSpan": 2.175,
+      "maxSpan": 4,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 2.7
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 4
+        }
+      ]
+    },
+    "spk_off_global": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "spk_adv_base": {
+      "occurrences": 1,
+      "averageSpan": 8.174999999999997,
+      "maxSpan": 8.174999999999997,
+      "minSpan": 8.174999999999997,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 8.174999999999997
+        }
+      ]
+    },
+    "spk_ret_CWT": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "spark_shutoff_chk": {
+      "occurrences": 7,
+      "averageSpan": 1.1428571428571428,
+      "maxSpan": 1.5,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "Kp_gov": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "spk_off_MATvL": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmd_gain": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmd_gov": {
+      "occurrences": 7,
+      "averageSpan": 990.9152731377766,
+      "maxSpan": 1990.8000000000002,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 6.606911964435767
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 990
+        }
+      ]
+    },
+    "Phi_UEGO": {
+      "occurrences": 7,
+      "averageSpan": 0.5400498631817654,
+      "maxSpan": 1,
+      "minSpan": 0.0574951171875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.10167846679687498
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.5332419289071754
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.0574951171875
+        }
+      ]
+    },
+    "VE_CWT_crct_pct": {
+      "occurrences": 2,
+      "averageSpan": 1.633529663085937,
+      "maxSpan": 2.9937744140625,
+      "minSpan": 0.27328491210937417,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 2.9937744140625
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 0.27328491210937417
+        }
+      ]
+    },
+    "TPS_GovN_pct": {
+      "occurrences": 1,
+      "averageSpan": 14.5521240234375,
+      "maxSpan": 14.5521240234375,
+      "minSpan": 14.5521240234375,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 14.5521240234375
+        }
+      ]
+    },
+    "MAT": {
+      "occurrences": 7,
+      "averageSpan": 69.89882693562315,
+      "maxSpan": 116.24997169994434,
+      "minSpan": 17.88187499999987,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 17.88187499999987
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 80.72221875671826
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 116.24997169994434
+        }
+      ]
+    },
+    "MAP_noload": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "spkgv_mod": {
+      "occurrences": 1,
+      "averageSpan": 7.800000000000001,
+      "maxSpan": 7.800000000000001,
+      "minSpan": 7.800000000000001,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 7.800000000000001
+        }
+      ]
+    },
+    "MAP": {
+      "occurrences": 8,
+      "averageSpan": 13.477608734024887,
+      "maxSpan": 21.089999999999996,
+      "minSpan": 4.894401333896106,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 21.089999999999996
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 20.803532938168303
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 17.580071428571458
+        }
+      ]
+    },
+    "TPS_cmd_pct": {
+      "occurrences": 6,
+      "averageSpan": 20.93424948865976,
+      "maxSpan": 29.620710119312943,
+      "minSpan": 14.11376953125,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 14.5521240234375
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 29.620710119312943
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 15.51481995270073
+        }
+      ]
+    },
+    "I_Gov3_acc": {
+      "occurrences": 1,
+      "averageSpan": 68.69527221679688,
+      "maxSpan": 68.69527221679688,
+      "minSpan": 68.69527221679688,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 68.69527221679688
+        }
+      ]
+    },
+    "gov_sw_state": {
+      "occurrences": 6,
+      "averageSpan": 1.425,
+      "maxSpan": 2.25,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 2.25
+        }
+      ]
+    },
+    "CL1_phi_error": {
+      "occurrences": 1,
+      "averageSpan": 4.826904296875,
+      "maxSpan": 4.826904296875,
+      "minSpan": 4.826904296875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 4.826904296875
+        }
+      ]
+    },
+    "gov_gain_slct": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "CB1pst_phiFB": {
+      "occurrences": 2,
+      "averageSpan": 0.021334464524145336,
+      "maxSpan": 0.03708178879644075,
+      "minSpan": 0.00558714025184992,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.03708178879644075
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.00558714025184992
+        }
+      ]
+    },
+    "DBW_iFB_amps": {
+      "occurrences": 1,
+      "averageSpan": 1.3155628551136638,
+      "maxSpan": 1.3155628551136638,
+      "minSpan": 1.3155628551136638,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1.3155628551136638
+        }
+      ]
+    },
+    "LoadLim_max_TPS_src": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "m_f_port": {
+      "occurrences": 2,
+      "averageSpan": 99.3375,
+      "maxSpan": 165,
+      "minSpan": 33.675,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 165
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 33.675
+        }
+      ]
+    },
+    "BP": {
+      "occurrences": 5,
+      "averageSpan": 0.6972655750000001,
+      "maxSpan": 1,
+      "minSpan": 0.029296875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 0.029296875
+        }
+      ]
+    },
+    "Phi_post_act": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LLTO_state": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "VE": {
+      "occurrences": 3,
+      "averageSpan": 8.890482584635398,
+      "maxSpan": 12.674560546875,
+      "minSpan": 5.578247070312443,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.578247070312443
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 12.674560546875
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 8.41864013671875
+        }
+      ]
+    },
+    "VEs": {
+      "occurrences": 2,
+      "averageSpan": 9.1181640625,
+      "maxSpan": 12.2607421875,
+      "minSpan": 5.9755859375,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.9755859375
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 12.2607421875
+        }
+      ]
+    },
+    "eng_load": {
+      "occurrences": 2,
+      "averageSpan": 41.861065903001716,
+      "maxSpan": 71.71472167968749,
+      "minSpan": 12.007410126315953,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 71.71472167968749
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 12.007410126315953
+        }
+      ]
+    },
+    "MAP_fullload": {
+      "occurrences": 1,
+      "averageSpan": 5.2890625,
+      "maxSpan": 5.2890625,
+      "minSpan": 5.2890625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.2890625
+        }
+      ]
+    },
+    "EBP_gauge": {
+      "occurrences": 1,
+      "averageSpan": 2.162109375,
+      "maxSpan": 2.162109375,
+      "minSpan": 2.162109375,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 2.162109375
+        }
+      ]
+    },
+    "CB1pre_volts": {
+      "occurrences": 1,
+      "averageSpan": 0.0087890625,
+      "maxSpan": 0.0087890625,
+      "minSpan": 0.0087890625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.0087890625
+        }
+      ]
+    },
+    "Ki_gov": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Kiv_gov": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Kd_gov": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_type": {
+      "occurrences": 6,
+      "averageSpan": 1.5666666666666667,
+      "maxSpan": 4,
+      "minSpan": 0.9000000000000004,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "CLp_E": {
+      "occurrences": 2,
+      "averageSpan": 0.98980712890625,
+      "maxSpan": 1,
+      "minSpan": 0.9796142578125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.9796142578125
+        }
+      ]
+    },
+    "CL1_perturb": {
+      "occurrences": 2,
+      "averageSpan": 6.914981809741951,
+      "maxSpan": 7.19970703125,
+      "minSpan": 6.630256588233901,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 7.19970703125
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 6.630256588233901
+        }
+      ]
+    },
+    "Phi_cmd_dly": {
+      "occurrences": 1,
+      "averageSpan": 0.00457763671875,
+      "maxSpan": 0.00457763671875,
+      "minSpan": 0.00457763671875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.00457763671875
+        }
+      ]
+    },
+    "Vent_P_sig": {
+      "occurrences": 2,
+      "averageSpan": 12.263928111328125,
+      "maxSpan": 16.21911598828125,
+      "minSpan": 8.308740234375001,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 8.308740234375001
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 16.21911598828125
+        }
+      ]
+    },
+    "MJ_P_nom": {
+      "occurrences": 2,
+      "averageSpan": 2.2936553956835937,
+      "maxSpan": 3.41864013671875,
+      "minSpan": 1.1686706546484376,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.41864013671875
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.1686706546484376
+        }
+      ]
+    },
+    "MJ_P_Tnom": {
+      "occurrences": 2,
+      "averageSpan": 2.2597808837890625,
+      "maxSpan": 3.4525146484375,
+      "minSpan": 1.067047119140625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.4525146484375
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.067047119140625
+        }
+      ]
+    },
+    "Vent_dP_nom": {
+      "occurrences": 2,
+      "averageSpan": 7.005261230468747,
+      "maxSpan": 8.36158447265625,
+      "minSpan": 5.648937988281244,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 5.648937988281244
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 8.36158447265625
+        }
+      ]
+    },
+    "trim_m_a_Vdc": {
+      "occurrences": 2,
+      "averageSpan": 945.6398360655666,
+      "maxSpan": 1317.9796721311332,
+      "minSpan": 573.3,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1317.9796721311332
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 573.3
+        }
+      ]
+    },
+    "trim_MAP_Vdc": {
+      "occurrences": 1,
+      "averageSpan": 21.089062499999997,
+      "maxSpan": 21.089062499999997,
+      "minSpan": 21.089062499999997,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 21.089062499999997
+        }
+      ]
+    },
+    "KMAPdt_gov": {
+      "occurrences": 2,
+      "averageSpan": 0.56866455078125,
+      "maxSpan": 1,
+      "minSpan": 0.1373291015625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 0.1373291015625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KMAPdtfb_gov": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmdz_Kp": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmdz_Ki": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MAP_est": {
+      "occurrences": 1,
+      "averageSpan": 21.684375000000003,
+      "maxSpan": 21.684375000000003,
+      "minSpan": 21.684375000000003,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 21.684375000000003
+        }
+      ]
+    },
+    "MAPdt_est": {
+      "occurrences": 1,
+      "averageSpan": 6.4453125,
+      "maxSpan": 6.4453125,
+      "minSpan": 6.4453125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 6.4453125
+        }
+      ]
+    },
+    "MAPe": {
+      "occurrences": 1,
+      "averageSpan": 21.089999999999996,
+      "maxSpan": 21.089999999999996,
+      "minSpan": 21.089999999999996,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 21.089999999999996
+        }
+      ]
+    },
+    "m_a_perL": {
+      "occurrences": 1,
+      "averageSpan": 1317.9796721311332,
+      "maxSpan": 1317.9796721311332,
+      "minSpan": 1317.9796721311332,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1317.9796721311332
+        }
+      ]
+    },
+    "m_a_port": {
+      "occurrences": 1,
+      "averageSpan": 2758.2599999999998,
+      "maxSpan": 2758.2599999999998,
+      "minSpan": 2758.2599999999998,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 2758.2599999999998
+        }
+      ]
+    },
+    "MAPdt_dz": {
+      "occurrences": 2,
+      "averageSpan": 1.78173828125,
+      "maxSpan": 2.5634765625,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 2.5634765625
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MAPdt": {
+      "occurrences": 1,
+      "averageSpan": 9.84374999999999,
+      "maxSpan": 9.84374999999999,
+      "minSpan": 9.84374999999999,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 9.84374999999999
+        }
+      ]
+    },
+    "MJ2_P_act": {
+      "occurrences": 1,
+      "averageSpan": 3.98095703125,
+      "maxSpan": 3.98095703125,
+      "minSpan": 3.98095703125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 3.98095703125
+        }
+      ]
+    },
+    "MJ_ctltype_cmd": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MJ_status": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MJ2_status": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FuelSpk_SD_active": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "power_mode": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "cfgout_state": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "sync_state": {
+      "occurrences": 7,
+      "averageSpan": 2.042857142857143,
+      "maxSpan": 3,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.5
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 3
+        }
+      ]
+    },
+    "DEPR_strtspk_ena": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "fuel_shutoff_chk": {
+      "occurrences": 7,
+      "averageSpan": 1.1285714285714286,
+      "maxSpan": 1.5,
+      "minSpan": 0.9,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "fuelclr_requested": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "afs_crkdly_ECT": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "afs_crkdly_ECTlo": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "afs_crkdly_cycs": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "17L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "========== 4G ECM Information ==========": {
+      "occurrences": 1,
+      "averageSpan": 19.200000000000003,
+      "maxSpan": 19.200000000000003,
+      "minSpan": 19.200000000000003,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 19.200000000000003
+        }
+      ]
+    },
+    "RPM": {
+      "occurrences": 3,
+      "averageSpan": 1750.0035255652826,
+      "maxSpan": 2162.4,
+      "minSpan": 1087.6048181519964,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1087.6048181519964
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 2162.4
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 2000.005758543851
+        }
+      ]
+    },
+    "MIL Status": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Vsw": {
+      "occurrences": 7,
+      "averageSpan": 11.876617384651482,
+      "maxSpan": 33.09217822110304,
+      "minSpan": 0.24609399999999937,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 11.185426134478089
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 33.09217822110304
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 19.40985287363978
+        }
+      ]
+    },
+    "ECT": {
+      "occurrences": 6,
+      "averageSpan": 51.707720267281246,
+      "maxSpan": 96.17709381649878,
+      "minSpan": 6.225927734374949,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 36.93837594058991
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 96.17709381649878
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 84.31948699269478
+        }
+      ]
+    },
+    "IAT": {
+      "occurrences": 7,
+      "averageSpan": 40.45450027894471,
+      "maxSpan": 73.18124999999999,
+      "minSpan": 25.10041032037814,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 34.83167775934781
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 44.94779829545455
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 28.066834421685954
+        }
+      ]
+    },
+    "EPR Command Pressure": {
+      "occurrences": 3,
+      "averageSpan": 2.007848264445958,
+      "maxSpan": 3.1485905697050622,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 3.1485905697050622
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.8749542236328125
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "EPR Actual Pressure": {
+      "occurrences": 3,
+      "averageSpan": 5.382911748975278,
+      "maxSpan": 13.18740101841021,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 13.18740101841021
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.961334228515625
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "EGO1_volts": {
+      "occurrences": 7,
+      "averageSpan": 1.1712333641596167,
+      "maxSpan": 1.853759765625,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Remote Speed TSC1": {
+      "occurrences": 2,
+      "averageSpan": 547.396189224138,
+      "maxSpan": 1080,
+      "minSpan": 14.792378448276054,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 14.792378448276054
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1080
+        }
+      ]
+    },
+    "KNK_bg_FO1": {
+      "occurrences": 1,
+      "averageSpan": 8.5565185546875,
+      "maxSpan": 8.5565185546875,
+      "minSpan": 8.5565185546875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 8.5565185546875
+        }
+      ]
+    },
+    "OILP_state": {
+      "occurrences": 7,
+      "averageSpan": 1.1642857142857144,
+      "maxSpan": 1.5,
+      "minSpan": 0.75,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.75
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.5
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.9
+        }
+      ]
+    },
+    "KNK_sig_FO1": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_FO2": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Barometric Pressure - BP": {
+      "occurrences": 3,
+      "averageSpan": 0.3802083333333333,
+      "maxSpan": 1,
+      "minSpan": 0.064453125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.064453125
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.076171875
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_bg_FO2": {
+      "occurrences": 1,
+      "averageSpan": 7.341430664062489,
+      "maxSpan": 7.341430664062489,
+      "minSpan": 7.341430664062489,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 7.341430664062489
+        }
+      ]
+    },
+    "KNK_sig_FO3": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_bg_FO3": {
+      "occurrences": 1,
+      "averageSpan": 7.5714111328125,
+      "maxSpan": 7.5714111328125,
+      "minSpan": 7.5714111328125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 7.5714111328125
+        }
+      ]
+    },
+    "Adaptive Fuel Trim - AL": {
+      "occurrences": 3,
+      "averageSpan": 6.562624600874432,
+      "maxSpan": 8.143439810280249,
+      "minSpan": 4.36151123046875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 8.143439810280249
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 4.36151123046875
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 7.182922761874297
+        }
+      ]
+    },
+    "EGO2_volts": {
+      "occurrences": 7,
+      "averageSpan": 0.9586041535744655,
+      "maxSpan": 1.8109130859375,
+      "minSpan": 0.08194699999999999,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.47525006638599143
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.2264404296875
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.0907230756069206
+        }
+      ]
+    },
+    "KNK_sig_FO4": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_FO5": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_FO6": {
+      "occurrences": 1,
+      "averageSpan": 0.5859375,
+      "maxSpan": 0.5859375,
+      "minSpan": 0.5859375,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.5859375
+        }
+      ]
+    },
+    "TPS Command %": {
+      "occurrences": 2,
+      "averageSpan": 36.65407175991365,
+      "maxSpan": 57.13623046875,
+      "minSpan": 16.1719130510773,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 16.1719130510773
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 57.13623046875
+        }
+      ]
+    },
+    "TPS Actual %": {
+      "occurrences": 2,
+      "averageSpan": 28.118716450258677,
+      "maxSpan": 34.1986083984375,
+      "minSpan": 22.038824502079855,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 22.038824502079855
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 34.1986083984375
+        }
+      ]
+    },
+    "KNK_bg_FO4": {
+      "occurrences": 1,
+      "averageSpan": 6.8829345703125,
+      "maxSpan": 6.8829345703125,
+      "minSpan": 6.8829345703125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 6.8829345703125
+        }
+      ]
+    },
+    "KNK_bg_FO5": {
+      "occurrences": 1,
+      "averageSpan": 8.3111572265625,
+      "maxSpan": 8.3111572265625,
+      "minSpan": 8.3111572265625,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 8.3111572265625
+        }
+      ]
+    },
+    "KNK_bg_FO6": {
+      "occurrences": 1,
+      "averageSpan": 6.900146484374989,
+      "maxSpan": 6.900146484374989,
+      "minSpan": 6.900146484374989,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 6.900146484374989
+        }
+      ]
+    },
+    "KNK_bg_FO7": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_bg_FO8": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_FO7": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP1_pct": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP2_pct": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "KNK_sig_FO8": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "mdot_a_throttle": {
+      "occurrences": 1,
+      "averageSpan": 294.18323261936786,
+      "maxSpan": 294.18323261936786,
+      "minSpan": 294.18323261936786,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 294.18323261936786
+        }
+      ]
+    },
+    "mdot_f_throttle": {
+      "occurrences": 1,
+      "averageSpan": 17.888122009621515,
+      "maxSpan": 17.888122009621515,
+      "minSpan": 17.888122009621515,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 17.888122009621515
+        }
+      ]
+    },
+    "Phi_cmd": {
+      "occurrences": 1,
+      "averageSpan": 0.003082275390625222,
+      "maxSpan": 0.003082275390625222,
+      "minSpan": 0.003082275390625222,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.003082275390625222
+        }
+      ]
+    },
+    "EGO2Z_ohms": {
+      "occurrences": 4,
+      "averageSpan": 8952.6,
+      "maxSpan": 23763.6,
+      "minSpan": 43.19999999999999,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 43.19999999999999
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 23763.6
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 121.19999999999999
+        }
+      ]
+    },
+    "EGO2Z_Rd": {
+      "occurrences": 2,
+      "averageSpan": 2340.5,
+      "maxSpan": 4680,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 4680
+        }
+      ]
+    },
+    "EGO2H_DC": {
+      "occurrences": 1,
+      "averageSpan": 13.613381128148028,
+      "maxSpan": 13.613381128148028,
+      "minSpan": 13.613381128148028,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 13.613381128148028
+        }
+      ]
+    },
+    "Vrelay": {
+      "occurrences": 1,
+      "averageSpan": 0.2890278966436881,
+      "maxSpan": 0.2890278966436881,
+      "minSpan": 0.2890278966436881,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.2890278966436881
+        }
+      ]
+    },
+    "AUX_PWM5_FB_raw": {
+      "occurrences": 1,
+      "averageSpan": 0.00035866910916860714,
+      "maxSpan": 0.00035866910916860714,
+      "minSpan": 0.00035866910916860714,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.00035866910916860714
+        }
+      ]
+    },
+    "AUX_PWM11_FB_raw": {
+      "occurrences": 1,
+      "averageSpan": 0.00004467077371653194,
+      "maxSpan": 0.00004467077371653194,
+      "minSpan": 0.00004467077371653194,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.00004467077371653194
+        }
+      ]
+    },
+    "AUX_PWM11_iFB_raw": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmdt_n": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "rpmdt_xLP": {
+      "occurrences": 1,
+      "averageSpan": 0.1856535321921493,
+      "maxSpan": 0.1856535321921493,
+      "minSpan": 0.1856535321921493,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.1856535321921493
+        }
+      ]
+    },
+    "gov_mode": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "DBW_ctl_cmd": {
+      "occurrences": 1,
+      "averageSpan": 12.306528362640837,
+      "maxSpan": 12.306528362640837,
+      "minSpan": 12.306528362640837,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 12.306528362640837
+        }
+      ]
+    },
+    "I_TFB_acc": {
+      "occurrences": 1,
+      "averageSpan": 21.912764378127772,
+      "maxSpan": 21.912764378127772,
+      "minSpan": 21.912764378127772,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 21.912764378127772
+        }
+      ]
+    },
+    "dwell4": {
+      "occurrences": 1,
+      "averageSpan": 0.009970182755642432,
+      "maxSpan": 0.009970182755642432,
+      "minSpan": 0.009970182755642432,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.009970182755642432
+        }
+      ]
+    },
+    "dwell1": {
+      "occurrences": 1,
+      "averageSpan": 0.010566292662640198,
+      "maxSpan": 0.010566292662640198,
+      "minSpan": 0.010566292662640198,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.010566292662640198
+        }
+      ]
+    },
+    "coil1_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.14805224624411117,
+      "maxSpan": 0.14805224624411117,
+      "minSpan": 0.14805224624411117,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.14805224624411117
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,1)": {
+      "occurrences": 1,
+      "averageSpan": 2.25,
+      "maxSpan": 2.25,
+      "minSpan": 2.25,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.25
+        }
+      ]
+    },
+    "coil4_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.1537230872389994,
+      "maxSpan": 0.1537230872389994,
+      "minSpan": 0.1537230872389994,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.1537230872389994
+        }
+      ]
+    },
+    "dwell2": {
+      "occurrences": 1,
+      "averageSpan": 0.010442952544728046,
+      "maxSpan": 0.010442952544728046,
+      "minSpan": 0.010442952544728046,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.010442952544728046
+        }
+      ]
+    },
+    "coil2_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.14661250391075598,
+      "maxSpan": 0.14661250391075598,
+      "minSpan": 0.14661250391075598,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.14661250391075598
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,2)": {
+      "occurrences": 1,
+      "averageSpan": 1.5,
+      "maxSpan": 1.5,
+      "minSpan": 1.5,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,4)": {
+      "occurrences": 1,
+      "averageSpan": 2.25,
+      "maxSpan": 2.25,
+      "minSpan": 2.25,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.25
+        }
+      ]
+    },
+    "dwell3": {
+      "occurrences": 1,
+      "averageSpan": 0.011197518524569183,
+      "maxSpan": 0.011197518524569183,
+      "minSpan": 0.011197518524569183,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.011197518524569183
+        }
+      ]
+    },
+    "coil3_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.15201594728480217,
+      "maxSpan": 0.15201594728480217,
+      "minSpan": 0.15201594728480217,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.15201594728480217
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,3)": {
+      "occurrences": 1,
+      "averageSpan": 1.5,
+      "maxSpan": 1.5,
+      "minSpan": 1.5,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "dwell5": {
+      "occurrences": 1,
+      "averageSpan": 0.009599991846084288,
+      "maxSpan": 0.009599991846084288,
+      "minSpan": 0.009599991846084288,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.009599991846084288
+        }
+      ]
+    },
+    "coil5_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.17475603610449308,
+      "maxSpan": 0.17475603610449308,
+      "minSpan": 0.17475603610449308,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.17475603610449308
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,5)": {
+      "occurrences": 1,
+      "averageSpan": 1.5,
+      "maxSpan": 1.5,
+      "minSpan": 1.5,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1.5
+        }
+      ]
+    },
+    "dwell6": {
+      "occurrences": 1,
+      "averageSpan": 0.00919950168225947,
+      "maxSpan": 0.00919950168225947,
+      "minSpan": 0.00919950168225947,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.00919950168225947
+        }
+      ]
+    },
+    "coil6_drv_latch": {
+      "occurrences": 1,
+      "averageSpan": 0.1364703929322646,
+      "maxSpan": 0.1364703929322646,
+      "minSpan": 0.1364703929322646,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.1364703929322646
+        }
+      ]
+    },
+    "SPK_IGBT_T(1,6)": {
+      "occurrences": 1,
+      "averageSpan": 2.25,
+      "maxSpan": 2.25,
+      "minSpan": 2.25,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.25
+        }
+      ]
+    },
+    "ME0mstr_MAP": {
+      "occurrences": 4,
+      "averageSpan": 7.656866371082789,
+      "maxSpan": 13.31782121285669,
+      "minSpan": 2.593593628938538,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.8801131425359285
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 13.31782121285669
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 11.8359375
+        }
+      ]
+    },
+    "ME0slv1_MAP": {
+      "occurrences": 4,
+      "averageSpan": 5.615615637083744,
+      "maxSpan": 13.192454984013155,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 7.270007564321819
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 13.192454984013155
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Fuel Control Mode": {
+      "occurrences": 3,
+      "averageSpan": 2.6666666666666665,
+      "maxSpan": 4,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 4
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 3
+        }
+      ]
+    },
+    "Hour Meter": {
+      "occurrences": 3,
+      "averageSpan": 0.5568910262034189,
+      "maxSpan": 0.9747916460037231,
+      "minSpan": 0.2194814034223782,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.2194814034223782
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.9747916460037231
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 0.47640002918415547
+        }
+      ]
+    },
+    "MAP_MASTER": {
+      "occurrences": 2,
+      "averageSpan": 10.391161686787212,
+      "maxSpan": 17.880856354210348,
+      "minSpan": 2.9014670193640777,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 2.9014670193640777
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 17.880856354210348
+        }
+      ]
+    },
+    "MAP_SLAVE": {
+      "occurrences": 2,
+      "averageSpan": 10.134449328107506,
+      "maxSpan": 17.26889865621501,
+      "minSpan": 3,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 3
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 17.26889865621501
+        }
+      ]
+    },
+    "Closed Loop Fuel Trim - CL": {
+      "occurrences": 3,
+      "averageSpan": 2.9739227294921697,
+      "maxSpan": 4.5749053955078125,
+      "minSpan": 0.28839111328125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.28839111328125
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 4.058471679687447
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 4.5749053955078125
+        }
+      ]
+    },
+    "PWe_avg": {
+      "occurrences": 7,
+      "averageSpan": 31.816503052435852,
+      "maxSpan": 117.09375,
+      "minSpan": 7.971179514608789,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 7.971179514608789
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 117.09375
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 43.484822579496694
+        }
+      ]
+    },
+    "FORCEIDLE_active": {
+      "occurrences": 6,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LOWREVLIM_active": {
+      "occurrences": 6,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Start Timer": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LoadLim_max": {
+      "occurrences": 6,
+      "averageSpan": 1.156917593436089,
+      "maxSpan": 2.13739013671875,
+      "minSpan": 0.006866455078125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.25566691801610375
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1.609039306640625
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 2.13739013671875
+        }
+      ]
+    },
+    "OILT": {
+      "occurrences": 4,
+      "averageSpan": 91.39725132338789,
+      "maxSpan": 151.72500000000002,
+      "minSpan": 9.000505293551498,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 9.000505293551498
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 151.72500000000002
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 102.18850000000006
+        }
+      ]
+    },
+    "MFG_TPS_cmd_pct": {
+      "occurrences": 3,
+      "averageSpan": 10.902297980753426,
+      "maxSpan": 30.70689394226028,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 30.70689394226028
+        }
+      ]
+    },
+    "MFG_TPS_act_pct": {
+      "occurrences": 3,
+      "averageSpan": 9.281930800794692,
+      "maxSpan": 25.845792402384077,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 25.845792402384077
+        }
+      ]
+    },
+    "MFG Delta Press - DP": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MFG Upstream Pressure": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MFG Downstream Pressure": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "TIPAdapt_TIPcorrect": {
+      "occurrences": 3,
+      "averageSpan": 1.1074117024739583,
+      "maxSpan": 1.358642578125,
+      "minSpan": 0.963592529296875,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.963592529296875
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.358642578125
+        }
+      ]
+    },
+    "AUX_PD1_raw": {
+      "occurrences": 5,
+      "averageSpan": 1.1585933719476345,
+      "maxSpan": 2.501831531524658,
+      "minSpan": 0.2543521388430112,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.2543521388430112
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 2.501831531524658
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.0367831893705028
+        }
+      ]
+    },
+    "AUX_PU1_raw": {
+      "occurrences": 5,
+      "averageSpan": 0.20201021880505063,
+      "maxSpan": 1,
+      "minSpan": 0.0009158849716186523,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.0010571384447182197
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.0009158849716186523
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.005939476873192184
+        }
+      ]
+    },
+    "AUX_PU2_raw": {
+      "occurrences": 5,
+      "averageSpan": 0.6013433767738144,
+      "maxSpan": 1,
+      "minSpan": 0.002110362052919257,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.004606521816152842
+        }
+      ]
+    },
+    "AUX_PU3_raw": {
+      "occurrences": 4,
+      "averageSpan": 1.660693215565931,
+      "maxSpan": 3.6538462042808533,
+      "minSpan": 0.00037824220772630923,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.00037824220772630923
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 3.6538462042808533
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 2.6834125383779783
+        }
+      ]
+    },
+    "AUX_PD2_raw": {
+      "occurrences": 5,
+      "averageSpan": 0.8003663003444672,
+      "maxSpan": 1,
+      "minSpan": 0.0018315017223358154,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "AUX_PD3_raw": {
+      "occurrences": 4,
+      "averageSpan": 0.7501674358071262,
+      "maxSpan": 1,
+      "minSpan": 0.0006697432285046601,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "AUX_DIG1_volt": {
+      "occurrences": 5,
+      "averageSpan": 0.409668710192876,
+      "maxSpan": 1,
+      "minSpan": 0.0028508819686328124,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.017163055900514035
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.0028508819686328124
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.028329613095233075
+        }
+      ]
+    },
+    "AUX_DIG2_volt": {
+      "occurrences": 5,
+      "averageSpan": 0.2363829431609851,
+      "maxSpan": 1,
+      "minSpan": 0.003980182052742087,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 0.05789157224804775
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.03173828125000222
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.0883046802541334
+        }
+      ]
+    },
+    "AUX_DIG3_volt": {
+      "occurrences": 5,
+      "averageSpan": 0.21544982798164997,
+      "maxSpan": 1,
+      "minSpan": 0.008447176032102321,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.008447176032102321
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.036575401376147454
+        }
+      ]
+    },
+    "min_gov_rpm": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "max_gov_rpm": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Gov1_rpm": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Gov2_rpm": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Gov3_rpm": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_min_abslimit": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "gov_max_abslimit": {
+      "occurrences": 4,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LoadLim_perf_stat": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LoadLim_T_active": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "DERATE1_active": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "DERATE2_active": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "SD_active": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "22L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MJ_VVC_Tcrct": {
+      "occurrences": 1,
+      "averageSpan": 0.043877118334820775,
+      "maxSpan": 0.043877118334820775,
+      "minSpan": 0.043877118334820775,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.043877118334820775
+        }
+      ]
+    },
+    "TRIM_nom_phi": {
+      "occurrences": 1,
+      "averageSpan": 0.00006088843712448444,
+      "maxSpan": 0.00006088843712448444,
+      "minSpan": 0.00006088843712448444,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 0.00006088843712448444
+        }
+      ]
+    },
+    "FT_def": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "32L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "RMT_speed": {
+      "occurrences": 4,
+      "averageSpan": 720.95,
+      "maxSpan": 2017.8000000000002,
+      "minSpan": 1,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 864
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MILout_mirror": {
+      "occurrences": 3,
+      "averageSpan": 0.6333333333333334,
+      "maxSpan": 1,
+      "minSpan": 1.6653345369377348e-16,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.9
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1.6653345369377348e-16
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "start_tmr": {
+      "occurrences": 3,
+      "averageSpan": 2.4821333559354146,
+      "maxSpan": 6.416399917602539,
+      "minSpan": 0.030000150203704834,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 6.416399917602539
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 0.030000150203704834
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "MFG_DPPress": {
+      "occurrences": 1,
+      "averageSpan": 1.1343535539106746,
+      "maxSpan": 1.1343535539106746,
+      "minSpan": 1.1343535539106746,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.1343535539106746
+        }
+      ]
+    },
+    "MFG_USPress": {
+      "occurrences": 1,
+      "averageSpan": 1.9104717403584885,
+      "maxSpan": 1.9104717403584885,
+      "minSpan": 1.9104717403584885,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 1.9104717403584885
+        }
+      ]
+    },
+    "MFG_DSPress": {
+      "occurrences": 1,
+      "averageSpan": 0.17287859606471123,
+      "maxSpan": 0.17287859606471123,
+      "minSpan": 0.17287859606471123,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI HD",
+          "size": "53L",
+          "application": "Power Systems",
+          "span": 0.17287859606471123
+        }
+      ]
+    },
+    "RMT_speed_SA": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPin": {
+      "occurrences": 3,
+      "averageSpan": 1.0333914715643904,
+      "maxSpan": 1.1001744146931713,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1.1001744146931713
+        }
+      ]
+    },
+    "EGO1Z_ohms": {
+      "occurrences": 3,
+      "averageSpan": 11951.495,
+      "maxSpan": 23886,
+      "minSpan": 84.885,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 23886
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 84.885
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 11883.599999999999
+        }
+      ]
+    },
+    "UEGO_Tsensor": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP_cmd_pct": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP_pct": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP1_idle": {
+      "occurrences": 1,
+      "averageSpan": 2.2475961538148113,
+      "maxSpan": 2.2475961538148113,
+      "minSpan": 2.2475961538148113,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 2.2475961538148113
+        }
+      ]
+    },
+    "FPP2_idle": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP1_full": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP2_full": {
+      "occurrences": 1,
+      "averageSpan": 4.398427844047546,
+      "maxSpan": 4.398427844047546,
+      "minSpan": 4.398427844047546,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 4.398427844047546
+        }
+      ]
+    },
+    "FPP1_rawfilt": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPP2_rawfilt": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "IVS State": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "RS_speed": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "RS_speed_d": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "RS_pulses_per_km": {
+      "occurrences": 2,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "AUX_PUD1_raw": {
+      "occurrences": 2,
+      "averageSpan": 0.5332700158563306,
+      "maxSpan": 1,
+      "minSpan": 0.06654003171266121,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 0.06654003171266121
+        }
+      ]
+    },
+    "AUX_PUD2_raw": {
+      "occurrences": 2,
+      "averageSpan": 0.5015073051906516,
+      "maxSpan": 1,
+      "minSpan": 0.003014610381303129,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 0.003014610381303129
+        }
+      ]
+    },
+    "AUX_PUD3_raw": {
+      "occurrences": 2,
+      "averageSpan": 0.5016795379248427,
+      "maxSpan": 1,
+      "minSpan": 0.0033590758496853113,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 0.0033590758496853113
+        }
+      ]
+    },
+    "Gov1_volt": {
+      "occurrences": 3,
+      "averageSpan": 1.6666666666666667,
+      "maxSpan": 3,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 3
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "Gov2_volt": {
+      "occurrences": 3,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        },
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "CAN_Rx_packs": {
+      "occurrences": 1,
+      "averageSpan": 188563.68,
+      "maxSpan": 188563.68,
+      "minSpan": 188563.68,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 188563.68
+        }
+      ]
+    },
+    "CAN_Tx_packs": {
+      "occurrences": 1,
+      "averageSpan": 589785.7799999999,
+      "maxSpan": 589785.7799999999,
+      "minSpan": 589785.7799999999,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 589785.7799999999
+        }
+      ]
+    },
+    "CAN2_Rx_packs": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "CAN2_Tx_packs": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "2.4L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "LoadLim_max_pct": {
+      "occurrences": 1,
+      "averageSpan": 0.0000019999999949504854,
+      "maxSpan": 0.0000019999999949504854,
+      "minSpan": 0.0000019999999949504854,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "5.7L",
+          "application": "Power Systems",
+          "span": 0.0000019999999949504854
+        }
+      ]
+    },
+    "m_f_ww1": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "ww_Cp_rpm": {
+      "occurrences": 1,
+      "averageSpan": 35.302734375,
+      "maxSpan": 35.302734375,
+      "minSpan": 35.302734375,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 35.302734375
+        }
+      ]
+    },
+    "ww_Cn_rpm": {
+      "occurrences": 1,
+      "averageSpan": 39.580078125,
+      "maxSpan": 39.580078125,
+      "minSpan": 39.580078125,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 39.580078125
+        }
+      ]
+    },
+    "PW_avg": {
+      "occurrences": 1,
+      "averageSpan": 13.639679999999998,
+      "maxSpan": 13.639679999999998,
+      "minSpan": 13.639679999999998,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 13.639679999999998
+        }
+      ]
+    },
+    "EGO1Z_Rd": {
+      "occurrences": 1,
+      "averageSpan": 4680,
+      "maxSpan": 4680,
+      "minSpan": 4680,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 4680
+        }
+      ]
+    },
+    "ICam_timing_d": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "ICam_timing_a": {
+      "occurrences": 1,
+      "averageSpan": 8.774999999999999,
+      "maxSpan": 8.774999999999999,
+      "minSpan": 8.774999999999999,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 8.774999999999999
+        }
+      ]
+    },
+    "ICam_PWM_DC": {
+      "occurrences": 1,
+      "averageSpan": 48.3837890625,
+      "maxSpan": 48.3837890625,
+      "minSpan": 48.3837890625,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 48.3837890625
+        }
+      ]
+    },
+    "ICam_PWM_taud": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "EGO1H_V_d": {
+      "occurrences": 1,
+      "averageSpan": 15.600000000000001,
+      "maxSpan": 15.600000000000001,
+      "minSpan": 15.600000000000001,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 15.600000000000001
+        }
+      ]
+    },
+    "VE_CWT_tau_idle": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "EGO2H_V_d": {
+      "occurrences": 1,
+      "averageSpan": 15.600000000000001,
+      "maxSpan": 15.600000000000001,
+      "minSpan": 15.600000000000001,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 15.600000000000001
+        }
+      ]
+    },
+    "inj_timing": {
+      "occurrences": 1,
+      "averageSpan": 142.35000000000002,
+      "maxSpan": 142.35000000000002,
+      "minSpan": 142.35000000000002,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 142.35000000000002
+        }
+      ]
+    },
+    "VE_CWT_C": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "TPSlim_current": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPin_I2": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "FPCcmd_DC": {
+      "occurrences": 1,
+      "averageSpan": 69.54867553710938,
+      "maxSpan": 69.54867553710938,
+      "minSpan": 69.54867553710938,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 69.54867553710938
+        }
+      ]
+    },
+    "FPCcmd_V": {
+      "occurrences": 1,
+      "averageSpan": 9.600000000000001,
+      "maxSpan": 9.600000000000001,
+      "minSpan": 9.600000000000001,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 9.600000000000001
+        }
+      ]
+    },
+    "inj_timing_dz": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "OilP_volt": {
+      "occurrences": 1,
+      "averageSpan": 2.8125,
+      "maxSpan": 2.8125,
+      "minSpan": 2.8125,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 2.8125
+        }
+      ]
+    },
+    "OILP_test": {
+      "occurrences": 1,
+      "averageSpan": 1,
+      "maxSpan": 1,
+      "minSpan": 1,
+      "wideVariance": false,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "6.0L",
+          "application": "Power Systems",
+          "span": 1
+        }
+      ]
+    },
+    "EGO1 Resistance Ohms": {
+      "occurrences": 1,
+      "averageSpan": 51.89069204926925,
+      "maxSpan": 51.89069204926925,
+      "minSpan": 51.89069204926925,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 51.89069204926925
+        }
+      ]
+    },
+    "EGO2 Resistance Ohms": {
+      "occurrences": 1,
+      "averageSpan": 41.69839614134675,
+      "maxSpan": 41.69839614134675,
+      "minSpan": 41.69839614134675,
+      "wideVariance": true,
+      "samples": [
+        {
+          "group": "PSI Industrial",
+          "size": "8.8L",
+          "application": "Power Systems",
+          "span": 41.69839614134675
+        }
+      ]
+    }
+  }
+}

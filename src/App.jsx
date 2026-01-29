@@ -1476,7 +1476,15 @@ function analysisReducer(state, action) {
 const PlotAnalyzer = () => {
   // ECM/B-Plot Analysis state managed by reducer
   const [state, dispatch] = useReducer(analysisReducer, analysisInitialState);
-  const { resolvedProfile, selectProfile, selectedProfileId, baselineSelection, loading: profileLoading, error: profileError } = useThresholds();
+  const {
+    resolvedProfile,
+    selectProfile,
+    selectedProfileId,
+    baselineSelection,
+    baselineAlertsEnabled,
+    loading: profileLoading,
+    error: profileError
+  } = useThresholds();
   const activeThresholdProfile = useMemo(() => {
     // Use the resolved profile even if it's the fallback
     // This ensures basic threshold checks work even when API is unavailable
@@ -1489,6 +1497,40 @@ const PlotAnalyzer = () => {
     }
     return resolvedProfile;
   }, [resolvedProfile, profileError]);
+
+  const [baselineData, setBaselineData] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadBaselines = async () => {
+      try {
+        const response = await fetch('/api/baselines');
+        if (!response.ok) throw new Error('Failed to load baseline data');
+        const payload = await response.json();
+        const data = payload?.data || payload;
+        if (isMounted) {
+          setBaselineData(data);
+        }
+      } catch (err) {
+        console.warn('Baseline data unavailable:', err);
+      }
+    };
+    loadBaselines();
+    return () => { isMounted = false; };
+  }, []);
+
+  const selectedBaseline = useMemo(() => {
+    if (!baselineSelection?.group || !baselineSelection?.size || !baselineSelection?.application) {
+      return null;
+    }
+    return baselineData?.groups?.[baselineSelection.group]?.[baselineSelection.size]?.[baselineSelection.application] || null;
+  }, [baselineData, baselineSelection]);
+
+  const baselineOptions = useMemo(() => ({
+    baseline: selectedBaseline,
+    baselineSelection,
+    baselineAlertsEnabled: baselineAlertsEnabled && Boolean(selectedBaseline)
+  }), [selectedBaseline, baselineSelection, baselineAlertsEnabled]);
   const {
     hasEcm, hasBplt, ecmFileName, bpltFileName, activeTab,
     fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
@@ -1573,7 +1615,7 @@ const PlotAnalyzer = () => {
         // Worker failed to initialize - will fall back to main thread processing
       };
       workerRef.current = worker;
-      console.log('Plot Analyzer worker initialized');
+      if (DEBUG) console.log('Plot Analyzer worker initialized');
     } catch (err) {
       console.warn('Web Worker not supported, using main thread:', err);
     }
@@ -1590,6 +1632,11 @@ const PlotAnalyzer = () => {
       if (!processed) return true;
       if (processed.thresholdProfileId !== profileId) return true;
       if (processed.thresholdProfileVersion !== profileVersion) return true;
+      const processedSelection = processed.baselineSelection || {};
+      if ((processedSelection.group || '') !== (baselineSelection?.group || '')) return true;
+      if ((processedSelection.size || '') !== (baselineSelection?.size || '')) return true;
+      if ((processedSelection.application || '') !== (baselineSelection?.application || '')) return true;
+      if (Boolean(processed.baselineAlertsEnabled) !== Boolean(baselineOptions.baselineAlertsEnabled)) return true;
       return false;
     };
 
@@ -1597,7 +1644,7 @@ const PlotAnalyzer = () => {
       if (!profileChanged(combinedBplotProcessed)) return;
       const updatedFiles = bplotFiles.map(file => ({
         ...file,
-        processed: processBPlotData(file.data, activeThresholdProfile)
+        processed: processBPlotData(file.data, activeThresholdProfile, baselineOptions)
       }));
       const combined = combineTimelineData(updatedFiles);
       dispatch({
@@ -1613,7 +1660,7 @@ const PlotAnalyzer = () => {
     }
 
     if (!bplotData || !profileChanged(bplotProcessed)) return;
-    const updatedProcessed = processBPlotData(bplotData, activeThresholdProfile);
+    const updatedProcessed = processBPlotData(bplotData, activeThresholdProfile, baselineOptions);
     dispatch({
       type: 'BPLOT_REPROCESSED',
       payload: { processed: updatedProcessed }
@@ -1624,7 +1671,9 @@ const PlotAnalyzer = () => {
     bplotFiles,
     bplotData,
     bplotProcessed,
-    combinedBplotProcessed
+    combinedBplotProcessed,
+    baselineOptions,
+    baselineSelection
   ]);
 
   // ----------------------------------------------------------------------------
@@ -1786,7 +1835,7 @@ const PlotAnalyzer = () => {
           (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
 
         if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
-          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
             // Update the UI profile selector to match
@@ -1796,7 +1845,7 @@ const PlotAnalyzer = () => {
           }
         }
 
-        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
+        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse, baselineOptions);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1819,7 +1868,6 @@ const PlotAnalyzer = () => {
 
       // Detect file type
       const detectedType = detectFileType(text, file.name);
-      console.log('Detected file type:', detectedType);
 
       if (detectedType === FILE_TYPES.BPLOT) {
         // Process as B-Plot time-series data
@@ -1837,7 +1885,7 @@ const PlotAnalyzer = () => {
           (!hasManualBaselineSelection && detectedFuelSystem.profileId !== selectedProfileId);
 
         if (detectedFuelSystem.profileId && shouldAutoSwitch && detectedFuelSystem.profileId !== selectedProfileId) {
-          console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+          if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
           try {
             profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
             // Update the UI profile selector to match
@@ -1847,7 +1895,7 @@ const PlotAnalyzer = () => {
           }
         }
 
-        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
+        const bplotProcessedData = processBPlotData(bplotParsed, profileToUse, baselineOptions);
 
         dispatch({
           type: 'BPLOT_FILE_LOADED',
@@ -1862,9 +1910,7 @@ const PlotAnalyzer = () => {
         setRawFileContent(text);
 
         // Parse ECM data
-        console.log('Starting ECM data parsing...');
         const parsedData = parseECMData(text);
-        console.log('Parsed data:', parsedData);
 
         if (!parsedData.parsed) {
           throw new Error(parsedData.error || 'Failed to parse ECM data');
@@ -1872,7 +1918,6 @@ const PlotAnalyzer = () => {
 
         // Extract statistics
         const stats = extractECMStats(parsedData);
-        console.log('Extracted stats:', stats);
 
         // Dispatch to state management
         dispatch({
@@ -1947,7 +1992,7 @@ const PlotAnalyzer = () => {
           if (!profileAutoDetected) {
             const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
-              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
                 profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
                 selectProfile(detectedFuelSystem.profileId);
@@ -1958,7 +2003,7 @@ const PlotAnalyzer = () => {
             profileAutoDetected = true;
           }
 
-          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
+          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse, baselineOptions);
 
           bplotFilesData.push({
             id: generateFileId(),
@@ -1986,7 +2031,7 @@ const PlotAnalyzer = () => {
           if (!profileAutoDetected) {
             const detectedFuelSystem = detectFuelSystem(bplotParsed.headers, bplotParsed.data);
             if (detectedFuelSystem.profileId && detectedFuelSystem.profileId !== selectedProfileId) {
-              console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
+              if (DEBUG) console.log(`Auto-detected ${detectedFuelSystem.fuelSystemName} fuel system, switching to profile: ${detectedFuelSystem.profileName}`);
               try {
                 profileToUse = await getResolvedProfile(detectedFuelSystem.profileId);
                 selectProfile(detectedFuelSystem.profileId);
@@ -1997,7 +2042,7 @@ const PlotAnalyzer = () => {
             profileAutoDetected = true;
           }
 
-          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse);
+          const bplotProcessedData = processBPlotData(bplotParsed, profileToUse, baselineOptions);
 
           bplotFilesData.push({
             id: generateFileId(),

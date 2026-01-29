@@ -211,3 +211,18 @@ body {
 .card-flash-red {
   animation: borderFlashRed 1.6s ease-in-out infinite;
 }
+
+/* v3.1: Prevent accidental text selection on configurator interactive elements */
+.configurator-layout button,
+.configurator-layout [role="button"],
+.configurator-layout label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Prevent selection on navigation and header areas */
+aside nav,
+header {
+  -webkit-user-select: none;
+  user-select: none;
+}

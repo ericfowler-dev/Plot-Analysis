@@ -61,6 +61,33 @@ export async function getIndex() {
 }
 
 /**
+ * Add a new engine size to the profiles index
+ */
+export async function addEngineSize(engineSize) {
+  const result = await apiCall('/index/engine-sizes', {
+    method: 'POST',
+    body: JSON.stringify(engineSize)
+  });
+  return result.index;
+}
+
+export async function updateEngineSize(engineSizeId, updates) {
+  const result = await apiCall(`/index/engine-sizes/${encodeURIComponent(engineSizeId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
+  return result.index;
+}
+
+export async function setEngineSizeArchived(engineSizeId, archived) {
+  const result = await apiCall(`/index/engine-sizes/${encodeURIComponent(engineSizeId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ archived: Boolean(archived) })
+  });
+  return result.index;
+}
+
+/**
  * Get profiles organized by engine family
  */
 export async function getProfilesByFamily() {

@@ -70,24 +70,36 @@ export function detectFuelSystem(columns, dataRows = []) {
   );
 
   if (hasMfgColumns) {
-    // Value-based heuristics to avoid false positives (e.g., static 8.24 placeholder)
+    // Value-based heuristics to avoid false positives (placeholder data from non-MFG engines)
     const getValues = (keys) => {
       const vals = [];
       const lowerKeys = keys.map(k => k.toLowerCase());
       for (const row of dataRows || []) {
         for (const key of Object.keys(row)) {
           if (lowerKeys.includes(key.toLowerCase())) {
-            const v = Number(row[key]);
-            if (!Number.isNaN(v)) vals.push(v);
+            const raw = row[key];
+            if (raw === null || raw === undefined) continue;
+            const v = Number(raw);
+            if (Number.isFinite(v)) vals.push(v);
           }
         }
       }
       return vals;
     };
 
+    // Helper to compute standard deviation (measure of variation)
+    const getStdDev = (vals) => {
+      if (vals.length < 2) return 0;
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sqDiffs = vals.map(v => (v - mean) ** 2);
+      return Math.sqrt(sqDiffs.reduce((a, b) => a + b, 0) / vals.length);
+    };
+
     const upVals = getValues(['MFG_USPress', 'mfg_uspress', 'MFG_US']);
     const dnVals = getValues(['MFG_DSPress', 'mfg_dspress', 'MFG_DS']);
     const dpVals = getValues(['MFG_DPPress', 'mfg_dppress', 'MFG_DP']);
+    const tpsActVals = getValues(['MFG_TPS_act_pct', 'mfg_tps_act_pct', 'MFG_TPS_act']);
+    const tpsCmdVals = getValues(['MFG_TPS_cmd_pct', 'mfg_tps_cmd_pct', 'MFG_TPS_cmd']);
 
     const allMfgVals = [...upVals, ...dnVals, ...dpVals];
 
@@ -102,49 +114,103 @@ export function detectFuelSystem(columns, dataRows = []) {
       };
     }
 
-    const { min: minVal, max: maxVal } = getMinMaxValue(allMfgVals);
-    const range = maxVal - minVal;
-    const mean = allMfgVals.reduce((a, b) => a + b, 0) / allMfgVals.length;
+    // Compute statistics for each channel independently
+    const upStdDev = getStdDev(upVals);
+    const dnStdDev = getStdDev(dnVals);
+    const dpStdDev = getStdDev(dpVals);
+    const tpsActStdDev = getStdDev(tpsActVals);
+    const tpsCmdStdDev = getStdDev(tpsCmdVals);
 
-    // Heuristic 2: static placeholder around 8.24 with no variation
-    const isStatic824 = Math.abs(mean - 8.24) <= 0.1 && range <= 0.15;
-    if (isStatic824) {
+    const upMean = upVals.length > 0 ? upVals.reduce((a, b) => a + b, 0) / upVals.length : 0;
+    const dnMean = dnVals.length > 0 ? dnVals.reduce((a, b) => a + b, 0) / dnVals.length : 0;
+    const dpMean = dpVals.length > 0 ? dpVals.reduce((a, b) => a + b, 0) / dpVals.length : 0;
+    const tpsActMean = tpsActVals.length > 0 ? tpsActVals.reduce((a, b) => a + b, 0) / tpsActVals.length : 0;
+    const tpsCmdMean = tpsCmdVals.length > 0 ? tpsCmdVals.reduce((a, b) => a + b, 0) / tpsCmdVals.length : 0;
+
+    // v3.1.3: Heuristic 2 - Unrealistic MFG pressure values
+    // Real MFG systems operate at 14-16+ psi (up/downstream). Values in the 8-10 psi range
+    // are placeholder/default values from non-MFG engines (likely barometric reading).
+    // Also check for flat signals (no variation) which indicates no real sensor.
+    const upPressureTooLow = upVals.length > 0 && upMean < 12;
+    const dnPressureTooLow = dnVals.length > 0 && dnMean < 12;
+    const pressuresFlat = upStdDev < 0.1 && dnStdDev < 0.1;
+
+    // If both pressures are below realistic operating range AND flat, it's not real MFG
+    if ((upPressureTooLow || dnPressureTooLow) && pressuresFlat) {
       return {
         fuelSystem: 'standard',
         fuelSystemName: 'Standard (Non-MFG)',
         profileId: 'global-defaults',
         profileName: 'Global Defaults',
-        confidence: 'low'
+        confidence: 'high',
+        reason: 'unrealistic-pressure-values'
       };
     }
 
-    // Heuristic 3: require some dynamic signal (variation > 0.5 psi)
-    if (range < 0.5) {
-      return {
-        fuelSystem: 'standard',
-        fuelSystemName: 'Standard (Non-MFG)',
-        profileId: 'global-defaults',
-        profileName: 'Global Defaults',
-        confidence: 'low'
-      };
-    }
-
-    // Heuristic 4: require meaningful delta pressure (>=0.2 psi) at least occasionally
-    const maxDelta = dpVals.length > 0 ? getMaxValue(dpVals) : 0;
-    const hasThrottleCols = normalizedColumns.some(col =>
-      col.includes('mfg_tps_act') || col.includes('mfg_tps_cmd')
+    // v3.1.3: Heuristic 3 - All MFG signals flat (no variation in any channel)
+    // Real MFG systems always have variation during engine operation
+    const allChannelsFlat = (
+      upStdDev < 0.1 && dnStdDev < 0.1 && dpStdDev < 0.05 &&
+      tpsActStdDev < 0.5 && tpsCmdStdDev < 0.5
     );
-
-    if (maxDelta < 0.2 || !hasThrottleCols) {
+    if (allChannelsFlat && allMfgVals.length > 100) {
       return {
         fuelSystem: 'standard',
         fuelSystemName: 'Standard (Non-MFG)',
         profileId: 'global-defaults',
         profileName: 'Global Defaults',
-        confidence: 'low'
+        confidence: 'high',
+        reason: 'all-channels-flat'
       };
     }
 
+    // v3.1.3: Heuristic 4 - Delta pressure always zero with zero TPS
+    // Real MFG: delta varies with load, TPS varies to control fuel
+    const dpAlwaysZero = dpVals.length > 0 && Math.abs(dpMean) < 0.05 && dpStdDev < 0.05;
+    const tpsAlwaysZero = tpsActVals.length > 0 && Math.abs(tpsActMean) < 0.5 && tpsActStdDev < 0.5;
+    if (dpAlwaysZero && tpsAlwaysZero) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'high',
+        reason: 'zero-delta-zero-tps'
+      };
+    }
+
+    // Heuristic 5: require meaningful delta pressure variation (>= 0.2 psi range)
+    const maxDelta = dpVals.length > 0 ? getMaxValue(dpVals) : 0;
+    const minDelta = dpVals.length > 0 ? Math.min(...dpVals) : 0;
+    const deltaRange = maxDelta - minDelta;
+
+    if (deltaRange < 0.2) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'medium',
+        reason: 'insufficient-delta-variation'
+      };
+    }
+
+    // Heuristic 6: require meaningful TPS variation (real MFG throttles move)
+    const tpsRange = tpsActVals.length > 0
+      ? Math.max(...tpsActVals) - Math.min(...tpsActVals)
+      : 0;
+    if (tpsRange < 2) {
+      return {
+        fuelSystem: 'standard',
+        fuelSystemName: 'Standard (Non-MFG)',
+        profileId: 'global-defaults',
+        profileName: 'Global Defaults',
+        confidence: 'medium',
+        reason: 'insufficient-tps-variation'
+      };
+    }
+
+    // All heuristics passed - this is real MFG data
     return {
       fuelSystem: 'mfg',
       fuelSystemName: 'MFG (Mass Flow Gas)',
@@ -181,17 +247,18 @@ function computeMfgDerivedFields(row) {
   // Get MFG upstream pressure (PSIA) and barometric pressure (PSIA)
   const mfgUsPress = row.MFG_USPress ?? row.mfg_uspress ?? row.MFG_US;
   const bp = row.BP ?? row.baro ?? row.BARO ?? row.barometric_pressure;
+  const mfgUsValue = typeof mfgUsPress === 'number' ? mfgUsPress : parseFloat(mfgUsPress);
+  const bpValue = typeof bp === 'number' ? bp : parseFloat(bp);
 
   // Compute fuel gauge pressure in inches of water column (inWC)
   // Only compute if both values are available and valid
-  if (mfgUsPress !== undefined && bp !== undefined &&
-      !isNaN(mfgUsPress) && !isNaN(bp) &&
-      mfgUsPress > 0 && bp > 0) {
+  if (Number.isFinite(mfgUsValue) && Number.isFinite(bpValue) &&
+      mfgUsValue > 0 && bpValue > 0) {
     // (MFG_USPress - BP) × 27 = inWC
-    computed.MFG_FuelPressure_inWC = (mfgUsPress - bp) * 27;
+    computed.MFG_FuelPressure_inWC = (mfgUsValue - bpValue) * 27;
 
     // Also compute in PSI gauge for convenience (simpler threshold checks)
-    computed.MFG_FuelPressure_psig = mfgUsPress - bp;
+    computed.MFG_FuelPressure_psig = mfgUsValue - bpValue;
   }
 
   return computed;
@@ -361,7 +428,12 @@ export function calculateTimeInState(data, channelName) {
 /**
  * Process B-Plot data and generate comprehensive analysis
  */
-export function processBPlotData(parsedData, thresholdProfile = null) {
+export function processBPlotData(parsedData, thresholdProfile = null, options = {}) {
+  const {
+    baseline = null,
+    baselineSelection = null,
+    baselineAlertsEnabled = false
+  } = options;
   const { data, channels, headers } = parsedData;
   const detectedFuelSystem = detectFuelSystem(headers, data);
 
@@ -431,27 +503,32 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
   // and include computed/derived fields for rule evaluation)
   let alerts = [];
   const ruleDurations = {};
+  const isMfgData = detectedFuelSystem?.fuelSystem === 'mfg';
+
   const mapAlertChannel = (alert) => {
     if (!alert) return 'anomaly';
 
-    // Signal quality alerts have the channel name in the alert
-    if (alert.category === 'signal_quality' && alert.channel) {
+    // Use explicit channel when provided (e.g., signal quality or baseline alerts)
+    if (alert.channel) {
       return alert.channel;
     }
 
     const id = (alert.ruleId || '').toLowerCase();
-    // MFG-specific rules
-    if (id.includes('mfg') && id.includes('delta')) return 'MFG_DPPress';
-    if (id.includes('mfg') && id.includes('throttle')) return 'MFG_TPS_act_pct';
-    if (id.includes('fuel-pressure')) return 'MFG_FuelPressure_inWC';
-    if (id.includes('mfg') && id.includes('starvation')) return 'MFG_DPPress';
+    // MFG-specific rules - only map to MFG channels if data is actually MFG
+    if (isMfgData) {
+      if (id.includes('mfg') && id.includes('delta')) return 'MFG_DPPress';
+      if (id.includes('mfg') && id.includes('throttle')) return 'MFG_TPS_act_pct';
+      if (id.includes('fuel-pressure')) return 'MFG_FuelPressure_inWC';
+      if (id.includes('mfg') && id.includes('starvation')) return 'MFG_DPPress';
+    }
 
     // Map categories to actual column names so chart overlay works
+    // v3.1.3: Use appropriate fuel channel based on detected fuel system
     const categoryToChannel = {
       'voltage': 'Vbat',
       'thermal': 'ECT',
       'pressure': 'OILP_press',
-      'fuel': 'MFG_DPPress',
+      'fuel': isMfgData ? 'MFG_DPPress' : 'CL_BM1', // Use fuel trim for non-MFG, MFG delta for MFG
       'fault': 'rpm',  // Show fault overlays relative to RPM
       'knock': 'KNK_retard'
     };
@@ -476,7 +553,9 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     const profileAlerts = detectAnomalies(normalizedData, detectionProfile, {
       sampleRate,
       gracePeriod: 5,
-      minDuration: 0
+      minDuration: 0,
+      baseline,
+      baselineAlertsEnabled
     });
     alerts = profileAlerts.alerts.map(alert => ({
       id: alert.id || `${alert.ruleId || alert.category || 'alert'}-${alert.startTime ?? Math.random()}`,
@@ -542,6 +621,8 @@ export function processBPlotData(parsedData, thresholdProfile = null) {
     summary,
     thresholdProfileId: detectionProfile?.profileId || thresholdProfile?.profileId || null,
     thresholdProfileVersion: detectionProfile?.version || thresholdProfile?.version || null,
+    baselineSelection: baselineSelection || null,
+    baselineAlertsEnabled: Boolean(baselineAlertsEnabled),
     // Store both normalized (for charts) and raw data
     chartData: downsampleData(normalizedData, maxChartPoints),
     rawData: data,

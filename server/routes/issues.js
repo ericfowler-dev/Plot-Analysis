@@ -2,6 +2,8 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPool } from '../db/pool.js';
+import { ensureIssuesTable } from '../db/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,6 +81,32 @@ function saveToLocalFile(issue) {
   fs.writeFileSync(ISSUES_FILE, JSON.stringify(issues, null, 2));
 }
 
+async function saveToDatabase(issue) {
+  const pool = getPool();
+  if (!pool) return null;
+  await ensureIssuesTable();
+  const result = await pool.query(
+    `INSERT INTO issues (title, description, type, email, status, user_agent, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, created_at`,
+    [
+      issue.title,
+      issue.description,
+      issue.type,
+      issue.email,
+      issue.status || 'open',
+      issue.userAgent || null,
+      'db'
+    ]
+  );
+  return {
+    ...issue,
+    id: result.rows[0].id,
+    createdAt: result.rows[0].created_at,
+    source: 'db'
+  };
+}
+
 // Submit a new issue
 router.post('/issues', async (req, res) => {
   try {
@@ -112,6 +140,21 @@ router.post('/issues', async (req, res) => {
       }
     }
 
+    // Try database if available
+    const dbIssue = await saveToDatabase({
+      title,
+      description,
+      type: issueType,
+      email: email || null,
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      userAgent: req.headers['user-agent'] || 'unknown'
+    });
+
+    if (dbIssue) {
+      return res.json({ success: true, issue: dbIssue });
+    }
+
     // Fallback to local file storage
     const newIssue = {
       id: Date.now(),
@@ -138,9 +181,22 @@ router.post('/issues', async (req, res) => {
 // Get all issues (for admin viewing - local only)
 router.get('/issues', (req, res) => {
   try {
-    ensureIssuesFile();
-    const issues = JSON.parse(fs.readFileSync(ISSUES_FILE, 'utf-8'));
-    res.json(issues);
+    const pool = getPool();
+    if (pool) {
+      ensureIssuesTable()
+        .then(() => pool.query('SELECT * FROM issues ORDER BY created_at DESC'))
+        .then(result => res.json(result.rows))
+        .catch(err => {
+          console.error('DB read failed, falling back to local:', err.message);
+          ensureIssuesFile();
+          const issues = JSON.parse(fs.readFileSync(ISSUES_FILE, 'utf-8'));
+          res.json(issues);
+        });
+    } else {
+      ensureIssuesFile();
+      const issues = JSON.parse(fs.readFileSync(ISSUES_FILE, 'utf-8'));
+      res.json(issues);
+    }
   } catch (error) {
     console.error('Error reading issues:', error);
     res.status(500).json({ error: 'Failed to read issues' });

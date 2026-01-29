@@ -7,6 +7,8 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPool } from '../db/pool.js';
+import { ensureProfilesTables } from '../db/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +20,13 @@ let profileCache = new Map();
 let indexCache = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minute cache TTL
+const pool = getPool();
+
+async function useDatabase() {
+  if (!pool) return false;
+  await ensureProfilesTables();
+  return true;
+}
 
 /**
  * Clear the profile cache
@@ -35,6 +44,29 @@ function isCacheValid() {
   return Date.now() - cacheTimestamp < CACHE_TTL;
 }
 
+function toNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function saveIndex(index) {
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    await pool.query(
+      `INSERT INTO profile_index (id, payload, updated_at)
+       VALUES (1, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
+      [index]
+    );
+  }
+
+  const indexPath = path.join(PROFILES_DIR, '_index.json');
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
+  indexCache = index;
+  cacheTimestamp = Date.now();
+}
+
 /**
  * Load the profiles index file
  */
@@ -43,10 +75,28 @@ export async function loadIndex(forceReload = false) {
     return indexCache;
   }
 
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT payload FROM profile_index WHERE id=1');
+    if (result.rows.length > 0) {
+      indexCache = result.rows[0].payload;
+      cacheTimestamp = Date.now();
+      return indexCache;
+    }
+  }
+
   try {
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     const content = await fs.readFile(indexPath, 'utf8');
-    indexCache = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    indexCache = {
+      ...parsed,
+      engineFamilies: Array.isArray(parsed.engineFamilies) ? parsed.engineFamilies : [],
+      engineSizes: Array.isArray(parsed.engineSizes) ? parsed.engineSizes : [],
+      fuelTypes: Array.isArray(parsed.fuelTypes) ? parsed.fuelTypes : [],
+      applications: Array.isArray(parsed.applications) ? parsed.applications : [],
+      profiles: Array.isArray(parsed.profiles) ? parsed.profiles : []
+    };
     cacheTimestamp = Date.now();
     return indexCache;
   } catch (error) {
@@ -56,11 +106,187 @@ export async function loadIndex(forceReload = false) {
 }
 
 /**
+ * Add a new engine size to the profiles index
+ */
+export async function addEngineSize(payload = {}) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const rawId = String(payload.id || '').trim();
+  if (!rawId) {
+    throw new Error('Engine size id is required');
+  }
+  const rawName = String(payload.name || rawId).trim();
+
+  const familyValue = String(payload.family || '').trim();
+  if (!familyValue) {
+    throw new Error('Engine family is required');
+  }
+  const familyEntry = (index.engineFamilies || []).find(
+    entry => entry.id === familyValue || entry.name === familyValue
+  );
+  if (!familyEntry) {
+    throw new Error(`Unknown engine family: ${familyValue}`);
+  }
+
+  if (engineSizes.some(size => size.id === rawId)) {
+    throw new Error(`Engine size already exists: ${rawId}`);
+  }
+
+  const familyDefaults = engineSizes.find(size => size.family === familyEntry.id)?.params || {};
+  const paramsInput = payload.params || {};
+  const params = {
+    fullLoadTpsThreshold: toNumber(paramsInput.fullLoadTpsThreshold ?? payload.fullLoadTpsThreshold)
+      ?? familyDefaults.fullLoadTpsThreshold
+      ?? 80,
+    ratedRpm: toNumber(paramsInput.ratedRpm ?? payload.ratedRpm)
+      ?? familyDefaults.ratedRpm
+      ?? 1800,
+    idleRpm: toNumber(paramsInput.idleRpm ?? payload.idleRpm)
+      ?? familyDefaults.idleRpm
+      ?? 700
+  };
+
+  const tipMapDelta = toNumber(paramsInput.tipMapDeltaThreshold ?? payload.tipMapDeltaThreshold);
+  if (tipMapDelta !== null) {
+    params.tipMapDeltaThreshold = tipMapDelta;
+  } else if (familyDefaults.tipMapDeltaThreshold !== undefined) {
+    params.tipMapDeltaThreshold = familyDefaults.tipMapDeltaThreshold;
+  }
+
+  const description = String(payload.description || '').trim();
+
+  engineSizes.push({
+    id: rawId,
+    name: rawName,
+    family: familyEntry.id,
+    description,
+    params,
+    archived: false
+  });
+
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
+}
+
+/**
+ * Update an existing engine size definition in the index
+ */
+export async function updateEngineSize(engineSizeId, updates = {}) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const targetId = String(engineSizeId || '').trim();
+  if (!targetId) {
+    throw new Error('Engine size id is required');
+  }
+
+  const sizeEntry = engineSizes.find(size => size.id === targetId);
+  if (!sizeEntry) {
+    throw new Error(`Engine size not found: ${targetId}`);
+  }
+
+  const nextName = updates.name !== undefined ? String(updates.name).trim() : sizeEntry.name;
+  if (!nextName) {
+    throw new Error('Engine size name is required');
+  }
+
+  let nextFamily = sizeEntry.family;
+  if (updates.family) {
+    const familyValue = String(updates.family).trim();
+    const familyEntry = (index.engineFamilies || []).find(
+      entry => entry.id === familyValue || entry.name === familyValue
+    );
+    if (!familyEntry) {
+      throw new Error(`Unknown engine family: ${familyValue}`);
+    }
+    nextFamily = familyEntry.id;
+  }
+
+  const nextDescription = updates.description !== undefined
+    ? String(updates.description).trim()
+    : (sizeEntry.description || '');
+
+  const paramsInput = updates.params || {};
+  const mergedParams = {
+    ...sizeEntry.params
+  };
+
+  const fullLoadTpsThreshold = toNumber(paramsInput.fullLoadTpsThreshold);
+  if (fullLoadTpsThreshold !== null) {
+    mergedParams.fullLoadTpsThreshold = fullLoadTpsThreshold;
+  }
+  const ratedRpm = toNumber(paramsInput.ratedRpm);
+  if (ratedRpm !== null) {
+    mergedParams.ratedRpm = ratedRpm;
+  }
+  const idleRpm = toNumber(paramsInput.idleRpm);
+  if (idleRpm !== null) {
+    mergedParams.idleRpm = idleRpm;
+  }
+  if (paramsInput.tipMapDeltaThreshold !== undefined) {
+    const tipMapDelta = toNumber(paramsInput.tipMapDeltaThreshold);
+    if (tipMapDelta !== null) {
+      mergedParams.tipMapDeltaThreshold = tipMapDelta;
+    } else {
+      delete mergedParams.tipMapDeltaThreshold;
+    }
+  }
+
+  sizeEntry.name = nextName;
+  sizeEntry.family = nextFamily;
+  sizeEntry.description = nextDescription;
+  sizeEntry.params = mergedParams;
+
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
+}
+
+/**
+ * Archive/unarchive an engine size definition in the index
+ */
+export async function setEngineSizeArchived(engineSizeId, archived = true) {
+  const index = await loadIndex(true);
+  const engineSizes = Array.isArray(index.engineSizes) ? index.engineSizes : [];
+  index.engineSizes = engineSizes;
+
+  const targetId = String(engineSizeId || '').trim();
+  if (!targetId) {
+    throw new Error('Engine size id is required');
+  }
+
+  const sizeEntry = engineSizes.find(size => size.id === targetId);
+  if (!sizeEntry) {
+    throw new Error(`Engine size not found: ${targetId}`);
+  }
+
+  sizeEntry.archived = Boolean(archived);
+  index.lastUpdated = new Date().toISOString();
+  await saveIndex(index);
+  return index;
+}
+
+/**
  * Load a single profile by ID
  */
 export async function loadProfile(profileId, forceReload = false) {
   if (profileCache.has(profileId) && isCacheValid() && !forceReload) {
     return profileCache.get(profileId);
+  }
+
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT profile FROM profiles WHERE profile_id = $1', [profileId]);
+    if (result.rows.length > 0) {
+      const profile = result.rows[0].profile;
+      profileCache.set(profileId, profile);
+      cacheTimestamp = Date.now();
+      return profile;
+    }
   }
 
   try {
@@ -83,6 +309,12 @@ export async function loadProfile(profileId, forceReload = false) {
  * Load all profiles
  */
 export async function loadAllProfiles(forceReload = false) {
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    const result = await pool.query('SELECT profile FROM profiles');
+    return result.rows.map(r => r.profile);
+  }
+
   const index = await loadIndex(forceReload);
   const profiles = [];
 
@@ -140,6 +372,18 @@ export async function saveProfile(profile) {
   // Update metadata
   profile.lastModified = new Date().toISOString();
 
+  // Save to DB if available
+  const dbReady = await useDatabase();
+  if (dbReady) {
+    await pool.query(
+      `INSERT INTO profiles (profile_id, profile, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (profile_id) DO UPDATE SET profile = $2, updated_at = NOW()`,
+      [profile.profileId, profile]
+    );
+  }
+
+  // Also write to disk for backward compatibility
   const profilePath = path.join(PROFILES_DIR, `${profile.profileId}.json`);
   await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf8');
 
@@ -190,9 +434,7 @@ async function updateIndex(profileId) {
     index.profiles.push(profileId);
     index.lastUpdated = new Date().toISOString();
 
-    const indexPath = path.join(PROFILES_DIR, '_index.json');
-    await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
-    indexCache = index;
+    await saveIndex(index);
   }
 }
 
@@ -207,6 +449,16 @@ async function removeFromIndex(profileId) {
     index.profiles.splice(idx, 1);
     index.lastUpdated = new Date().toISOString();
 
+    const dbReady = await useDatabase();
+    if (dbReady) {
+      await pool.query(
+        `INSERT INTO profile_index (id, payload, updated_at)
+         VALUES (1, $1, NOW())
+         ON CONFLICT (id) DO UPDATE SET payload = $1, updated_at = NOW()`,
+        [index]
+      );
+    }
+
     const indexPath = path.join(PROFILES_DIR, '_index.json');
     await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf8');
     indexCache = index;
@@ -219,8 +471,18 @@ async function removeFromIndex(profileId) {
 export async function getProfileHierarchy(profileId) {
   const hierarchy = [];
   let currentId = profileId;
+  const visited = new Set();
+  const chain = [];
 
   while (currentId) {
+    if (visited.has(currentId)) {
+      const cycleStart = chain.indexOf(currentId);
+      const cycle = cycleStart >= 0 ? chain.slice(cycleStart) : [...chain];
+      cycle.push(currentId);
+      throw new Error(`Circular profile inheritance: ${cycle.join(' -> ')}`);
+    }
+    visited.add(currentId);
+    chain.push(currentId);
     const profile = await loadProfile(currentId);
     hierarchy.unshift(profile); // Add to beginning (ancestors first)
     currentId = profile.parent;

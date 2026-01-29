@@ -19,7 +19,15 @@ import {
 } from 'lucide-react';
 import { getResolvedProfile, validateThresholds } from '../../lib/thresholdService';
 import { BPLOT_PARAMETERS } from '../../lib/bplotThresholds';
-import { ENGINE_STATE_PREDICATE_OPTIONS } from '../../lib/anomalyEngine';
+import {
+  ENGINE_STATE_OPTIONS,
+  SIGNAL_PARAMETER_OPTIONS,
+  PARAMETER_OPTIONS,
+  ALL_CONDITION_LOOKUP,
+  PARAMETER_LOOKUP,
+  CONDITION_OPERATORS,
+  isEnginePredicate
+} from '../../lib/conditionParameters';
 
 // Threshold categories for organization
 const THRESHOLD_CATEGORIES = [
@@ -130,73 +138,6 @@ const PARAMETER_ALIASES = {
   Gov2_rpm: 'gov2_rpm',
   Gov3_rpm: 'gov3_rpm'
 };
-
-// Signal parameters from BPLOT_PARAMETERS
-const SIGNAL_PARAMETER_OPTIONS = (() => {
-  const canonicalOptions = new Map();
-
-  for (const [key, info] of Object.entries(BPLOT_PARAMETERS)) {
-    const canonicalKey = PARAMETER_ALIASES[key] || key;
-    if (canonicalOptions.has(canonicalKey)) {
-      continue;
-    }
-
-    canonicalOptions.set(canonicalKey, {
-      key: canonicalKey,
-      canonicalKey,
-      label: info?.name || key,
-      unit: info?.unit || '',
-      description: info?.description || '',
-      category: 'signal'
-    });
-  }
-
-  return Array.from(canonicalOptions.values()).sort((a, b) => a.label.localeCompare(b.label));
-})();
-
-// Engine state predicates for conditions
-const ENGINE_STATE_OPTIONS = ENGINE_STATE_PREDICATE_OPTIONS.map(opt => ({
-  key: opt.key,
-  canonicalKey: opt.key,
-  label: opt.label,
-  unit: '',
-  description: opt.description,
-  category: 'engine_state'
-}));
-
-// Combined options for condition dropdowns
-const PARAMETER_OPTIONS = [...SIGNAL_PARAMETER_OPTIONS];
-const ALL_CONDITION_OPTIONS = [...ENGINE_STATE_OPTIONS, ...SIGNAL_PARAMETER_OPTIONS];
-
-const PARAMETER_LOOKUP = (() => {
-  const lookup = new Map(PARAMETER_OPTIONS.map(option => [option.key, option]));
-
-  for (const [key] of Object.entries(BPLOT_PARAMETERS)) {
-    const canonicalKey = PARAMETER_ALIASES[key] || key;
-    const option = lookup.get(canonicalKey);
-    if (option) {
-      lookup.set(key, option);
-    }
-  }
-
-  return lookup;
-})();
-
-const ALL_CONDITION_LOOKUP = (() => {
-  const lookup = new Map(ALL_CONDITION_OPTIONS.map(option => [option.key, option]));
-
-  for (const [key] of Object.entries(BPLOT_PARAMETERS)) {
-    const canonicalKey = PARAMETER_ALIASES[key] || key;
-    const option = lookup.get(canonicalKey);
-    if (option) {
-      lookup.set(key, option);
-    }
-  }
-
-  return lookup;
-})();
-
-const CONDITION_OPERATORS = ['>', '<', '>=', '<=', '==', '!='];
 
 export default function ThresholdEditor({ profile, index, onSave, onCancel, loading }) {
   // Edit state

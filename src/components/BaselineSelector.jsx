@@ -38,7 +38,14 @@ function mapSelectionToProfile(group, size, application) {
 }
 
 export default function BaselineSelector() {
-  const { baselineSelection, setBaselineSelection, selectProfile, selectedProfileId } = useThresholds();
+  const {
+    baselineSelection,
+    setBaselineSelection,
+    selectProfile,
+    selectedProfileId,
+    baselineAlertsEnabled,
+    setBaselineAlertsEnabled
+  } = useThresholds();
   const [baselineData, setBaselineData] = useState(null);
   const [baselineIndex, setBaselineIndex] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -138,6 +145,10 @@ export default function BaselineSelector() {
   const filteredApplications = useMemo(() => {
     return applications.filter(app => !app.archived || app.name === baselineSelection.application);
   }, [applications, baselineSelection.application]);
+
+  const canEnableBaselineAlerts = Boolean(
+    baselineSelection.group && baselineSelection.size && baselineSelection.application
+  );
 
   const handleGroupChange = (e) => {
     const group = e.target.value;
@@ -409,6 +420,26 @@ export default function BaselineSelector() {
               </button>
             )}
           </div>
+        </div>
+
+        <div className="mt-6 flex items-center gap-3">
+          <input
+            id="baseline-alerts-enabled"
+            type="checkbox"
+            checked={baselineAlertsEnabled}
+            onChange={(e) => setBaselineAlertsEnabled(e.target.checked)}
+            disabled={!canEnableBaselineAlerts}
+            className="h-4 w-4 rounded border border-[#262626] bg-[#050505] text-[#00FF88] focus:ring-[#00FF88] disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <label
+            htmlFor="baseline-alerts-enabled"
+            className={`text-xs uppercase tracking-[0.2em] font-bold ${canEnableBaselineAlerts ? 'text-slate-400' : 'text-slate-600'}`}
+          >
+            Baseline Info Alerts
+          </label>
+          <span className="text-[10px] text-slate-500">
+            Notify when signals drift outside baseline bounds.
+          </span>
         </div>
       </div>
     </div>

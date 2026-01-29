@@ -2,6 +2,8 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPool } from '../db/pool.js';
+import { ensureConfiguratorAuditTable } from '../db/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +55,17 @@ export async function recordConfiguratorChange({ actor = 'admin', action, detail
     lastUpdated: timestamp,
     audit: [...state.audit, entry]
   };
+
+  // Write to DB audit table if available
+  const pool = getPool();
+  if (pool) {
+    await ensureConfiguratorAuditTable();
+    await pool.query(
+      `INSERT INTO configurator_audit (version, timestamp, actor, action, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [nextVersion, timestamp, actor, action, details]
+    );
+  }
 
   await writeState(nextState);
   return nextState;

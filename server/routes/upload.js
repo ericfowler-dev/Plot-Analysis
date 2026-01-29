@@ -5,6 +5,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { detectFileType, FILE_TYPES } from '../utils/fileDetector.js';
 import { convertBpltToCSV } from '../utils/bpltConverter.js';
+import { getPool } from '../db/pool.js';
+import { ensureUploadsTable } from '../db/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +56,20 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     let resultFilePath = filePath;
     let fileType;
 
+    // Register upload in DB if available
+    let uploadId = null;
+    const pool = getPool();
+    if (pool) {
+      await ensureUploadsTable();
+      const meta = await pool.query(
+        `INSERT INTO uploads (original_name, stored_name, file_type, size_bytes, status, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
+        [originalName, path.basename(filePath), 'pending', req.file.size, 'pending', {}]
+      );
+      uploadId = meta.rows[0].id;
+    }
+
     // Handle .bplt files - convert to CSV first
     if (ext === '.bplt') {
       console.log('Converting BPLT file to CSV...');
@@ -75,6 +91,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Clean up uploaded file
     fs.unlinkSync(resultFilePath);
 
+    // Update upload status
+    if (pool && uploadId) {
+      await pool.query(
+        `UPDATE uploads SET file_type = $1, status = 'processed', metadata = $2 WHERE id = $3`,
+        [fileType, { finalPath: path.basename(resultFilePath) }, uploadId]
+      );
+    }
+
     res.json({
       success: true,
       fileType,
@@ -88,6 +112,17 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Clean up any uploaded files on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
+    }
+
+    // Update upload status on error
+    const pool = getPool();
+    if (pool) {
+      await ensureUploadsTable();
+      await pool.query(
+        `INSERT INTO uploads (original_name, stored_name, file_type, size_bytes, status, metadata)
+         VALUES ($1, $2, $3, $4, 'error', $5)`,
+        [req.file?.originalname || 'unknown', req.file?.filename || 'unknown', null, req.file?.size || 0, { error: error.message }]
+      );
     }
 
     res.status(500).json({
