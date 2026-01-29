@@ -783,8 +783,8 @@ const BPlotAnalysis = ({
                     <YAxis yAxisId="rpm" stroke="#3b82f6" fontSize={12} domain={[0, 'auto']} />
                     <YAxis yAxisId="map" orientation="right" stroke="#8b5cf6" fontSize={12} />
                     <Tooltip
-                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '8px', maxWidth: '280px' }}
+                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px', pointerEvents: 'none' }}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '8px', maxWidth: '280px', maxHeight: '40vh', overflowY: 'auto' }}
                       labelFormatter={(v) => `Time: ${formatDuration(v)}`}
                       formatter={(value, name) => {
                         if (typeof value === 'number') {
@@ -939,8 +939,8 @@ const BPlotAnalysis = ({
                       />
                     ))}
                     <Tooltip
-                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px' }}
-                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px' }}
+                      wrapperStyle={{ maxWidth: '90vw', fontSize: '12px', pointerEvents: 'none' }}
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px', maxHeight: '40vh', overflowY: 'auto' }}
                       labelFormatter={(v, payload) => {
                         const sourceFile = payload?.[0]?.payload?._sourceFile;
                         if (sourceFile && fileBoundaries.length > 1) {

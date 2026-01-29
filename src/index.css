@@ -196,6 +196,24 @@ body {
   }
 }
 
+@keyframes faultRecencyRed {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4), 0 0 12px rgba(239, 68, 68, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.85), 0 0 24px rgba(239, 68, 68, 0.6);
+  }
+}
+
+@keyframes faultRecencyYellow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(250, 204, 21, 0.35), 0 0 12px rgba(250, 204, 21, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.85), 0 0 24px rgba(250, 204, 21, 0.55);
+  }
+}
+
 .shutdown-glow {
   animation: shutdownPulse 1.4s ease-in-out infinite;
 }
@@ -210,6 +228,27 @@ body {
 
 .card-flash-red {
   animation: borderFlashRed 1.6s ease-in-out infinite;
+}
+
+.fault-item.fault-recency-current {
+  border: 2px solid rgba(239, 68, 68, 0.9);
+  animation: faultRecencyRed 1.5s ease-in-out infinite;
+}
+
+.fault-item.fault-recency-recent {
+  border: 2px solid rgba(250, 204, 21, 0.9);
+  animation: faultRecencyYellow 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shutdown-glow,
+  .shutdown-text-glow,
+  .card-flash-yellow,
+  .card-flash-red,
+  .fault-item.fault-recency-current,
+  .fault-item.fault-recency-recent {
+    animation: none;
+  }
 }
 
 /* v3.1: Prevent accidental text selection on configurator interactive elements */
