@@ -57,24 +57,49 @@ export const ENGINE_VARIANT_SIGNATURES = {
   },
 
   // Charge Air Cooler (CAC/Intercooler) detection
+  // Primary detection via TIP/MAP delta range since CAC_temp channels often not present
   cac: {
     name: 'Charge Air Cooled',
     rules: [
-      // CAC-specific temperature channels
-      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'CAC_temp', weight: 0.9 },
-      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'CAC_outlet_temp', weight: 0.9 },
-      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'Intercooler_temp', weight: 0.9 },
-      // TIP/MAP delta characteristic of CAC systems (cooled air = lower TIP)
+      // TIP/MAP delta is the PRIMARY indicator - CAC systems have TIGHTER delta
+      // because cooled charge air has less pressure drop across the system
+      // CAC typical delta: 1.5-4.0 psi at load
+      // Non-CAC typical delta: 3.0-7.0+ psi at load (hotter air expands more)
       {
         type: DETECTION_RULE_TYPES.DELTA_RANGE,
         channel1: 'TIP',
         channel2: 'MAP',
-        min: 0.5,  // CAC typically shows TIP slightly above MAP
-        max: 8,    // But not excessively
-        weight: 0.7
+        min: 0.5,   // CAC systems rarely go below 0.5 psi delta
+        max: 5.0,   // CAC systems stay under 5 psi delta (non-CAC goes higher)
+        weight: 0.9,
+        description: 'CAC systems have tighter TIP/MAP delta due to cooled charge air'
       },
-      // IAT (Intake Air Temp) significantly cooler than ambient indicates CAC
-      { type: DETECTION_RULE_TYPES.VALUE_BELOW, channel: 'IAT', threshold: 140, weight: 0.4 }
+      // Secondary: IAT below typical non-CAC temps suggests intercooling
+      { type: DETECTION_RULE_TYPES.VALUE_BELOW, channel: 'IAT', threshold: 150, weight: 0.5 },
+      // Optional: CAC-specific temperature channels (if present, high confidence)
+      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'CAC_temp', weight: 0.8 },
+      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'CAC_outlet_temp', weight: 0.8 },
+      { type: DETECTION_RULE_TYPES.CHANNEL_PRESENT, channel: 'Intercooler_temp', weight: 0.8 }
+    ],
+    threshold: 0.4  // Lower threshold since we may only have delta to work with
+  },
+
+  // Non-CAC turbo detection (higher TIP/MAP delta indicates no intercooler)
+  noncac: {
+    name: 'Non-Intercooled Turbo',
+    rules: [
+      // Higher TIP/MAP delta indicates no CAC - hot charge air expands more
+      {
+        type: DETECTION_RULE_TYPES.DELTA_RANGE,
+        channel1: 'TIP',
+        channel2: 'MAP',
+        min: 4.0,   // Non-CAC typically starts showing higher delta
+        max: 12.0,  // Upper bound for realistic turbo systems
+        weight: 0.9,
+        description: 'Non-CAC systems have higher TIP/MAP delta due to hot charge air'
+      },
+      // Higher IAT suggests no intercooling
+      { type: DETECTION_RULE_TYPES.VALUE_ABOVE, channel: 'IAT', threshold: 160, weight: 0.6 }
     ],
     threshold: 0.5
   },
@@ -172,7 +197,7 @@ export const ENGINE_SIZE_SIGNATURES = {
  * Order matters - more specific rules should come first
  */
 export const PROFILE_MAPPING_RULES = [
-  // 5.7L Turbo CAC
+  // 5.7L Turbo CAC - detected via tight TIP/MAP delta or CAC channels
   {
     profileId: 'psi-industrial-5.7l-turbo-cac',
     conditions: {
@@ -181,7 +206,16 @@ export const PROFILE_MAPPING_RULES = [
     },
     priority: 100
   },
-  // 5.7L Turbo non-CAC
+  // 5.7L Turbo non-CAC - detected via high TIP/MAP delta (noncac variant)
+  {
+    profileId: 'psi-industrial-5.7l-turbo',
+    conditions: {
+      engineSize: '5.7L',
+      variants: ['turbo', 'noncac']
+    },
+    priority: 95
+  },
+  // 5.7L Turbo non-CAC - fallback when turbo detected but no CAC indicators
   {
     profileId: 'psi-industrial-5.7l-turbo',
     conditions: {
@@ -374,6 +408,30 @@ function detectVariants(stats, metadata = {}) {
     };
   }
 
+  // Post-processing: Handle mutually exclusive variants
+  // CAC and non-CAC are mutually exclusive - pick the one with higher confidence
+  if (detected.cac?.detected && detected.noncac?.detected) {
+    if (detected.cac.confidence >= detected.noncac.confidence) {
+      detected.noncac.detected = false;
+      detected.noncac.note = 'Overridden by higher CAC confidence';
+    } else {
+      detected.cac.detected = false;
+      detected.cac.note = 'Overridden by higher non-CAC confidence';
+    }
+  }
+
+  // If turbo is not detected, CAC/non-CAC are not applicable
+  if (!detected.turbo?.detected) {
+    if (detected.cac) {
+      detected.cac.detected = false;
+      detected.cac.note = 'Requires turbo detection';
+    }
+    if (detected.noncac) {
+      detected.noncac.detected = false;
+      detected.noncac.note = 'Requires turbo detection';
+    }
+  }
+
   return detected;
 }
 
@@ -411,6 +469,11 @@ function matchProfile(detectedVariants, detectedSize, detectedFamily, existingPr
     .filter(([_, v]) => v.detected)
     .map(([id]) => id);
 
+  // For profile matching, 'noncac' detection means NOT 'cac'
+  // This helps rules that use excludeVariants: ['cac'] work with noncac detection
+  const hasNoncac = activeVariants.includes('noncac');
+  const hasCac = activeVariants.includes('cac');
+
   const candidates = [];
 
   for (const rule of PROFILE_MAPPING_RULES) {
@@ -445,6 +508,10 @@ function matchProfile(detectedVariants, detectedSize, detectedFamily, existingPr
     // Check excluded variants
     if (rule.conditions.excludeVariants) {
       for (const variant of rule.conditions.excludeVariants) {
+        // Special case: if excluding 'cac' and we detected 'noncac', that's good (not a match failure)
+        if (variant === 'cac' && hasNoncac && !hasCac) {
+          continue; // This exclusion is satisfied by noncac detection
+        }
         if (activeVariants.includes(variant)) {
           matches = false;
           break;
@@ -459,7 +526,7 @@ function matchProfile(detectedVariants, detectedSize, detectedFamily, existingPr
     }
 
     if (matches) {
-      candidates.push({ profileId: rule.profileId, score });
+      candidates.push({ profileId: rule.profileId, score, matchedVariants: activeVariants });
     }
   }
 
