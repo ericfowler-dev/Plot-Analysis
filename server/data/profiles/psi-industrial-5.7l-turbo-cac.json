@@ -1,0 +1,225 @@
+{
+  "profileId": "psi-industrial-5.7l-turbo-cac",
+  "name": "PSI Industrial 5.7L Turbo CAC",
+  "description": "Profile for 5.7L turbocharged engine with Charge Air Cooler (intercooled). TIP/MAP delta thresholds calibrated for CAC-equipped systems where cooled charge air results in lower pressure differential.",
+  "parent": "psi-industrial-base",
+  "engineFamily": "PSI Industrial",
+  "engineSize": "5.7L",
+  "variants": ["turbo", "cac"],
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-30T12:00:00Z",
+  "lastModified": "2026-01-30T12:00:00Z",
+  "modifiedBy": "system",
+  "thresholds": {
+    "rpm": {
+      "enabled": true,
+      "unit": "RPM",
+      "warning": {
+        "max": 1900
+      },
+      "critical": {
+        "max": 2000
+      },
+      "overspeed": 2200,
+      "idle": {
+        "min": 650,
+        "max": 750
+      }
+    },
+    "manifoldPressure": {
+      "enabled": true,
+      "unit": "psi",
+      "description": "MAP thresholds for turbocharged CAC engine - expects boost",
+      "warning": {
+        "min": 10,
+        "max": 28
+      },
+      "critical": {
+        "min": 8,
+        "max": 32
+      }
+    },
+    "tipMapDelta": {
+      "enabled": true,
+      "unit": "psi",
+      "description": "TIP/MAP pressure differential for turbo CAC - CAC reduces intake temp, resulting in tighter delta range",
+      "warning": {
+        "min": 0.5,
+        "max": 5.0
+      },
+      "critical": {
+        "min": 0.0,
+        "max": 6.5
+      },
+      "nominal": {
+        "min": 1.5,
+        "max": 4.0,
+        "description": "Expected operating range for healthy CAC turbo system"
+      },
+      "hysteresis": 0.5
+    },
+    "intakeAirTemp": {
+      "enabled": true,
+      "unit": "F",
+      "description": "IAT thresholds for CAC system - expects cooler intake temps",
+      "warning": {
+        "max": 140
+      },
+      "critical": {
+        "max": 160
+      },
+      "gracePeriod": 60
+    },
+    "cacEfficiency": {
+      "enabled": true,
+      "unit": "%",
+      "description": "Charge Air Cooler efficiency monitoring (calculated from temps)",
+      "warning": {
+        "min": 60
+      },
+      "critical": {
+        "min": 40
+      }
+    }
+  },
+  "anomalyRules": [
+    {
+      "id": "tip-map-delta-high-cac",
+      "name": "High TIP/MAP Delta (CAC)",
+      "description": "TIP/MAP pressure differential exceeds expected range for CAC-equipped turbo system - may indicate CAC restriction or turbo issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": ">",
+          "value": 5.0
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 50
+        }
+      ],
+      "triggerPersistenceSec": 3,
+      "clearPersistenceSec": 2
+    },
+    {
+      "id": "tip-map-delta-critical-cac",
+      "name": "Critical TIP/MAP Delta (CAC)",
+      "description": "TIP/MAP pressure differential critically high for CAC system",
+      "enabled": true,
+      "severity": "critical",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": ">",
+          "value": 6.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "triggerPersistenceSec": 2,
+      "clearPersistenceSec": 1
+    },
+    {
+      "id": "tip-map-delta-low-cac",
+      "name": "Low TIP/MAP Delta (CAC)",
+      "description": "TIP/MAP pressure differential below expected - may indicate boost leak or sensor issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": "<",
+          "value": 0.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 70
+        }
+      ],
+      "triggerPersistenceSec": 5,
+      "clearPersistenceSec": 3
+    },
+    {
+      "id": "cac-efficiency-low",
+      "name": "Low CAC Efficiency",
+      "description": "Charge Air Cooler not providing adequate cooling - check for restriction or coolant flow issues",
+      "enabled": true,
+      "severity": "warning",
+      "category": "thermal",
+      "conditions": [
+        {
+          "param": "IAT",
+          "operator": ">",
+          "value": 140
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 60
+        }
+      ],
+      "triggerPersistenceSec": 30,
+      "clearPersistenceSec": 10
+    }
+  ],
+  "metadata": {
+    "engineConfig": {
+      "displacement": "5.7L",
+      "aspiration": "turbocharged",
+      "intercooled": true,
+      "fullLoadTps": 38,
+      "ratedRpm": 1800,
+      "idleRpm": 700
+    },
+    "detectionSignature": {
+      "requiredChannels": ["TIP", "MAP"],
+      "optionalChannels": ["CAC_temp", "IAT", "BoostPressure"],
+      "tipMapDeltaRange": {
+        "min": 1.5,
+        "max": 4.0
+      }
+    }
+  }
+}

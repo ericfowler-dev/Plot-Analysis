@@ -1,0 +1,140 @@
+{
+  "profileId": "psi-industrial-5.7l-na",
+  "name": "PSI Industrial 5.7L Naturally Aspirated",
+  "description": "Profile for 5.7L naturally aspirated (non-turbo) engine. No TIP/MAP delta monitoring as there is no turbo boost.",
+  "parent": "psi-industrial-base",
+  "engineFamily": "PSI Industrial",
+  "engineSize": "5.7L",
+  "variants": ["na"],
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-30T12:00:00Z",
+  "lastModified": "2026-01-30T12:00:00Z",
+  "modifiedBy": "system",
+  "thresholds": {
+    "rpm": {
+      "enabled": true,
+      "unit": "RPM",
+      "warning": {
+        "max": 1900
+      },
+      "critical": {
+        "max": 2000
+      },
+      "overspeed": 2200,
+      "idle": {
+        "min": 650,
+        "max": 750
+      }
+    },
+    "manifoldPressure": {
+      "enabled": true,
+      "unit": "psi",
+      "description": "MAP thresholds for naturally aspirated engine - expects vacuum to near-atmospheric",
+      "warning": {
+        "min": 5,
+        "max": 15
+      },
+      "critical": {
+        "min": 3,
+        "max": 16
+      }
+    },
+    "tipMapDelta": {
+      "enabled": false,
+      "description": "TIP/MAP delta monitoring disabled for NA engine - no turbo boost"
+    },
+    "intakeAirTemp": {
+      "enabled": true,
+      "unit": "F",
+      "description": "IAT thresholds for NA engine",
+      "warning": {
+        "max": 150
+      },
+      "critical": {
+        "max": 180
+      },
+      "gracePeriod": 60
+    }
+  },
+  "anomalyRules": [
+    {
+      "id": "high-map-na",
+      "name": "Unexpected High MAP (NA)",
+      "description": "MAP pressure unexpectedly high for naturally aspirated engine - check for sensor issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "param": "MAP",
+          "operator": ">",
+          "value": 15
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "triggerPersistenceSec": 5,
+      "clearPersistenceSec": 3
+    },
+    {
+      "id": "low-vacuum-na",
+      "name": "Low Vacuum at Idle (NA)",
+      "description": "Manifold vacuum lower than expected at idle - may indicate vacuum leak or timing issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "param": "MAP",
+          "operator": ">",
+          "value": 10
+        },
+        {
+          "param": "TPS",
+          "operator": "<",
+          "value": 5
+        }
+      ],
+      "logic": "AND",
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "rpm",
+          "operator": "<",
+          "value": 900
+        }
+      ],
+      "triggerPersistenceSec": 10,
+      "clearPersistenceSec": 5
+    }
+  ],
+  "metadata": {
+    "engineConfig": {
+      "displacement": "5.7L",
+      "aspiration": "naturally_aspirated",
+      "intercooled": false,
+      "fullLoadTps": 85,
+      "ratedRpm": 1800,
+      "idleRpm": 700
+    },
+    "detectionSignature": {
+      "requiredChannels": ["MAP"],
+      "excludeChannels": ["TIP", "TIP_press", "BoostPressure", "WG_DC"],
+      "mapRange": {
+        "max": 15
+      }
+    }
+  }
+}
