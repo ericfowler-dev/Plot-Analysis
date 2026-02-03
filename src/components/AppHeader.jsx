@@ -150,7 +150,14 @@ const AppHeader = ({
   onReportIssue,
   eventCount = 0,
   activeProfileName = null,
-  activeProfileId = null
+  activeProfileId = null,
+  userFields,
+  userFieldsDraft,
+  isUserFieldsEditing = false,
+  onStartUserFieldsEdit,
+  onUserFieldsDraftChange,
+  onSaveUserFields,
+  onCancelUserFields
 }) => {
   // Determine which tab configuration to use
   const getTabConfig = () => {
@@ -162,6 +169,10 @@ const AppHeader = ({
 
   const tabs = getTabConfig();
 
+  const resolvedUserFields = userFields || { engineSn: '', caseFile: '', ref: '' };
+  const resolvedDraft = userFieldsDraft || resolvedUserFields;
+  const hasUserFields = Object.values(resolvedUserFields).some((value) => String(value || '').trim().length > 0);
+
   return (
     <header
       className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
@@ -171,7 +182,12 @@ const AppHeader = ({
 
         {/* Left: Branding & Status */}
         <div className="flex items-center gap-4 min-w-0">
-          <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onImport}
+            className="flex items-center gap-4 text-left hover:opacity-90 transition-opacity"
+            title="Home"
+          >
             {/* Logo icon */}
             <div className="relative w-11 h-11 flex items-center justify-center bg-slate-900 border border-green-500/30 rounded-sm shadow-[0_0_15px_rgba(57,255,20,0.2)]">
               <span
@@ -195,10 +211,10 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                config v3.1
+                config v3.1 app v2.6.1
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Separator */}
           {(hasEcm || hasBplt) && (
@@ -298,6 +314,88 @@ const AppHeader = ({
           </button>
         </div>
       </div>
+
+      {(hasEcm || hasBplt) && (
+        <div className="border-t border-green-500/10 bg-slate-900/30 px-6 py-2">
+          <div className="max-w-[1920px] mx-auto w-full flex flex-wrap items-center gap-3 text-[11px]">
+            <span
+              className="text-[9px] uppercase tracking-[0.25em] text-green-500/60 font-bold"
+              style={{ fontFamily: 'Fira Code, monospace' }}
+            >
+              Case Details
+            </span>
+            {hasUserFields && !isUserFieldsEditing && (
+              <div className="flex flex-wrap items-center gap-4 text-slate-200 font-mono">
+                <span className="text-slate-400">Engine SN:</span>
+                <span>{resolvedUserFields.engineSn || '-'}</span>
+                <span className="text-slate-400">Case File:</span>
+                <span>{resolvedUserFields.caseFile || '-'}</span>
+                <span className="text-slate-400">Ref #:</span>
+                <span>{resolvedUserFields.ref || '-'}</span>
+                <button
+                  type="button"
+                  onClick={onStartUserFieldsEdit}
+                  className="ml-2 px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-green-500/30 text-green-400 hover:text-white hover:border-green-500/60 hover:bg-green-500/10 transition-colors"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+            {!hasUserFields && !isUserFieldsEditing && (
+              <button
+                type="button"
+                onClick={onStartUserFieldsEdit}
+                className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-green-500/30 text-green-400 hover:text-white hover:border-green-500/60 hover:bg-green-500/10 transition-colors"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                Add Fields
+              </button>
+            )}
+            {isUserFieldsEditing && (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Engine SN"
+                  value={resolvedDraft.engineSn || ''}
+                  onChange={(e) => onUserFieldsDraftChange?.('engineSn', e.target.value)}
+                  className="h-8 px-3 rounded border border-slate-700 bg-slate-900/70 text-slate-100 text-xs focus:outline-none focus:border-green-500/60"
+                />
+                <input
+                  type="text"
+                  placeholder="Case File"
+                  value={resolvedDraft.caseFile || ''}
+                  onChange={(e) => onUserFieldsDraftChange?.('caseFile', e.target.value)}
+                  className="h-8 px-3 rounded border border-slate-700 bg-slate-900/70 text-slate-100 text-xs focus:outline-none focus:border-green-500/60"
+                />
+                <input
+                  type="text"
+                  placeholder="Ref #"
+                  value={resolvedDraft.ref || ''}
+                  onChange={(e) => onUserFieldsDraftChange?.('ref', e.target.value)}
+                  className="h-8 px-3 rounded border border-slate-700 bg-slate-900/70 text-slate-100 text-xs focus:outline-none focus:border-green-500/60"
+                />
+                <button
+                  type="button"
+                  onClick={onSaveUserFields}
+                  className="h-8 px-3 text-[10px] font-bold uppercase tracking-widest border border-green-500/40 text-green-300 hover:text-white hover:border-green-500/70 hover:bg-green-500/10 transition-colors"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={onCancelUserFields}
+                  className="h-8 px-3 text-[10px] font-bold uppercase tracking-widest border border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 hover:bg-slate-700/40 transition-colors"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 };

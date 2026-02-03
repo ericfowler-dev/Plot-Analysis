@@ -268,7 +268,14 @@ const BPlotAnalysis = ({
   onReportIssue,            // Callback to open report issue modal
   externalActiveTab,        // External tab control (for combined view)
   hideHeader = false,       // Hide header when embedded in combined view
-  reportRef                // Ref for PDF export
+  reportRef,               // Ref for PDF export
+  userFields,
+  userFieldsDraft,
+  isUserFieldsEditing = false,
+  onStartUserFieldsEdit,
+  onUserFieldsDraftChange,
+  onSaveUserFields,
+  onCancelUserFields
 }) => {
   // Get active profile for display
   const { resolvedProfile } = useThresholds();
@@ -511,6 +518,13 @@ const BPlotAnalysis = ({
             eventCount={processedData?.events?.length || 0}
             activeProfileName={resolvedProfile?.name}
             activeProfileId={resolvedProfile?.profileId}
+            userFields={userFields}
+            userFieldsDraft={userFieldsDraft}
+            isUserFieldsEditing={isUserFieldsEditing}
+            onStartUserFieldsEdit={onStartUserFieldsEdit}
+            onUserFieldsDraftChange={onUserFieldsDraftChange}
+            onSaveUserFields={onSaveUserFields}
+            onCancelUserFields={onCancelUserFields}
           />
 
           {/* Secondary Controls Bar */}
