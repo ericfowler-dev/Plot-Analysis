@@ -48,22 +48,22 @@ export const CHANNEL_VALIDITY_POLICIES = {
 
   // EPR (Electronic Pressure Regulator) - only valid when engine running
   EPR_cmd: {
-    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
     alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
     excludeNegative: true      // Negative values are sensor errors
   },
   EPR_actual: {
-    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
     alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
     excludeNegative: true      // Negative values are sensor errors
   },
   MJ_P_act: {
-    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
     alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
     excludeNegative: true
   },
   MJ_P_cmd: {
-    statsPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
+    statsPolicy: VALIDITY_POLICY.VALID_WHEN_KEY_ON,
     alertPolicy: VALIDITY_POLICY.VALID_WHEN_ENGINE_RUNNING,
     excludeNegative: true
   },

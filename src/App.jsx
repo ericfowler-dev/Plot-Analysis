@@ -100,6 +100,50 @@ const getSnapshotHoursValue = (snapshot) => {
   return null;
 };
 
+const parseHoursValue = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const cleaned = String(value).replace(/[^0-9.+-]/g, '');
+  const numericValue = parseFloat(cleaned);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const getFaultRecencyInfo = (engineHours, lastAtHours) => {
+  const engineHoursValue = parseHoursValue(engineHours);
+  const lastAtValue = parseHoursValue(lastAtHours);
+  if (engineHoursValue === null || lastAtValue === null) {
+    return {
+      className: '',
+      label: '',
+      rank: 2,
+      delta: null
+    };
+  }
+  const delta = engineHoursValue - lastAtValue;
+  if (delta <= 2) {
+    return {
+      className: 'fault-recency-current',
+      label: 'CURRENT',
+      rank: 0,
+      delta
+    };
+  }
+  if (delta <= 50) {
+    return {
+      className: 'fault-recency-recent',
+      label: 'RECENT',
+      rank: 1,
+      delta
+    };
+  }
+  return {
+    className: '',
+    label: '',
+    rank: 2,
+    delta
+  };
+};
+
 // Threshold constants per requirements
 const THRESHOLDS = {
   IDLE_RPM: 900,           // Idle: ≤ 900 RPM
@@ -901,7 +945,7 @@ const ECTBarChart = ({ histogram }) => {
 // =============================================================================
 // FAULT SNAPSHOT TABLE - Full diagnostic detail
 // =============================================================================
-const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
+const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault, engineHours, sortByRecency, faultFilter }) => {
   if (!faults || faults.length === 0) {
     return (
       <div className="text-slate-500 text-sm p-8 text-center">
@@ -912,21 +956,74 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
     );
   }
 
-  const selectedFault = selectedFaultIndex !== null ? faults[selectedFaultIndex] : null;
+  const faultItems = faults.map((fault, idx) => ({
+    fault,
+    idx,
+    recency: getFaultRecencyInfo(engineHours, fault?.lastOccurrence)
+  }));
+
+  const orderedFaultItems = sortByRecency
+    ? [...faultItems].sort((a, b) => {
+      if (a.recency.rank !== b.recency.rank) {
+        return a.recency.rank - b.recency.rank;
+      }
+      const aDelta = a.recency.delta ?? Number.POSITIVE_INFINITY;
+      const bDelta = b.recency.delta ?? Number.POSITIVE_INFINITY;
+      if (aDelta !== bDelta) return aDelta - bDelta;
+      return a.idx - b.idx;
+    })
+    : faultItems;
+
+  const filteredFaultItems = orderedFaultItems.filter(({ fault, recency }) => {
+    if (!faultFilter || faultFilter === 'total') return true;
+    if (faultFilter === 'current') return recency.rank === 0;
+    if (faultFilter === 'recent') return recency.rank === 1;
+    if (faultFilter === 'shutdown') return Boolean(fault?.causedShutdown);
+    return true;
+  });
+
+  const selectedFaultAllowed = selectedFaultIndex !== null && filteredFaultItems.some(item => item.idx === selectedFaultIndex);
+  const selectedFault = selectedFaultAllowed ? faults[selectedFaultIndex] : null;
+
+  const summaryStats = filteredFaultItems.reduce((acc, item) => {
+    acc.total += 1;
+    acc.occurrences += item.fault?.occurrenceCount || 0;
+    if (item.fault?.lastOccurrence !== null && item.fault?.lastOccurrence !== undefined) {
+      const lastVal = parseHoursValue(item.fault.lastOccurrence);
+      if (lastVal !== null) {
+        acc.latest = acc.latest === null ? lastVal : Math.max(acc.latest, lastVal);
+      }
+    }
+    return acc;
+  }, { total: 0, occurrences: 0, latest: null });
+
+  const topByLastOccurrence = [...filteredFaultItems]
+    .sort((a, b) => {
+      const aLast = parseHoursValue(a.fault?.lastOccurrence) ?? -Infinity;
+      const bLast = parseHoursValue(b.fault?.lastOccurrence) ?? -Infinity;
+      return bLast - aLast;
+    })
+    .slice(0, 3);
 
   return (
-    <div className="flex gap-4" style={{ minHeight: '400px' }}>
+    <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: '400px' }}>
       {/* Left Panel - Fault List */}
-      <div className="w-80 flex-shrink-0 flex flex-col border-r border-slate-700 pr-4">
+      <div className="w-full lg:w-80 flex-shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-700 pb-4 lg:pb-0 lg:pr-4">
         <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">
-          {faults.length} Fault{faults.length !== 1 ? 's' : ''} Recorded
+          {filteredFaultItems.length} Fault{filteredFaultItems.length !== 1 ? 's' : ''} Recorded
         </div>
-        <div className="flex-1 overflow-y-auto space-y-2 pr-2" style={{ maxHeight: '500px' }}>
-          {faults.map((fault, idx) => (
+        <div className="flex-1 overflow-y-auto space-y-2 pr-2 max-h-[55vh] lg:max-h-[500px]">
+          {filteredFaultItems.map(({ fault, idx, recency }) => {
+            const recencyBadgeClass = recency.className === 'fault-recency-current'
+              ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+              : recency.className === 'fault-recency-recent'
+                ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-400/40'
+                : '';
+            return (
             <div
               key={idx}
               onClick={() => onSelectFault(idx)}
-              className={`p-3 rounded-lg cursor-pointer transition-all ${
+              className={`fault-item p-3 rounded-lg cursor-pointer transition-all ${recency.className} ${
                 selectedFaultIndex === idx
                   ? 'bg-green-500/20 border border-green-500/50 shadow-lg shadow-green-500/10'
                   : 'bg-slate-800/50 border border-transparent hover:bg-slate-800 hover:border-slate-700'
@@ -956,24 +1053,72 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
               <div className="text-sm text-white mb-2 line-clamp-2">{fault.description || 'Unknown fault'}</div>
 
               {/* Quick Stats */}
-              <div className="flex items-center gap-3 text-[11px] text-slate-400">
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 flex-wrap">
                 <span>Count: <span className="text-white font-mono">{fault.occurrenceCount || 0}</span></span>
                 <span>Last: <span className="text-white font-mono">{formatNumber(fault.lastOccurrence, 2)}h</span></span>
+                {recency.label && (
+                  <span className={`text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded ${recencyBadgeClass}`}>
+                    {recency.label}
+                  </span>
+                )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
       {/* Right Panel - Fault Detail */}
       <div className="flex-1 min-w-0">
         {selectedFault ? (
-          <FaultSnapshotDetailInline fault={selectedFault} />
+          <FaultSnapshotDetailInline fault={selectedFault} engineHours={engineHours} />
         ) : (
-          <div className="h-full flex items-center justify-center text-slate-500">
-            <div className="text-center">
-              <ChevronRight className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-              <p className="text-sm">Select a fault to view details</p>
+          <div className="h-full overflow-y-auto pr-2 max-h-[55vh] lg:max-h-[500px]">
+            <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold">
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <span>Filtered Fault Summary</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-900/50 rounded p-2">
+                  <div className="text-[10px] text-slate-500 uppercase">Faults</div>
+                  <div className="text-white font-mono font-bold">{summaryStats.total}</div>
+                </div>
+                <div className="bg-slate-900/50 rounded p-2">
+                  <div className="text-[10px] text-slate-500 uppercase">Occurrences</div>
+                  <div className="text-white font-mono font-bold">{summaryStats.occurrences}</div>
+                </div>
+                <div className="bg-slate-900/50 rounded p-2">
+                  <div className="text-[10px] text-slate-500 uppercase">Latest @ Hours</div>
+                  <div className="text-white font-mono font-bold">
+                    {summaryStats.latest === null ? '—' : `${formatNumber(summaryStats.latest, 2)}h`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/50 rounded-lg p-4">
+              <div className="text-xs text-slate-400 uppercase tracking-wider mb-3">Most Recent Faults</div>
+              {topByLastOccurrence.length === 0 ? (
+                <div className="text-sm text-slate-500">No faults match this filter.</div>
+              ) : (
+                <div className="space-y-2">
+                  {topByLastOccurrence.map(({ fault, idx }) => (
+                    <button
+                      key={idx}
+                      onClick={() => onSelectFault(idx)}
+                      className="w-full text-left bg-slate-900/40 hover:bg-slate-900/70 border border-slate-700/60 rounded-lg p-3 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-green-400 font-mono font-bold">DTC {fault.code}</span>
+                        <span className="text-xs text-slate-400 font-mono">
+                          {formatNumber(fault.lastOccurrence, 2)}h
+                        </span>
+                      </div>
+                      <div className="text-sm text-white line-clamp-2">{fault.description || 'Unknown fault'}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -983,10 +1128,17 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault }) => {
 };
 
 // Inline version of fault detail (no close button, fits in master-detail layout)
-const FaultSnapshotDetailInline = ({ fault }) => {
+const FaultSnapshotDetailInline = ({ fault, engineHours }) => {
   const [showRawData, setShowRawData] = useState(false);
 
   if (!fault) return null;
+
+  const recency = getFaultRecencyInfo(engineHours, fault?.lastOccurrence);
+  const recencyBadgeClass = recency.className === 'fault-recency-current'
+    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+    : recency.className === 'fault-recency-recent'
+      ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-400/40'
+      : '';
 
   const snapshot = fault.snapshot || {};
   const snapshotHours = getSnapshotHoursValue(snapshot);
@@ -1015,7 +1167,12 @@ const FaultSnapshotDetailInline = ({ fault }) => {
             <div className="text-green-400 font-mono font-bold text-lg">DTC {fault.code}</div>
             <div className="text-white text-base">{fault.description || 'Unknown fault'}</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
+            {recency.label && (
+              <span className={`px-2 py-1 rounded text-xs font-bold tracking-wide border ${recencyBadgeClass}`}>
+                {recency.label}
+              </span>
+            )}
             {fault.causedShutdown && (
               <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-400 font-medium flex items-center gap-1 shutdown-glow">
                 <AlertTriangle className="w-3 h-3" />
@@ -1554,6 +1711,14 @@ const PlotAnalyzer = () => {
   const [showAllRows, setShowAllRows] = useState({});
   const [rawFileContent, setRawFileContent] = useState('');
   const [selectedFaultIndex, setSelectedFaultIndex] = useState(null);
+  const [sortFaultsByRecency, setSortFaultsByRecency] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = window.localStorage.getItem('plot-analyzer-sort-faults-by-recency');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    return true;
+  });
+  const [faultFilter, setFaultFilter] = useState('total');
   const [showFaultOverlays, setShowFaultOverlays] = useState(true);
   const [scrollToAlerts, setScrollToAlerts] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -1575,6 +1740,29 @@ const PlotAnalyzer = () => {
     }
     setScrollToAlerts(false);
   }, [scrollToAlerts, activeTab, analysis?.alerts?.length]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('plot-analyzer-sort-faults-by-recency', String(sortFaultsByRecency));
+  }, [sortFaultsByRecency]);
+
+  useEffect(() => {
+    setSelectedFaultIndex(null);
+  }, [faultFilter, sortFaultsByRecency, stats.engineHours]);
+
+  const faultRecencyCounts = useMemo(() => {
+    if (!faults || faults.length === 0) {
+      return { current: 0, recent: 0 };
+    }
+    let current = 0;
+    let recent = 0;
+    faults.forEach((fault) => {
+      const info = getFaultRecencyInfo(stats.engineHours, fault?.lastOccurrence);
+      if (info.rank === 0) current += 1;
+      if (info.rank === 1) recent += 1;
+    });
+    return { current, recent };
+  }, [faults, stats.engineHours]);
 
   // Initialize worker for plot data processing
   useEffect(() => {
@@ -2686,14 +2874,42 @@ const PlotAnalyzer = () => {
                   <AlertTriangle className="w-5 h-5 text-red-400" /> Fault Snapshot Data
                 </div>
                 {faults.length > 0 && (
-                  <div className="flex items-center gap-3 text-sm">
-                    {faults.filter(f => f?.causedShutdown).length > 0 && (
-                      <span className="text-red-400">{faults.filter(f => f?.causedShutdown).length} Shutdown</span>
-                    )}
-                    {faults.filter(f => f?.occurredThisCycle).length > 0 && (
-                      <span className="text-orange-400">{faults.filter(f => f?.occurredThisCycle).length} Active</span>
-                    )}
-                    <span className="text-slate-400">{faults.length} Total</span>
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sortFaultsByRecency}
+                        onChange={(e) => setSortFaultsByRecency(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-400 focus:ring-emerald-400"
+                      />
+                      Sort by recency
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {[
+                        { key: 'current', label: 'Current', count: faultRecencyCounts.current, classes: 'text-red-300 border-red-500/40' },
+                        { key: 'recent', label: 'Recent', count: faultRecencyCounts.recent, classes: 'text-yellow-200 border-yellow-400/40' },
+                        { key: 'shutdown', label: 'Shutdown', count: faults.filter(f => f?.causedShutdown).length, classes: 'text-red-300 border-red-500/40' },
+                        { key: 'total', label: 'Total', count: faults.length, classes: 'text-slate-300 border-slate-600/50' }
+                      ].map((pill) => (
+                        <button
+                          key={pill.key}
+                          onClick={() => setFaultFilter(pill.key)}
+                          className={`px-3 py-1 rounded-full border transition-all ${
+                            faultFilter === pill.key
+                              ? `bg-slate-800/70 ${pill.classes} shadow-[0_0_10px_rgba(148,163,184,0.15)]`
+                              : 'bg-slate-900/40 text-slate-400 border-slate-700/60 hover:border-slate-500/70 hover:text-slate-200'
+                          }`}
+                        >
+                          {pill.count} {pill.label}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setFaultFilter('total')}
+                        className="px-3 py-1 rounded-full border border-slate-600/60 text-slate-300 hover:text-white hover:border-slate-400/80 transition-colors"
+                      >
+                        Reset Filter
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2702,6 +2918,9 @@ const PlotAnalyzer = () => {
                 faults={faults}
                 selectedFaultIndex={selectedFaultIndex}
                 onSelectFault={setSelectedFaultIndex}
+                engineHours={stats.engineHours}
+                sortByRecency={sortFaultsByRecency}
+                faultFilter={faultFilter}
               />
             </div>
           </>

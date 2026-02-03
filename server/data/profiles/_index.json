@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "description": "Index of all available threshold profiles",
-  "lastUpdated": "2026-01-16T13:06:10.715Z",
+  "version": "2.0.0",
+  "description": "Index of all available threshold profiles with engine variant support",
+  "lastUpdated": "2026-01-30T12:00:00.000Z",
   "engineFamilies": [
     {
       "id": "psi-hd",
@@ -69,7 +69,48 @@
     "psi-hd-base",
     "psi-hd-40l-53l-mfg",
     "psi-industrial-base",
+    "psi-industrial-5.7l-turbo-cac",
+    "psi-industrial-5.7l-turbo",
+    "psi-industrial-5.7l-na",
     "test-profile"
+  ],
+  "engineVariants": [
+    {
+      "id": "turbo",
+      "name": "Turbocharged",
+      "description": "Turbocharged/boosted engine configuration",
+      "icon": "speed",
+      "detectionChannels": ["TIP", "TIP_press", "BoostPressure", "WG_DC"]
+    },
+    {
+      "id": "na",
+      "name": "Naturally Aspirated",
+      "description": "Non-turbocharged engine configuration",
+      "icon": "air",
+      "detectionChannels": []
+    },
+    {
+      "id": "cac",
+      "name": "Charge Air Cooled (CAC)",
+      "description": "Intercooled/charge air cooled turbo system",
+      "icon": "ac_unit",
+      "detectionChannels": ["CAC_temp", "CAC_outlet_temp", "Intercooler_temp"],
+      "requiresVariant": "turbo"
+    },
+    {
+      "id": "mfg",
+      "name": "MFG Fuel System",
+      "description": "Mass Flow Gas valve fuel system",
+      "icon": "local_gas_station",
+      "detectionChannels": ["MFG_DPPress", "MFG_USPress", "MFG_DSPress", "MFG_TPS_act_pct"]
+    },
+    {
+      "id": "epr",
+      "name": "EPR Fuel System",
+      "description": "Electronic Pressure Regulator fuel system",
+      "icon": "tune",
+      "detectionChannels": ["EPR_cmd", "EPR_act", "FuelPress_cmd"]
+    }
   ],
   "engineSizes": [
     {
@@ -77,10 +118,18 @@
       "name": "40L",
       "family": "psi-hd",
       "description": "PSI HD 40 liter engine with MFG fuel system",
+      "supportedVariants": ["mfg"],
+      "defaultVariants": ["mfg"],
       "params": {
         "fullLoadTpsThreshold": 85,
         "ratedRpm": 1800,
         "idleRpm": 700
+      },
+      "variantConfigs": {
+        "mfg": {
+          "profileId": "psi-hd-40l-53l-mfg",
+          "description": "40L with MFG fuel system"
+        }
       }
     },
     {
@@ -88,10 +137,18 @@
       "name": "53L",
       "family": "psi-hd",
       "description": "PSI HD 53 liter engine with MFG fuel system",
+      "supportedVariants": ["mfg"],
+      "defaultVariants": ["mfg"],
       "params": {
         "fullLoadTpsThreshold": 85,
         "ratedRpm": 1800,
         "idleRpm": 700
+      },
+      "variantConfigs": {
+        "mfg": {
+          "profileId": "psi-hd-40l-53l-mfg",
+          "description": "53L with MFG fuel system"
+        }
       }
     },
     {
@@ -99,6 +156,8 @@
       "name": "22L",
       "family": "psi-hd",
       "description": "PSI HD 22 liter engine",
+      "supportedVariants": ["epr", "na", "turbo"],
+      "defaultVariants": ["epr"],
       "params": {
         "fullLoadTpsThreshold": 80,
         "ratedRpm": 1800,
@@ -110,6 +169,8 @@
       "name": "8.8L",
       "family": "psi-industrial",
       "description": "PSI Industrial 8.8 liter engine",
+      "supportedVariants": ["epr", "na", "turbo"],
+      "defaultVariants": ["na"],
       "params": {
         "fullLoadTpsThreshold": 45,
         "ratedRpm": 1800,
@@ -120,12 +181,43 @@
       "id": "5.7L",
       "name": "5.7L",
       "family": "psi-industrial",
-      "description": "PSI Industrial 5.7 liter CAC turbocharged engine",
+      "description": "PSI Industrial 5.7 liter engine (multiple variants available)",
+      "supportedVariants": ["turbo", "na", "cac"],
+      "defaultVariants": ["turbo", "cac"],
       "params": {
         "fullLoadTpsThreshold": 38,
         "ratedRpm": 1800,
-        "idleRpm": 700,
-        "tipMapDeltaThreshold": 2.5
+        "idleRpm": 700
+      },
+      "variantConfigs": {
+        "turbo-cac": {
+          "profileId": "psi-industrial-5.7l-turbo-cac",
+          "description": "5.7L Turbocharged with Charge Air Cooler",
+          "params": {
+            "tipMapDeltaMin": 1.5,
+            "tipMapDeltaMax": 4.0,
+            "tipMapDeltaWarning": 5.0,
+            "tipMapDeltaCritical": 6.5
+          }
+        },
+        "turbo": {
+          "profileId": "psi-industrial-5.7l-turbo",
+          "description": "5.7L Turbocharged without CAC",
+          "params": {
+            "tipMapDeltaMin": 3.0,
+            "tipMapDeltaMax": 7.0,
+            "tipMapDeltaWarning": 8.5,
+            "tipMapDeltaCritical": 10.0
+          }
+        },
+        "na": {
+          "profileId": "psi-industrial-5.7l-na",
+          "description": "5.7L Naturally Aspirated",
+          "params": {
+            "tipMapDeltaMin": null,
+            "tipMapDeltaMax": null
+          }
+        }
       }
     },
     {
@@ -133,6 +225,8 @@
       "name": "4.3L",
       "family": "psi-industrial",
       "description": "PSI Industrial 4.3 liter engine",
+      "supportedVariants": ["na"],
+      "defaultVariants": ["na"],
       "params": {
         "fullLoadTpsThreshold": 50,
         "ratedRpm": 1800,
@@ -140,6 +234,12 @@
       }
     }
   ],
+  "autoDetection": {
+    "enabled": true,
+    "description": "Automatic profile detection based on data channel signatures",
+    "confidenceThreshold": 0.6,
+    "fallbackProfile": "global-defaults"
+  },
   "fuelSystems": [
     {
       "id": "mfg",
