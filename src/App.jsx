@@ -1723,6 +1723,17 @@ const PlotAnalyzer = () => {
   const [scrollToAlerts, setScrollToAlerts] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showReportIssue, setShowReportIssue] = useState(false);
+  const [userFields, setUserFields] = useState({
+    engineSn: '',
+    caseFile: '',
+    ref: ''
+  });
+  const [userFieldsDraft, setUserFieldsDraft] = useState({
+    engineSn: '',
+    caseFile: '',
+    ref: ''
+  });
+  const [isUserFieldsEditing, setIsUserFieldsEditing] = useState(false);
   const reportRef = useRef(null);
   const workerRef = useRef(null);
   const alertsRef = useRef(null);
@@ -2432,6 +2443,29 @@ const PlotAnalyzer = () => {
     return sections;
   }, [rawFileContent]);
 
+  const startUserFieldsEdit = () => {
+    setUserFieldsDraft(userFields);
+    setIsUserFieldsEditing(true);
+  };
+
+  const handleUserFieldsDraftChange = (field, value) => {
+    setUserFieldsDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const saveUserFields = () => {
+    setUserFields({
+      engineSn: userFieldsDraft.engineSn?.trim() || '',
+      caseFile: userFieldsDraft.caseFile?.trim() || '',
+      ref: userFieldsDraft.ref?.trim() || ''
+    });
+    setIsUserFieldsEditing(false);
+  };
+
+  const cancelUserFieldsEdit = () => {
+    setUserFieldsDraft(userFields);
+    setIsUserFieldsEditing(false);
+  };
+
   const reset = () => {
     dispatch({ type: 'RESET' });
     setRawSheets({});
@@ -2440,6 +2474,9 @@ const PlotAnalyzer = () => {
     setSelectedFaultIndex(null);
     setShowFaultOverlays(true);
     handleTabChange('overview');
+    setUserFields({ engineSn: '', caseFile: '', ref: '' });
+    setUserFieldsDraft({ engineSn: '', caseFile: '', ref: '' });
+    setIsUserFieldsEditing(false);
   };
 
   const exportToPDF = useCallback(async () => {
@@ -2511,14 +2548,24 @@ const PlotAnalyzer = () => {
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      pdf.save(`plot-analysis-${timestamp}.pdf`);
+      const sanitizePart = (value) => String(value || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      const fieldParts = [
+        sanitizePart(userFields.engineSn),
+        sanitizePart(userFields.caseFile),
+        sanitizePart(userFields.ref)
+      ].filter(Boolean);
+      const fieldSuffix = fieldParts.length > 0 ? `-${fieldParts.join('-')}` : '';
+      pdf.save(`plot-analysis${fieldSuffix}-${timestamp}.pdf`);
     } catch (error) {
       console.error('PDF export failed:', error);
       setError('PDF export failed. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting]);
+  }, [isExporting, userFields]);
 
   // ----------------------------------------------------------------------------
   // RENDER: UPLOAD SCREEN
@@ -2672,6 +2719,13 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
           reportRef={reportRef}
+          userFields={userFields}
+          userFieldsDraft={userFieldsDraft}
+          isUserFieldsEditing={isUserFieldsEditing}
+          onStartUserFieldsEdit={startUserFieldsEdit}
+          onUserFieldsDraftChange={handleUserFieldsDraftChange}
+          onSaveUserFields={saveUserFields}
+          onCancelUserFields={cancelUserFieldsEdit}
         />
         <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
       </>
@@ -2708,6 +2762,13 @@ const PlotAnalyzer = () => {
           eventCount={bplotProcessed?.events?.length || 0}
           activeProfileName={activeThresholdProfile?.name}
           activeProfileId={activeThresholdProfile?.profileId}
+          userFields={userFields}
+          userFieldsDraft={userFieldsDraft}
+          isUserFieldsEditing={isUserFieldsEditing}
+          onStartUserFieldsEdit={startUserFieldsEdit}
+          onUserFieldsDraftChange={handleUserFieldsDraftChange}
+          onSaveUserFields={saveUserFields}
+          onCancelUserFields={cancelUserFieldsEdit}
         />
         <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
         <BPlotAnalysis
@@ -2745,6 +2806,13 @@ const PlotAnalyzer = () => {
         eventCount={faults?.length || 0}
         activeProfileName={activeThresholdProfile?.name}
         activeProfileId={activeThresholdProfile?.profileId}
+        userFields={userFields}
+        userFieldsDraft={userFieldsDraft}
+        isUserFieldsEditing={isUserFieldsEditing}
+        onStartUserFieldsEdit={startUserFieldsEdit}
+        onUserFieldsDraftChange={handleUserFieldsDraftChange}
+        onSaveUserFields={saveUserFields}
+        onCancelUserFields={cancelUserFieldsEdit}
       />
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
