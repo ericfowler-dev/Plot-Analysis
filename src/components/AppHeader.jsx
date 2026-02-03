@@ -8,9 +8,17 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
-  // ECM only: Overview - Charts - Raw
+  // ECM only: Overview - Charts - Fault Timeline
   ecmOnly: [
     { id: 'overview', label: 'Overview', source: null },
+    { id: 'charts', label: 'Charts', source: null },
+    { id: 'faults', label: 'Fault Timeline', source: null }
+  ],
+  // Multi-ECM only (Primary + Secondary): Overview - ECM Compare - Faults
+  multiEcm: [
+    { id: 'overview', label: 'Overview', source: null },
+    { id: 'ecm-compare', label: 'ECM Compare', source: null },
+    { id: 'ecm-faults', label: 'Faults', source: null },
     { id: 'charts', label: 'Charts', source: null }
   ],
   // BPLT only: Overview - Charts - Channels - Events
@@ -20,12 +28,23 @@ const TAB_CONFIGS = {
     { id: 'channels', label: 'Channels', source: null },
     { id: 'events', label: 'Events', source: null }
   ],
-  // Both: Overview (ECM) - Overview (BPLT) - Charts (ECM) - Charts (BPLT) - Channels (BPLT) - Events (BPLT) - Raw (ECM)
+  // Both ECM + BPLT: Overview (ECM) - Overview (BPLT) - Charts (ECM) - Charts (BPLT) - Fault Timeline (ECM) - Channels (BPLT) - Events (BPLT)
   both: [
     { id: 'overview-ecm', label: 'Overview', source: 'ECM' },
     { id: 'overview-bplt', label: 'Overview', source: 'BPLT' },
     { id: 'charts-ecm', label: 'Charts', source: 'ECM' },
     { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
+    { id: 'faults-ecm', label: 'Fault Timeline', source: 'ECM' },
+    { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
+    { id: 'events-bplt', label: 'Events', source: 'BPLT' }
+  ],
+  // Full System: Multi-ECM + BPLT - Overview - ECM Compare - Charts (BPLT) - Combined Faults - Channels - Events
+  fullSystem: [
+    { id: 'overview-ecm', label: 'Overview', source: 'ECM' },
+    { id: 'ecm-compare', label: 'ECM Compare', source: null },
+    { id: 'overview-bplt', label: 'Overview', source: 'BPLT' },
+    { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
+    { id: 'combined-faults', label: 'Faults', source: null },
     { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
     { id: 'events-bplt', label: 'Events', source: 'BPLT' }
   ]
@@ -72,8 +91,26 @@ const ProfileIndicator = ({ profileName, profileId }) => {
   );
 };
 
+// Role badge component for Primary/Secondary designation
+const RoleBadge = ({ role }) => {
+  if (!role) return null;
+
+  const isPrimary = role === 'primary';
+  return (
+    <span className={`
+      text-[8px] px-1 py-0.5 rounded-sm font-bold tracking-wide uppercase
+      ${isPrimary
+        ? 'bg-blue-500/20 border border-blue-500/40 text-blue-400'
+        : 'bg-slate-500/20 border border-slate-500/40 text-slate-400'
+      }
+    `} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+      {isPrimary ? 'P' : 'S'}
+    </span>
+  );
+};
+
 // File indicator badge
-const FileIndicator = ({ type, fileName }) => {
+const FileIndicator = ({ type, fileName, role }) => {
   const isEcm = type === 'ECM';
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -85,6 +122,7 @@ const FileIndicator = ({ type, fileName }) => {
         }
       `} style={{ fontFamily: 'Orbitron, sans-serif' }}>
         {type}
+        {role && <RoleBadge role={role} />}
       </div>
       <span
         className="text-[11px] text-slate-400 opacity-80 max-w-[100px] xl:max-w-[140px] truncate"
@@ -98,7 +136,11 @@ const FileIndicator = ({ type, fileName }) => {
 };
 
 // Navigation tab component
-const NavTab = ({ tab, isActive, onClick, eventCount }) => {
+const NavTab = ({ tab, isActive, onClick, eventCount, faultCount }) => {
+  // Determine if this tab should show a count badge
+  const showEventCount = tab.id.includes('events') && eventCount > 0;
+  const showFaultCount = (tab.id.includes('fault') || tab.id === 'ecm-faults' || tab.id === 'combined-faults') && faultCount > 0;
+
   return (
     <button
       onClick={() => onClick(tab.id)}
@@ -125,12 +167,22 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
       <SourceBadge source={tab.source} />
 
       {/* Event count badge for events tab */}
-      {tab.id.includes('events') && eventCount > 0 && (
+      {showEventCount && (
         <span
           className="ml-2 px-1.5 py-0.5 text-[11px] bg-black border border-green-500/30 text-green-400 rounded-sm shadow-[inset_0_0_5px_rgba(57,255,20,0.1)]"
           style={{ fontFamily: 'Fira Code, monospace' }}
         >
           {eventCount}
+        </span>
+      )}
+
+      {/* Fault count badge for fault tabs */}
+      {showFaultCount && (
+        <span
+          className="ml-2 px-1.5 py-0.5 text-[11px] bg-black border border-red-500/30 text-red-400 rounded-sm shadow-[inset_0_0_5px_rgba(255,0,0,0.1)]"
+          style={{ fontFamily: 'Fira Code, monospace' }}
+        >
+          {faultCount}
         </span>
       )}
     </button>
@@ -141,14 +193,19 @@ const NavTab = ({ tab, isActive, onClick, eventCount }) => {
 const AppHeader = ({
   hasEcm = false,
   hasBplt = false,
+  hasPrimaryEcm = false,
+  hasSecondaryEcm = false,
   ecmFileName = '',
   bpltFileName = '',
+  ecmFiles = [],        // Array of { fileName, role } for multi-ECM display
+  bplotFiles = [],      // Array of { fileName, role } for multi-BPLOT display
   activeTab = 'overview',
   onTabChange,
   onImport,
   onExport,
   onReportIssue,
   eventCount = 0,
+  faultCount = 0,       // Combined fault count for multi-ECM
   activeProfileName = null,
   activeProfileId = null,
   userFields,
@@ -159,8 +216,13 @@ const AppHeader = ({
   onSaveUserFields,
   onCancelUserFields
 }) => {
+  // Determine if we have multi-ECM setup
+  const hasMultiEcm = hasPrimaryEcm && hasSecondaryEcm;
+
   // Determine which tab configuration to use
   const getTabConfig = () => {
+    if (hasMultiEcm && hasBplt) return TAB_CONFIGS.fullSystem;
+    if (hasMultiEcm) return TAB_CONFIGS.multiEcm;
     if (hasEcm && hasBplt) return TAB_CONFIGS.both;
     if (hasEcm) return TAB_CONFIGS.ecmOnly;
     if (hasBplt) return TAB_CONFIGS.bpltOnly;
@@ -231,8 +293,32 @@ const AppHeader = ({
                 Stream Source
               </span>
               <div className="flex flex-col gap-1 min-w-0">
-                {hasEcm && <FileIndicator type="ECM" fileName={ecmFileName} />}
-                {hasBplt && <FileIndicator type="BPLT" fileName={bpltFileName} />}
+                {/* Multi-ECM: show each file with role */}
+                {hasMultiEcm && ecmFiles.length > 0 ? (
+                  ecmFiles.map((file, idx) => (
+                    <FileIndicator
+                      key={file.id || idx}
+                      type="ECM"
+                      fileName={file.fileName}
+                      role={file.role}
+                    />
+                  ))
+                ) : hasEcm && (
+                  <FileIndicator type="ECM" fileName={ecmFileName} />
+                )}
+                {/* Multi-BPLOT: show each file with role */}
+                {bplotFiles.length > 1 ? (
+                  bplotFiles.map((file, idx) => (
+                    <FileIndicator
+                      key={file.id || idx}
+                      type="BPLT"
+                      fileName={file.fileName}
+                      role={file.role}
+                    />
+                  ))
+                ) : hasBplt && (
+                  <FileIndicator type="BPLT" fileName={bpltFileName} />
+                )}
               </div>
             </div>
           )}
@@ -257,6 +343,7 @@ const AppHeader = ({
                   isActive={activeTab === tab.id}
                   onClick={onTabChange}
                   eventCount={tab.id.includes('events') ? eventCount : 0}
+                  faultCount={tab.id.includes('fault') ? faultCount : 0}
                 />
               ))}
             </div>
