@@ -33,10 +33,22 @@ import {
 import { parseBPlotData } from './lib/bplotParsers';
 import { processBPlotData, detectFuelSystem } from './lib/bplotProcessData';
 import { combineTimelineData, generateFileId } from './lib/bplotTimelineMerge';
+import {
+  generateEcmFileId,
+  combineFaultData,
+  combineHistogramData,
+  mergeEcmStats,
+  getHistogramDifference,
+  findMatchingFaults,
+  getEcmInfoComparison
+} from './lib/ecmTimelineMerge';
 import BPlotAnalysis from './components/BPlotAnalysis';
 import AppHeader from './components/AppHeader';
 import BaselineSelector from './components/BaselineSelector';
 import ReportIssue from './components/ReportIssue';
+import FileRoleModal from './components/FileRoleModal';
+import EcmComparison from './components/EcmComparison';
+import CombinedFaultView from './components/CombinedFaultView';
 import { useThresholds } from './contexts/ThresholdContext';
 import { getResolvedProfile } from './lib/thresholdService';
 
@@ -1127,6 +1139,149 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault, engineHo
   );
 };
 
+// =============================================================================
+// FAULT TIMELINE TAB - Initial/Last occurrence sequencing
+// =============================================================================
+const FaultTimelineTab = ({ faults, engineHours, sortKey, onSortChange }) => {
+  if (!faults || faults.length === 0) {
+    return (
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-8 text-center">
+        <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500/50" />
+        <p className="text-emerald-400 font-medium">No faults recorded</p>
+        <p className="text-slate-500 text-xs mt-1">This ECM has no stored fault codes</p>
+      </div>
+    );
+  }
+
+  const timelineItems = faults.map((fault) => {
+    const initial = parseHoursValue(fault?.initialOccurrence);
+    const last = parseHoursValue(fault?.lastOccurrence);
+    const recency = getFaultRecencyInfo(engineHours, last);
+    return {
+      fault,
+      initial,
+      last,
+      recency,
+      status: fault?.occurredThisCycle ? 'Active' : 'Historic'
+    };
+  });
+
+  const sortedItems = [...timelineItems].sort((a, b) => {
+    if (sortKey === 'last') {
+      const aVal = a.last ?? -Infinity;
+      const bVal = b.last ?? -Infinity;
+      if (aVal !== bVal) return bVal - aVal;
+      return (a.initial ?? -Infinity) - (b.initial ?? -Infinity);
+    }
+    const aVal = a.initial ?? Infinity;
+    const bVal = b.initial ?? Infinity;
+    if (aVal !== bVal) return aVal - bVal;
+    return (a.last ?? Infinity) - (b.last ?? Infinity);
+  });
+
+  const activeCount = timelineItems.filter(item => item.status === 'Active').length;
+  const historicCount = timelineItems.length - activeCount;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Clock className="w-5 h-5 text-green-400" />
+            <div className="text-base font-semibold text-slate-300">Fault Occurrence Timeline</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="text-slate-400">Current Hours:</div>
+            <div className="text-white font-mono">{formatNumber(engineHours, 1)}h</div>
+            <div className="text-slate-400">Active:</div>
+            <div className="text-white font-mono">{activeCount}</div>
+            <div className="text-slate-400">Historic:</div>
+            <div className="text-white font-mono">{historicCount}</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+          <span className="text-slate-500">Sort by</span>
+          <button
+            type="button"
+            onClick={() => onSortChange('initial')}
+            className={`px-3 py-1 rounded border transition-colors ${
+              sortKey === 'initial'
+                ? 'border-green-500/60 text-green-300 bg-green-500/10'
+                : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+            }`}
+          >
+            Initial Occurrence
+          </button>
+          <button
+            type="button"
+            onClick={() => onSortChange('last')}
+            className={`px-3 py-1 rounded border transition-colors ${
+              sortKey === 'last'
+                ? 'border-green-500/60 text-green-300 bg-green-500/10'
+                : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+            }`}
+          >
+            Last Occurrence
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+        <div className="grid grid-cols-12 gap-2 px-4 py-3 text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-800">
+          <div className="col-span-2">DTC</div>
+          <div className="col-span-4">Description</div>
+          <div className="col-span-1">Status</div>
+          <div className="col-span-2">Initial</div>
+          <div className="col-span-2">Last</div>
+          <div className="col-span-1 text-right">Δ Hrs</div>
+        </div>
+        <div className="divide-y divide-slate-800">
+          {sortedItems.map((item, index) => {
+            const { fault, initial, last, recency, status } = item;
+            const delta = (last !== null && last !== undefined && Number.isFinite(engineHours))
+              ? engineHours - last
+              : null;
+            const recencyBadgeClass = recency.className === 'fault-recency-current'
+              ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+              : recency.className === 'fault-recency-recent'
+                ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-400/40'
+                : '';
+            return (
+              <div key={`${fault.code}-${index}`} className="grid grid-cols-12 gap-2 px-4 py-3 text-sm text-slate-200">
+                <div className="col-span-2 font-mono text-green-400">DTC {fault.code}</div>
+                <div className="col-span-4 text-slate-100">{fault.description || 'Unknown fault'}</div>
+                <div className="col-span-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    status === 'Active'
+                      ? 'border-orange-400/60 text-orange-300 bg-orange-500/10'
+                      : 'border-slate-600 text-slate-300 bg-slate-800/40'
+                  }`}>
+                    {status}
+                  </span>
+                </div>
+                <div className="col-span-2 font-mono text-slate-300">
+                  {initial === null ? '—' : `${formatNumber(initial, 2)}h`}
+                </div>
+                <div className="col-span-2 font-mono text-slate-300 flex items-center gap-2">
+                  <span>{last === null ? '—' : `${formatNumber(last, 2)}h`}</span>
+                  {recency.label && (
+                    <span className={`text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded ${recencyBadgeClass}`}>
+                      {recency.label}
+                    </span>
+                  )}
+                </div>
+                <div className="col-span-1 text-right font-mono text-slate-300">
+                  {delta === null || Number.isNaN(delta) ? '—' : `${formatNumber(delta, 1)}h`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Inline version of fault detail (no close button, fits in master-detail layout)
 const FaultSnapshotDetailInline = ({ fault, engineHours }) => {
   const [showRawData, setShowRawData] = useState(false);
@@ -1472,7 +1627,7 @@ const analysisInitialState = {
   parsed: false,
   // Active view tab
   activeTab: 'overview',
-  // ECM specific
+  // ECM specific - single file (backward compatible)
   ecmInfo: {},
   histograms: {},
   faults: [],
@@ -1481,16 +1636,27 @@ const analysisInitialState = {
   summaryStats: {},
   processedHistograms: {},
   selectedHistogram: 'speedLoad',
+  // ECM multi-file support (Primary/Secondary)
+  ecmFiles: [],                // Array of { id, fileName, role, ecmInfo, histograms, faults, stats }
+  hasPrimaryEcm: false,
+  hasSecondaryEcm: false,
+  combinedEcmHistograms: {},   // Merged histogram data from both ECMs
+  combinedEcmFaults: [],       // Combined faults with source attribution
+  ecmViewMode: 'combined',     // 'combined' | 'side-by-side' | 'primary' | 'secondary'
+  ecmComparisonStats: null,    // Merged stats from both ECMs
   // B-Plot specific - single file (backward compatible)
   bplotData: null,
   bplotProcessed: null,
   // B-Plot multi-file support
-  bplotFiles: [],              // Array of { id, fileName, data, processed, timeOffset }
+  bplotFiles: [],              // Array of { id, fileName, role, data, processed, timeOffset }
   combinedBplotData: null,     // Merged timeline data for unified view
   combinedBplotProcessed: null,// Combined processed results
   fileBoundaries: [],          // Array of { fileId, fileName, startTime, endTime }
   // ECM fault overlay for B-Plot charts
-  ecmFaultsForOverlay: []      // ECM faults to overlay on B-Plot charts
+  ecmFaultsForOverlay: [],     // ECM faults to overlay on B-Plot charts
+  ecmFaultsBySource: { primary: [], secondary: [] }, // ECM faults separated by source
+  // File role selection modal
+  pendingRoleSelection: null   // { fileType: 'ecm'|'bplot', files: [] } when awaiting role selection
 };
 
 function analysisReducer(state, action) {
@@ -1517,6 +1683,125 @@ function analysisReducer(state, action) {
         parsed: true,
         activeTab: state.hasBplt ? 'overview-ecm' : 'overview'
       };
+
+    case 'ECM_FILES_LOADED': {
+      // Multi-ECM file load with Primary/Secondary roles
+      const { files } = action.payload;
+      const primaryFile = files.find(f => f.role === 'primary');
+      const secondaryFile = files.find(f => f.role === 'secondary');
+
+      // Process faults for each file
+      const processedFiles = files.map(file => ({
+        ...file,
+        faults: processFaultData(file.faults),
+        processedHistograms: processAllHistograms(file.histograms, ECM_HISTOGRAM_CONFIG)
+      }));
+
+      // Combine faults with source attribution
+      const combinedFaults = combineFaultData(processedFiles);
+      const combinedHistograms = combineHistogramData(processedFiles);
+      const comparisonStats = mergeEcmStats(processedFiles);
+
+      // Use primary file for main display (backward compatible)
+      const primaryProcessed = processedFiles.find(f => f.role === 'primary') || processedFiles[0];
+      const primaryFaults = primaryProcessed?.faults || [];
+      const primaryHistograms = primaryProcessed?.processedHistograms || {};
+      const primaryAnalysis = analyzeECMData(
+        primaryProcessed?.ecmInfo,
+        primaryHistograms,
+        primaryFaults,
+        primaryProcessed?.stats
+      );
+      const primarySummaryStats = generateSummaryStats(
+        primaryProcessed?.ecmInfo,
+        primaryHistograms,
+        primaryFaults,
+        primaryProcessed?.stats
+      );
+
+      // Separate faults by source for BPLOT overlay
+      const primaryFaultsForOverlay = combinedFaults.filter(f => f.sourceRole === 'primary');
+      const secondaryFaultsForOverlay = combinedFaults.filter(f => f.sourceRole === 'secondary');
+
+      return {
+        ...state,
+        hasEcm: true,
+        hasPrimaryEcm: Boolean(primaryFile),
+        hasSecondaryEcm: Boolean(secondaryFile),
+        ecmFileName: files.map(f => f.fileName).join(', '),
+        fileType: state.hasBplt ? 'both' : FILE_TYPES.ECM,
+        // Primary ECM data for backward compatible views
+        ecmInfo: primaryProcessed?.ecmInfo || {},
+        histograms: primaryProcessed?.histograms || {},
+        faults: primaryFaults,
+        stats: primaryProcessed?.stats || {},
+        analysis: primaryAnalysis,
+        summaryStats: primarySummaryStats,
+        processedHistograms: primaryHistograms,
+        // Multi-ECM specific
+        ecmFiles: processedFiles,
+        combinedEcmHistograms: combinedHistograms,
+        combinedEcmFaults: combinedFaults,
+        ecmComparisonStats: comparisonStats,
+        ecmFaultsForOverlay: combinedFaults,
+        ecmFaultsBySource: {
+          primary: primaryFaultsForOverlay,
+          secondary: secondaryFaultsForOverlay
+        },
+        fileName: files.map(f => f.fileName).join(', '),
+        parsed: true,
+        activeTab: state.hasBplt ? 'overview-ecm' : 'overview',
+        pendingRoleSelection: null
+      };
+    }
+
+    case 'SET_ECM_FILE_ROLE': {
+      // Update role for a specific ECM file
+      const { fileId, role } = action.payload;
+      const updatedFiles = state.ecmFiles.map(f =>
+        f.id === fileId ? { ...f, role } : f
+      );
+
+      // If setting as primary, ensure no other file is primary
+      if (role === 'primary') {
+        updatedFiles.forEach(f => {
+          if (f.id !== fileId && f.role === 'primary') {
+            f.role = 'secondary';
+          }
+        });
+      }
+
+      // Recalculate combined data
+      const combinedFaults = combineFaultData(updatedFiles);
+      const combinedHistograms = combineHistogramData(updatedFiles);
+      const comparisonStats = mergeEcmStats(updatedFiles);
+
+      const primaryFile = updatedFiles.find(f => f.role === 'primary');
+      const secondaryFile = updatedFiles.find(f => f.role === 'secondary');
+
+      return {
+        ...state,
+        ecmFiles: updatedFiles,
+        hasPrimaryEcm: Boolean(primaryFile),
+        hasSecondaryEcm: Boolean(secondaryFile),
+        combinedEcmHistograms: combinedHistograms,
+        combinedEcmFaults: combinedFaults,
+        ecmComparisonStats: comparisonStats,
+        ecmFaultsBySource: {
+          primary: combinedFaults.filter(f => f.sourceRole === 'primary'),
+          secondary: combinedFaults.filter(f => f.sourceRole === 'secondary')
+        }
+      };
+    }
+
+    case 'SET_ECM_VIEW_MODE':
+      return { ...state, ecmViewMode: action.payload };
+
+    case 'SET_PENDING_ROLE_SELECTION':
+      return { ...state, pendingRoleSelection: action.payload };
+
+    case 'CLEAR_PENDING_ROLE_SELECTION':
+      return { ...state, pendingRoleSelection: null };
     case 'BPLOT_FILE_LOADED':
       return {
         ...state,
@@ -1529,24 +1814,51 @@ function analysisReducer(state, action) {
         parsed: true,
         activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
       };
-    case 'BPLOT_FILES_LOADED':
+    case 'BPLOT_FILES_LOADED': {
       // Multi-file B-Plot load with combined timeline
+      const bplotFilesWithRoles = action.payload.files.map((f, idx) => ({
+        ...f,
+        role: f.role || (idx === 0 ? 'primary' : 'secondary')
+      }));
       return {
         ...state,
         hasBplt: true,
-        bpltFileName: action.payload.files.map(f => f.fileName).join(', '),
+        bpltFileName: bplotFilesWithRoles.map(f => f.fileName).join(', '),
         fileType: state.hasEcm ? 'both' : FILE_TYPES.BPLOT,
-        bplotFiles: action.payload.files,
+        bplotFiles: bplotFilesWithRoles,
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
         // Set primary data to combined for display
         bplotData: action.payload.combinedData,
         bplotProcessed: action.payload.combinedProcessed,
-        fileName: action.payload.files.map(f => f.fileName).join(', '),
+        fileName: bplotFilesWithRoles.map(f => f.fileName).join(', '),
         parsed: true,
         activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
       };
+    }
+
+    case 'SET_BPLOT_FILE_ROLE': {
+      // Update role for a specific BPLOT file
+      const { fileId, role } = action.payload;
+      const updatedBplotFiles = state.bplotFiles.map(f =>
+        f.id === fileId ? { ...f, role } : f
+      );
+
+      // If setting as primary, ensure no other file is primary
+      if (role === 'primary') {
+        updatedBplotFiles.forEach(f => {
+          if (f.id !== fileId && f.role === 'primary') {
+            f.role = 'secondary';
+          }
+        });
+      }
+
+      return {
+        ...state,
+        bplotFiles: updatedBplotFiles
+      };
+    }
     case 'BPLOT_REPROCESSED':
       return {
         ...state,
@@ -1575,29 +1887,72 @@ function analysisReducer(state, action) {
         bplotProcessed: action.payload.combinedProcessed,
         fileName: newFiles.map(f => f.fileName).join(', ')
       };
-    case 'BOTH_FILES_LOADED':
+    case 'BOTH_FILES_LOADED': {
       // Load both ECM and BPLT files at once
-      const bothProcessedFaults = processFaultData(action.payload.ecmData.faults);
-      const bothProcessedHistograms = processAllHistograms(action.payload.ecmData.histograms, ECM_HISTOGRAM_CONFIG);
-      const bothAnalysis = analyzeECMData(action.payload.ecmData.ecmInfo, bothProcessedHistograms, bothProcessedFaults, action.payload.ecmData.stats);
-      const bothSummaryStats = generateSummaryStats(action.payload.ecmData.ecmInfo, bothProcessedHistograms, bothProcessedFaults, action.payload.ecmData.stats);
+      // Handle single ECM or multiple ECM files
+      const ecmDataArray = Array.isArray(action.payload.ecmData)
+        ? action.payload.ecmData
+        : [action.payload.ecmData];
+
+      // Process ECM files with roles
+      const ecmFilesProcessed = ecmDataArray.map((ecmData, idx) => ({
+        id: ecmData.id || generateEcmFileId(),
+        fileName: ecmData.fileName,
+        role: ecmData.role || (idx === 0 ? 'primary' : 'secondary'),
+        ecmInfo: ecmData.ecmInfo,
+        histograms: ecmData.histograms,
+        faults: processFaultData(ecmData.faults),
+        stats: ecmData.stats,
+        processedHistograms: processAllHistograms(ecmData.histograms, ECM_HISTOGRAM_CONFIG)
+      }));
+
+      const hasMutliEcm = ecmFilesProcessed.length > 1;
+      const primaryEcm = ecmFilesProcessed.find(f => f.role === 'primary') || ecmFilesProcessed[0];
+      const secondaryEcm = ecmFilesProcessed.find(f => f.role === 'secondary');
+
+      // Combine ECM data if multiple files
+      const bothCombinedFaults = hasMutliEcm ? combineFaultData(ecmFilesProcessed) : primaryEcm.faults;
+      const bothCombinedHistograms = hasMutliEcm ? combineHistogramData(ecmFilesProcessed) : {};
+      const bothComparisonStats = hasMutliEcm ? mergeEcmStats(ecmFilesProcessed) : null;
+
+      const bothProcessedFaults = primaryEcm.faults;
+      const bothProcessedHistograms = primaryEcm.processedHistograms;
+      const bothAnalysis = analyzeECMData(primaryEcm.ecmInfo, bothProcessedHistograms, bothProcessedFaults, primaryEcm.stats);
+      const bothSummaryStats = generateSummaryStats(primaryEcm.ecmInfo, bothProcessedHistograms, bothProcessedFaults, primaryEcm.stats);
+
+      // Process BPLOT files with roles
+      const bplotFilesWithRoles = action.payload.bplotFiles.map((f, idx) => ({
+        ...f,
+        role: f.role || (idx === 0 ? 'primary' : 'secondary')
+      }));
 
       return {
         ...state,
-        // ECM data
+        // ECM data (primary for backward compatibility)
         hasEcm: true,
-        ecmFileName: action.payload.ecmData.fileName,
-        ecmInfo: action.payload.ecmData.ecmInfo,
-        histograms: action.payload.ecmData.histograms,
+        hasPrimaryEcm: Boolean(primaryEcm),
+        hasSecondaryEcm: Boolean(secondaryEcm),
+        ecmFileName: ecmFilesProcessed.map(f => f.fileName).join(', '),
+        ecmInfo: primaryEcm.ecmInfo,
+        histograms: primaryEcm.histograms,
         faults: bothProcessedFaults,
-        stats: action.payload.ecmData.stats,
+        stats: primaryEcm.stats,
         analysis: bothAnalysis,
         summaryStats: bothSummaryStats,
         processedHistograms: bothProcessedHistograms,
+        // Multi-ECM specific
+        ecmFiles: ecmFilesProcessed,
+        combinedEcmHistograms: bothCombinedHistograms,
+        combinedEcmFaults: bothCombinedFaults,
+        ecmComparisonStats: bothComparisonStats,
+        ecmFaultsBySource: hasMutliEcm ? {
+          primary: bothCombinedFaults.filter(f => f.sourceRole === 'primary'),
+          secondary: bothCombinedFaults.filter(f => f.sourceRole === 'secondary')
+        } : { primary: bothProcessedFaults, secondary: [] },
         // BPLT data
         hasBplt: true,
-        bpltFileName: action.payload.bplotFiles.map(f => f.fileName).join(', '),
-        bplotFiles: action.payload.bplotFiles,
+        bpltFileName: bplotFilesWithRoles.map(f => f.fileName).join(', '),
+        bplotFiles: bplotFilesWithRoles,
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
@@ -1605,11 +1960,12 @@ function analysisReducer(state, action) {
         bplotProcessed: action.payload.combinedProcessed,
         // Combined
         fileType: 'both',
-        fileName: action.payload.ecmData.fileName,
+        fileName: primaryEcm.fileName,
         parsed: true,
         activeTab: 'overview-ecm',
-        ecmFaultsForOverlay: bothProcessedFaults
+        ecmFaultsForOverlay: bothCombinedFaults
       };
+    }
     case 'SET_ECM_FAULTS_FOR_OVERLAY':
       // Set ECM faults for overlay on B-Plot charts
       return {
@@ -1694,7 +2050,11 @@ const PlotAnalyzer = () => {
     processedHistograms, selectedHistogram, fileName, parsed,
     bplotData, bplotProcessed,
     bplotFiles, combinedBplotData, combinedBplotProcessed, fileBoundaries,
-    ecmFaultsForOverlay
+    ecmFaultsForOverlay,
+    // Multi-ECM state
+    ecmFiles, hasPrimaryEcm, hasSecondaryEcm, combinedEcmHistograms,
+    combinedEcmFaults, ecmViewMode, ecmComparisonStats, ecmFaultsBySource,
+    pendingRoleSelection
   } = state;
 
   // Tab change handler
@@ -1723,6 +2083,7 @@ const PlotAnalyzer = () => {
   const [scrollToAlerts, setScrollToAlerts] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showReportIssue, setShowReportIssue] = useState(false);
+  const [faultTimelineSort, setFaultTimelineSort] = useState('initial');
   const [userFields, setUserFields] = useState({
     engineSn: '',
     caseFile: '',
@@ -2157,7 +2518,7 @@ const PlotAnalyzer = () => {
 
     try {
       const bplotFilesData = [];
-      let ecmData = null;
+      const ecmFilesData = []; // Support multiple ECM files
       let profileToUse = activeThresholdProfile;
       let profileAutoDetected = false;
 
@@ -2265,35 +2626,65 @@ const PlotAnalyzer = () => {
               stats.histogramStats[key] = { totalHours: total, dataPoints: histogram.data.length * (histogram.xLabels?.length || 0) };
             });
 
-            ecmData = {
+            ecmFilesData.push({
+              id: generateEcmFileId(),
               ecmInfo: parsedData.ecmInfo,
               histograms: parsedData.histograms,
               faults: parsedData.faults,
               stats,
               fileName: file.name
-            };
+            });
           }
         }
       }
 
       // Dispatch based on what was loaded
-      const hasBplt = bplotFilesData.length > 0;
-      const hasEcm = ecmData !== null;
+      const hasBpltFiles = bplotFilesData.length > 0;
+      const hasEcmFiles = ecmFilesData.length > 0;
+      const hasMultipleEcmFiles = ecmFilesData.length > 1;
+      const hasMultipleBplotFiles = bplotFilesData.length > 1;
 
-      if (hasBplt && hasEcm) {
+      // Check if we need role selection (2+ files of same type)
+      if (hasMultipleEcmFiles || hasMultipleBplotFiles) {
+        // Assign default roles (first = primary, rest = secondary)
+        ecmFilesData.forEach((f, idx) => {
+          f.role = idx === 0 ? 'primary' : 'secondary';
+        });
+        bplotFilesData.forEach((f, idx) => {
+          f.role = idx === 0 ? 'primary' : 'secondary';
+        });
+
+        // Store pending files and show role selection modal
+        const pendingFiles = {
+          ecmFiles: ecmFilesData,
+          bplotFiles: bplotFilesData,
+          needsEcmRoleSelection: hasMultipleEcmFiles,
+          needsBplotRoleSelection: hasMultipleBplotFiles
+        };
+
+        dispatch({
+          type: 'SET_PENDING_ROLE_SELECTION',
+          payload: pendingFiles
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
+      if (hasBpltFiles && hasEcmFiles) {
         // BOTH files loaded - use single combined action
         const combined = combineTimelineData(bplotFilesData);
         dispatch({
           type: 'BOTH_FILES_LOADED',
           payload: {
-            ecmData,
+            ecmData: ecmFilesData.length === 1 ? ecmFilesData[0] : ecmFilesData,
             bplotFiles: bplotFilesData,
             combinedData: combined.data,
             combinedProcessed: combined.processed,
             fileBoundaries: combined.fileBoundaries
           }
         });
-      } else if (hasBplt) {
+      } else if (hasBpltFiles) {
         // Only BPLT files
         const combined = combineTimelineData(bplotFilesData);
         dispatch({
@@ -2305,12 +2696,19 @@ const PlotAnalyzer = () => {
             fileBoundaries: combined.fileBoundaries
           }
         });
-      } else if (hasEcm) {
-        // Only ECM file
-        dispatch({
-          type: 'ECM_FILE_LOADED',
-          payload: ecmData
-        });
+      } else if (hasEcmFiles) {
+        // Only ECM file(s)
+        if (ecmFilesData.length === 1) {
+          dispatch({
+            type: 'ECM_FILE_LOADED',
+            payload: ecmFilesData[0]
+          });
+        } else {
+          dispatch({
+            type: 'ECM_FILES_LOADED',
+            payload: { files: ecmFilesData }
+          });
+        }
       } else if (files.length === 1) {
         // Single file - use original handler
         await processFile(files[0]);
@@ -2379,6 +2777,58 @@ const PlotAnalyzer = () => {
     };
     input.click();
   };
+
+  // ----------------------------------------------------------------------------
+  // ROLE SELECTION HANDLERS - For multi-file uploads
+  // ----------------------------------------------------------------------------
+  const handleRoleSelectionComplete = useCallback((updatedFiles) => {
+    const { ecmFiles: updatedEcmFiles, bplotFiles: updatedBplotFiles } = updatedFiles;
+
+    const hasEcmFiles = updatedEcmFiles && updatedEcmFiles.length > 0;
+    const hasBplotFiles = updatedBplotFiles && updatedBplotFiles.length > 0;
+
+    if (hasBplotFiles && hasEcmFiles) {
+      // BOTH files loaded
+      const combined = combineTimelineData(updatedBplotFiles);
+      dispatch({
+        type: 'BOTH_FILES_LOADED',
+        payload: {
+          ecmData: updatedEcmFiles.length === 1 ? updatedEcmFiles[0] : updatedEcmFiles,
+          bplotFiles: updatedBplotFiles,
+          combinedData: combined.data,
+          combinedProcessed: combined.processed,
+          fileBoundaries: combined.fileBoundaries
+        }
+      });
+    } else if (hasBplotFiles) {
+      const combined = combineTimelineData(updatedBplotFiles);
+      dispatch({
+        type: 'BPLOT_FILES_LOADED',
+        payload: {
+          files: updatedBplotFiles,
+          combinedData: combined.data,
+          combinedProcessed: combined.processed,
+          fileBoundaries: combined.fileBoundaries
+        }
+      });
+    } else if (hasEcmFiles) {
+      if (updatedEcmFiles.length === 1) {
+        dispatch({
+          type: 'ECM_FILE_LOADED',
+          payload: updatedEcmFiles[0]
+        });
+      } else {
+        dispatch({
+          type: 'ECM_FILES_LOADED',
+          payload: { files: updatedEcmFiles }
+        });
+      }
+    }
+  }, []);
+
+  const handleRoleSelectionCancel = useCallback(() => {
+    dispatch({ type: 'CLEAR_PENDING_ROLE_SELECTION' });
+  }, []);
 
   // ----------------------------------------------------------------------------
   // ECM CHART DATA - Prepare histogram data for visualization
@@ -2697,6 +3147,12 @@ const PlotAnalyzer = () => {
         <div className="fixed top-1/4 -left-20 w-96 h-96 bg-[#00FF88]/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="fixed bottom-1/4 -right-20 w-[30rem] h-[30rem] bg-[#00FF88]/5 blur-[150px] rounded-full pointer-events-none" />
         <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
+        <FileRoleModal
+          isOpen={Boolean(pendingRoleSelection)}
+          pendingFiles={pendingRoleSelection}
+          onComplete={handleRoleSelectionComplete}
+          onCancel={handleRoleSelectionCancel}
+        />
       </div>
     );
   }
@@ -2992,6 +3448,16 @@ const PlotAnalyzer = () => {
               />
             </div>
           </>
+        )}
+
+        {/* ==================== FAULT TIMELINE ==================== */}
+        {(activeTab === 'faults' || activeTab === 'faults-ecm') && (
+          <FaultTimelineTab
+            faults={faults}
+            engineHours={stats.engineHours}
+            sortKey={faultTimelineSort}
+            onSortChange={setFaultTimelineSort}
+          />
         )}
 
         {/* ==================== CHARTS ==================== */}
