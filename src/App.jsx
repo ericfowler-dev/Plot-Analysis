@@ -2644,8 +2644,16 @@ const PlotAnalyzer = () => {
       const hasMultipleEcmFiles = ecmFilesData.length > 1;
       const hasMultipleBplotFiles = bplotFilesData.length > 1;
 
+      // Debug logging
+      console.log(`[Multi-file upload] ECM files: ${ecmFilesData.length}, BPLOT files: ${bplotFilesData.length}`);
+      if (ecmFilesData.length > 0) {
+        console.log('[Multi-file upload] ECM file names:', ecmFilesData.map(f => f.fileName));
+      }
+
       // Check if we need role selection (2+ files of same type)
       if (hasMultipleEcmFiles || hasMultipleBplotFiles) {
+        console.log('[Multi-file upload] Showing role selection modal');
+
         // Assign default roles (first = primary, rest = secondary)
         ecmFilesData.forEach((f, idx) => {
           f.role = idx === 0 ? 'primary' : 'secondary';
