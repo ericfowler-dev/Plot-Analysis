@@ -1926,6 +1926,11 @@ function analysisReducer(state, action) {
         role: f.role || (idx === 0 ? 'primary' : 'secondary')
       }));
 
+      // Debug logging
+      console.log('[BOTH_FILES_LOADED] ECM files:', ecmFilesProcessed.length, ecmFilesProcessed.map(f => `${f.fileName} (${f.role})`));
+      console.log('[BOTH_FILES_LOADED] BPLOT files:', bplotFilesWithRoles.length, bplotFilesWithRoles.map(f => `${f.fileName} (${f.role})`));
+      console.log('[BOTH_FILES_LOADED] hasPrimaryEcm:', Boolean(primaryEcm), 'hasSecondaryEcm:', Boolean(secondaryEcm));
+
       return {
         ...state,
         // ECM data (primary for backward compatibility)

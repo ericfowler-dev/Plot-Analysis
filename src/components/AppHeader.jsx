@@ -221,15 +221,34 @@ const AppHeader = ({
 
   // Determine which tab configuration to use
   const getTabConfig = () => {
-    if (hasMultiEcm && hasBplt) return TAB_CONFIGS.fullSystem;
-    if (hasMultiEcm) return TAB_CONFIGS.multiEcm;
-    if (hasEcm && hasBplt) return TAB_CONFIGS.both;
-    if (hasEcm) return TAB_CONFIGS.ecmOnly;
-    if (hasBplt) return TAB_CONFIGS.bpltOnly;
+    console.log('[AppHeader] hasMultiEcm:', hasMultiEcm, 'hasBplt:', hasBplt, 'hasEcm:', hasEcm);
+    console.log('[AppHeader] hasPrimaryEcm:', hasPrimaryEcm, 'hasSecondaryEcm:', hasSecondaryEcm);
+    if (hasMultiEcm && hasBplt) {
+      console.log('[AppHeader] Using fullSystem tab config');
+      return TAB_CONFIGS.fullSystem;
+    }
+    if (hasMultiEcm) {
+      console.log('[AppHeader] Using multiEcm tab config');
+      return TAB_CONFIGS.multiEcm;
+    }
+    if (hasEcm && hasBplt) {
+      console.log('[AppHeader] Using both tab config');
+      return TAB_CONFIGS.both;
+    }
+    if (hasEcm) {
+      console.log('[AppHeader] Using ecmOnly tab config');
+      return TAB_CONFIGS.ecmOnly;
+    }
+    if (hasBplt) {
+      console.log('[AppHeader] Using bpltOnly tab config');
+      return TAB_CONFIGS.bpltOnly;
+    }
+    console.log('[AppHeader] No tabs (no files loaded)');
     return [];
   };
 
   const tabs = getTabConfig();
+  console.log('[AppHeader] Tabs to display:', tabs.map(t => t.id));
 
   const resolvedUserFields = userFields || { engineSn: '', caseFile: '', ref: '' };
   const resolvedDraft = userFieldsDraft || resolvedUserFields;
@@ -273,7 +292,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                config v3.1 app v2.6.4
+                config v3.1 app v2.6.5
               </span>
             </div>
           </button>
