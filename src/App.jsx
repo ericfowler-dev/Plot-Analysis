@@ -3460,6 +3460,37 @@ const PlotAnalyzer = () => {
           />
         )}
 
+        {/* ==================== ECM COMPARE ==================== */}
+        {activeTab === 'ecm-compare' && hasPrimaryEcm && hasSecondaryEcm && (
+          <EcmComparison
+            primaryEcm={ecmFiles?.find(f => f.role === 'primary')}
+            secondaryEcm={ecmFiles?.find(f => f.role === 'secondary')}
+            comparisonStats={ecmComparisonStats}
+            combinedHistograms={combinedEcmHistograms}
+          />
+        )}
+
+        {/* ==================== ECM FAULTS (Multi-ECM) ==================== */}
+        {activeTab === 'ecm-faults' && hasPrimaryEcm && hasSecondaryEcm && (
+          <FaultTimelineTab
+            faults={combinedEcmFaults}
+            engineHours={stats.engineHours}
+            sortKey={faultTimelineSort}
+            onSortChange={setFaultTimelineSort}
+            showSource={true}
+          />
+        )}
+
+        {/* ==================== COMBINED FAULTS (ECM + BPLOT) ==================== */}
+        {activeTab === 'combined-faults' && hasPrimaryEcm && hasSecondaryEcm && hasBplt && (
+          <CombinedFaultView
+            ecmFaults={combinedEcmFaults}
+            bplotEvents={bplotProcessed?.events || []}
+            primaryEcm={ecmFiles?.find(f => f.role === 'primary')}
+            secondaryEcm={ecmFiles?.find(f => f.role === 'secondary')}
+          />
+        )}
+
         {/* ==================== CHARTS ==================== */}
         {(activeTab === 'charts' || activeTab === 'charts-ecm') && (
           <div className="space-y-6">
