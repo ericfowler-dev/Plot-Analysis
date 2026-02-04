@@ -1,22 +1,24 @@
 /**
  * Baseline Selector Component
  * Optional tuning layer for anomaly thresholds by group/engine size/application
+ * v2.0: Added engine variant selection and auto-detection support
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useThresholds } from '../contexts/ThresholdContext';
 
 /**
  * Map baseline selection to a profile ID
- * This determines which threshold profile to use based on group/size/application
+ * Enhanced to support engine variants (turbo, CAC, fuel systems, etc.)
  */
-function mapSelectionToProfile(group, size, application) {
+function mapSelectionToProfile(group, size, application, variants = []) {
   if (!group) {
     return 'global-defaults';
   }
 
   const groupLower = group.toLowerCase();
   const sizeLower = (size || '').toLowerCase();
+  const variantSet = new Set(variants.map(v => v.toLowerCase()));
 
   // PSI HD engines
   if (groupLower.includes('psi hd') || groupLower.includes('psi-hd')) {
@@ -28,8 +30,22 @@ function mapSelectionToProfile(group, size, application) {
     return 'psi-hd-base';
   }
 
-  // PSI Industrial engines
+  // PSI Industrial engines with variant support
   if (groupLower.includes('industrial')) {
+    // 5.7L with variant-specific profiles
+    if (sizeLower.includes('5.7l')) {
+      if (variantSet.has('turbo') && variantSet.has('cac')) {
+        return 'psi-industrial-5.7l-turbo-cac';
+      }
+      if (variantSet.has('turbo')) {
+        return 'psi-industrial-5.7l-turbo';
+      }
+      if (variantSet.has('na')) {
+        return 'psi-industrial-5.7l-na';
+      }
+      // Default to turbo-cac for 5.7L if no variant specified
+      return 'psi-industrial-5.7l-turbo-cac';
+    }
     return 'psi-industrial-base';
   }
 
@@ -37,7 +53,7 @@ function mapSelectionToProfile(group, size, application) {
   return 'global-defaults';
 }
 
-export default function BaselineSelector() {
+export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
   const {
     baselineSelection,
     setBaselineSelection,
@@ -52,19 +68,106 @@ export default function BaselineSelector() {
   const [loadError, setLoadError] = useState(null);
   const [actionError, setActionError] = useState(null);
 
+  // v2.0: Engine variant support
+  const [selectedVariants, setSelectedVariants] = useState([]);
+  const [engineConfig, setEngineConfig] = useState(null);
+  const [variantsLoading, setVariantsLoading] = useState(false);
+  const [autoDetectionResult, setAutoDetectionResult] = useState(null);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false);
+
   const isAdmin = typeof window !== 'undefined' && Boolean(localStorage.getItem('adminToken'));
 
-  // Trigger profile change when baseline selection changes
+  // Trigger profile change when baseline selection changes (including variants)
   useEffect(() => {
     const targetProfile = mapSelectionToProfile(
       baselineSelection.group,
       baselineSelection.size,
-      baselineSelection.application
+      baselineSelection.application,
+      selectedVariants
     );
     if (targetProfile !== selectedProfileId) {
       selectProfile(targetProfile);
     }
-  }, [baselineSelection, selectedProfileId, selectProfile]);
+  }, [baselineSelection, selectedVariants, selectedProfileId, selectProfile]);
+
+  // Load engine config when size changes
+  useEffect(() => {
+    if (!baselineSelection.size) {
+      setEngineConfig(null);
+      setSelectedVariants([]);
+      return;
+    }
+
+    const loadEngineConfig = async () => {
+      setVariantsLoading(true);
+      try {
+        const response = await fetch(`/api/thresholds/engine-config/${encodeURIComponent(baselineSelection.size)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setEngineConfig(data);
+            // Set default variants if available
+            if (data.engineSize?.defaultVariants) {
+              setSelectedVariants(data.engineSize.defaultVariants);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load engine config:', err);
+      } finally {
+        setVariantsLoading(false);
+      }
+    };
+
+    loadEngineConfig();
+  }, [baselineSelection.size]);
+
+  // Auto-detection function
+  const handleAutoDetect = useCallback(async () => {
+    if (!dataForDetection || dataForDetection.length === 0) {
+      setActionError('No data available for auto-detection');
+      return;
+    }
+
+    setIsAutoDetecting(true);
+    setAutoDetectionResult(null);
+    try {
+      const response = await fetch('/api/thresholds/auto-detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: dataForDetection.slice(0, 1000), // Send up to 1000 rows
+          sampleSize: 1000
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAutoDetectionResult(result.detection);
+
+        // Apply detected settings if confident enough
+        if (result.detection.confidence >= 0.6) {
+          // Set detected variants
+          const detectedVariants = Object.entries(result.detection.detectedVariants || {})
+            .filter(([_, v]) => v.detected)
+            .map(([id]) => id);
+          setSelectedVariants(detectedVariants);
+
+          // Notify parent if callback provided
+          if (onAutoDetect) {
+            onAutoDetect(result.detection);
+          }
+        }
+      } else {
+        setActionError(result.error || 'Auto-detection failed');
+      }
+    } catch (err) {
+      console.error('Auto-detection error:', err);
+      setActionError(err.message);
+    } finally {
+      setIsAutoDetecting(false);
+    }
+  }, [dataForDetection, onAutoDetect]);
 
   const getAdminHeaders = () => {
     if (typeof window === 'undefined') return {};
@@ -167,7 +270,20 @@ export default function BaselineSelector() {
     if (size === '__add__') {
       return handleAddSize();
     }
+    setSelectedVariants([]); // Reset variants when size changes
+    setEngineConfig(null);
     setBaselineSelection(prev => ({ ...prev, size, application: '' }));
+  };
+
+  // Handle variant checkbox changes
+  const handleVariantChange = (variantId, checked) => {
+    setSelectedVariants(prev => {
+      if (checked) {
+        return [...prev, variantId];
+      } else {
+        return prev.filter(v => v !== variantId);
+      }
+    });
   };
 
   const handleAppChange = (e) => {
@@ -333,6 +449,35 @@ export default function BaselineSelector() {
           </div>
         )}
 
+        {/* Auto-detect button */}
+        {dataForDetection && dataForDetection.length > 0 && (
+          <div className="mb-6 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleAutoDetect}
+              disabled={isAutoDetecting}
+              className="flex items-center gap-2 px-4 py-2 bg-[#00FF88]/10 border border-[#00FF88]/30 rounded-lg text-[#00FF88] text-xs uppercase tracking-wider hover:bg-[#00FF88]/20 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">
+                {isAutoDetecting ? 'sync' : 'auto_fix_high'}
+              </span>
+              {isAutoDetecting ? 'Detecting...' : 'Auto-Detect Profile'}
+            </button>
+            {autoDetectionResult && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`px-2 py-1 rounded ${autoDetectionResult.confidence >= 0.7 ? 'bg-green-500/20 text-green-400' : autoDetectionResult.confidence >= 0.5 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {Math.round(autoDetectionResult.confidence * 100)}% confidence
+                </span>
+                {autoDetectionResult.suggestedProfile && (
+                  <span className="text-slate-400">
+                    Suggested: <span className="text-slate-300">{autoDetectionResult.suggestedProfile.profileId}</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="baseline-grid grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="baseline-field space-y-3">
             <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Baseline Group</label>
@@ -421,6 +566,110 @@ export default function BaselineSelector() {
             )}
           </div>
         </div>
+
+        {/* Engine Variant Selection - v2.0 */}
+        {engineConfig && engineConfig.engineSize?.supportedVariants?.length > 0 && (
+          <div className="mt-6 p-4 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-[#00FF88] text-base">settings_suggest</span>
+              <label className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">
+                Engine Configuration
+              </label>
+              {variantsLoading && (
+                <span className="material-symbols-outlined text-slate-500 text-sm animate-spin">sync</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {engineConfig.engineSize.supportedVariants.map(variantId => {
+                const variantDef = engineConfig.variants?.[variantId];
+                const isSelected = selectedVariants.includes(variantId);
+                const isAutoDetected = autoDetectionResult?.detectedVariants?.[variantId]?.detected;
+                // Check if variant requires another variant
+                const requiresVariant = variantDef?.requiresVariant;
+                const isDisabled = requiresVariant && !selectedVariants.includes(requiresVariant);
+
+                return (
+                  <label
+                    key={variantId}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-[#00FF88]/10 border-[#00FF88]/50 text-[#00FF88]'
+                        : 'bg-[#050505] border-[#262626] text-slate-400 hover:border-[#363636]'
+                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => handleVariantChange(variantId, e.target.checked)}
+                      disabled={isDisabled}
+                      className="hidden"
+                    />
+                    {variantDef?.icon && (
+                      <span className="material-symbols-outlined text-sm">{variantDef.icon}</span>
+                    )}
+                    <span className="text-xs font-medium">{variantDef?.name || variantId}</span>
+                    {isAutoDetected && (
+                      <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] rounded uppercase">
+                        Detected
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+            {engineConfig.engineSize.variantConfigs && selectedVariants.length > 0 && (
+              <div className="mt-3 text-[10px] text-slate-500">
+                {(() => {
+                  const variantKey = selectedVariants.sort().join('-');
+                  const config = engineConfig.variantConfigs[variantKey];
+                  if (config) {
+                    return (
+                      <span>
+                        Profile: <span className="text-slate-400">{config.profileId}</span>
+                        {config.description && <span className="text-slate-600"> - {config.description}</span>}
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Auto-detection results detail */}
+        {autoDetectionResult && autoDetectionResult.detectedVariants && (
+          <div className="mt-4 p-4 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-blue-400 text-base">analytics</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">
+                Detection Results
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              {Object.entries(autoDetectionResult.detectedVariants).map(([id, data]) => (
+                <div
+                  key={id}
+                  className={`p-2 rounded border ${
+                    data.detected
+                      ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                      : 'bg-[#050505] border-[#262626] text-slate-500'
+                  }`}
+                >
+                  <div className="font-medium">{data.name}</div>
+                  <div className="text-[10px] opacity-70">
+                    {Math.round(data.confidence * 100)}% confidence
+                  </div>
+                </div>
+              ))}
+            </div>
+            {autoDetectionResult.summary && (
+              <div className="mt-3 text-[10px] text-slate-400 border-t border-[#262626] pt-3">
+                {autoDetectionResult.summary}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 flex items-center gap-3">
           <input

@@ -1,0 +1,209 @@
+{
+  "profileId": "psi-industrial-5.7l-turbo",
+  "name": "PSI Industrial 5.7L Turbo (non-CAC)",
+  "description": "Profile for 5.7L turbocharged engine WITHOUT Charge Air Cooler. TIP/MAP delta thresholds calibrated for non-intercooled systems where higher intake temps result in larger pressure differential.",
+  "parent": "psi-industrial-base",
+  "engineFamily": "PSI Industrial",
+  "engineSize": "5.7L",
+  "variants": ["turbo"],
+  "fuelType": null,
+  "application": null,
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-01-30T12:00:00Z",
+  "lastModified": "2026-01-30T12:00:00Z",
+  "modifiedBy": "system",
+  "thresholds": {
+    "rpm": {
+      "enabled": true,
+      "unit": "RPM",
+      "warning": {
+        "max": 1900
+      },
+      "critical": {
+        "max": 2000
+      },
+      "overspeed": 2200,
+      "idle": {
+        "min": 650,
+        "max": 750
+      }
+    },
+    "manifoldPressure": {
+      "enabled": true,
+      "unit": "psi",
+      "description": "MAP thresholds for turbocharged non-CAC engine",
+      "warning": {
+        "min": 10,
+        "max": 30
+      },
+      "critical": {
+        "min": 8,
+        "max": 35
+      }
+    },
+    "tipMapDelta": {
+      "enabled": true,
+      "unit": "psi",
+      "description": "TIP/MAP pressure differential for turbo non-CAC - higher delta due to uncooled charge air",
+      "warning": {
+        "min": 1.5,
+        "max": 8.5
+      },
+      "critical": {
+        "min": 0.5,
+        "max": 10.0
+      },
+      "nominal": {
+        "min": 3.0,
+        "max": 7.0,
+        "description": "Expected operating range for healthy non-CAC turbo system"
+      },
+      "hysteresis": 0.8
+    },
+    "intakeAirTemp": {
+      "enabled": true,
+      "unit": "F",
+      "description": "IAT thresholds for non-CAC turbo - expects higher intake temps than CAC",
+      "warning": {
+        "max": 180
+      },
+      "critical": {
+        "max": 220
+      },
+      "gracePeriod": 60
+    }
+  },
+  "anomalyRules": [
+    {
+      "id": "tip-map-delta-high-noncac",
+      "name": "High TIP/MAP Delta (non-CAC)",
+      "description": "TIP/MAP pressure differential exceeds expected range for non-CAC turbo system - may indicate restriction or turbo issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": ">",
+          "value": 8.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 50
+        }
+      ],
+      "triggerPersistenceSec": 3,
+      "clearPersistenceSec": 2
+    },
+    {
+      "id": "tip-map-delta-critical-noncac",
+      "name": "Critical TIP/MAP Delta (non-CAC)",
+      "description": "TIP/MAP pressure differential critically high for non-CAC system",
+      "enabled": true,
+      "severity": "critical",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": ">",
+          "value": 10.0
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "triggerPersistenceSec": 2,
+      "clearPersistenceSec": 1
+    },
+    {
+      "id": "tip-map-delta-low-noncac",
+      "name": "Low TIP/MAP Delta (non-CAC)",
+      "description": "TIP/MAP pressure differential below expected - may indicate boost leak or sensor issue",
+      "enabled": true,
+      "severity": "warning",
+      "category": "pressure",
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "TIP",
+          "param2": "MAP",
+          "operator": "<",
+          "value": 1.5
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "param": "eng_load",
+          "operator": ">",
+          "value": 70
+        }
+      ],
+      "triggerPersistenceSec": 5,
+      "clearPersistenceSec": 3
+    },
+    {
+      "id": "high-intake-temp-noncac",
+      "name": "High Intake Air Temperature",
+      "description": "Intake air temperature elevated - normal for non-CAC but monitor for heat soak",
+      "enabled": true,
+      "severity": "warning",
+      "category": "thermal",
+      "conditions": [
+        {
+          "param": "IAT",
+          "operator": ">",
+          "value": 180
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "triggerPersistenceSec": 30,
+      "clearPersistenceSec": 10
+    }
+  ],
+  "metadata": {
+    "engineConfig": {
+      "displacement": "5.7L",
+      "aspiration": "turbocharged",
+      "intercooled": false,
+      "fullLoadTps": 38,
+      "ratedRpm": 1800,
+      "idleRpm": 700
+    },
+    "detectionSignature": {
+      "requiredChannels": ["TIP", "MAP"],
+      "excludeChannels": ["CAC_temp", "CAC_outlet_temp", "Intercooler_temp"],
+      "tipMapDeltaRange": {
+        "min": 3.0,
+        "max": 7.0
+      }
+    }
+  }
+}

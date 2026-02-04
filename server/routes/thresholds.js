@@ -29,6 +29,11 @@ import {
 } from '../utils/thresholdMerger.js';
 import { requireAdmin, getAdminActor } from '../utils/adminAuth.js';
 import { recordConfiguratorChange } from '../utils/configuratorStore.js';
+import {
+  detectProfile,
+  getAvailableVariants,
+  ENGINE_VARIANT_SIGNATURES
+} from '../utils/profileAutoDetect.js';
 
 const router = express.Router();
 
@@ -432,6 +437,218 @@ router.post('/clear-cache', requireAdmin, async (req, res) => {
     res.json({ success: true, message: 'Cache cleared' });
   } catch (error) {
     console.error('Error clearing cache:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/thresholds/auto-detect
+ * Automatically detect the appropriate profile based on data characteristics
+ *
+ * Request body:
+ * - data: Array of data rows to analyze (required)
+ * - metadata: Optional file metadata (engineSize, fuelType, etc.)
+ * - hintFamily: Optional hint for engine family
+ * - sampleSize: Max rows to analyze (default 1000)
+ *
+ * Returns detection results with suggested profile and confidence scores
+ */
+router.post('/auto-detect', async (req, res) => {
+  try {
+    const { data, metadata, hintFamily, sampleSize } = req.body;
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Data array is required for auto-detection'
+      });
+    }
+
+    const result = await detectProfile(data, {
+      metadata: metadata || {},
+      hintFamily,
+      sampleSize
+    });
+
+    res.json({
+      success: true,
+      detection: result
+    });
+  } catch (error) {
+    console.error('Error in auto-detection:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/thresholds/variants
+ * Get list of available engine variants for selection UI
+ */
+router.get('/variants', async (req, res) => {
+  try {
+    const variants = getAvailableVariants();
+    const index = await loadIndex();
+
+    res.json({
+      success: true,
+      variants,
+      engineVariants: index.engineVariants || [],
+      signatures: ENGINE_VARIANT_SIGNATURES
+    });
+  } catch (error) {
+    console.error('Error getting variants:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/thresholds/engine-config/:sizeId
+ * Get engine size configuration including supported variants
+ */
+router.get('/engine-config/:sizeId', async (req, res) => {
+  try {
+    const { sizeId } = req.params;
+    const index = await loadIndex();
+
+    const engineSize = index.engineSizes?.find(
+      s => s.id.toLowerCase() === sizeId.toLowerCase()
+    );
+
+    if (!engineSize) {
+      return res.status(404).json({
+        success: false,
+        error: `Engine size ${sizeId} not found`
+      });
+    }
+
+    // Get variant definitions
+    const variantDefs = {};
+    for (const variantId of (engineSize.supportedVariants || [])) {
+      const variantDef = index.engineVariants?.find(v => v.id === variantId);
+      if (variantDef) {
+        variantDefs[variantId] = variantDef;
+      }
+    }
+
+    res.json({
+      success: true,
+      engineSize,
+      variants: variantDefs,
+      variantConfigs: engineSize.variantConfigs || {}
+    });
+  } catch (error) {
+    console.error('Error getting engine config:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/thresholds/resolve-variant
+ * Resolve the profile ID for a given engine size and variant combination
+ *
+ * Request body:
+ * - engineSize: Engine size ID (e.g., "5.7L")
+ * - variants: Array of variant IDs (e.g., ["turbo", "cac"])
+ */
+router.post('/resolve-variant', async (req, res) => {
+  try {
+    const { engineSize, variants } = req.body;
+
+    if (!engineSize) {
+      return res.status(400).json({
+        success: false,
+        error: 'engineSize is required'
+      });
+    }
+
+    const index = await loadIndex();
+
+    const engineConfig = index.engineSizes?.find(
+      s => s.id.toLowerCase() === engineSize.toLowerCase()
+    );
+
+    if (!engineConfig) {
+      return res.status(404).json({
+        success: false,
+        error: `Engine size ${engineSize} not found`
+      });
+    }
+
+    // Build variant key
+    const variantKey = (variants || []).sort().join('-') || 'default';
+
+    // Look up variant config
+    let profileId = null;
+    let matchedConfig = null;
+
+    if (engineConfig.variantConfigs) {
+      // Try exact match first
+      if (engineConfig.variantConfigs[variantKey]) {
+        matchedConfig = engineConfig.variantConfigs[variantKey];
+        profileId = matchedConfig.profileId;
+      } else {
+        // Try partial matches - find best match
+        const requestedVariants = new Set(variants || []);
+        let bestMatch = null;
+        let bestMatchScore = -1;
+
+        for (const [key, config] of Object.entries(engineConfig.variantConfigs)) {
+          const configVariants = new Set(key.split('-'));
+          let score = 0;
+
+          // Count matching variants
+          for (const v of requestedVariants) {
+            if (configVariants.has(v)) score++;
+          }
+          // Penalize extra variants in config
+          for (const v of configVariants) {
+            if (!requestedVariants.has(v)) score -= 0.5;
+          }
+
+          if (score > bestMatchScore) {
+            bestMatchScore = score;
+            bestMatch = { key, config };
+          }
+        }
+
+        if (bestMatch) {
+          matchedConfig = bestMatch.config;
+          profileId = matchedConfig.profileId;
+        }
+      }
+    }
+
+    // Fallback to family base profile
+    if (!profileId) {
+      const family = index.engineFamilies?.find(f => f.id === engineConfig.family);
+      profileId = family?.baseProfile || 'global-defaults';
+    }
+
+    // Verify profile exists
+    try {
+      await loadProfile(profileId);
+    } catch {
+      // Profile doesn't exist, fall back
+      const family = index.engineFamilies?.find(f => f.id === engineConfig.family);
+      profileId = family?.baseProfile || 'global-defaults';
+      matchedConfig = null;
+    }
+
+    res.json({
+      success: true,
+      profileId,
+      engineSize,
+      requestedVariants: variants || [],
+      matchedVariantConfig: matchedConfig,
+      engineConfig: {
+        family: engineConfig.family,
+        params: engineConfig.params,
+        supportedVariants: engineConfig.supportedVariants || [],
+        defaultVariants: engineConfig.defaultVariants || []
+      }
+    });
+  } catch (error) {
+    console.error('Error resolving variant:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
