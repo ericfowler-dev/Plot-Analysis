@@ -292,7 +292,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                config v3.1 app v2.6.5
+                config v3.1 app v2.6.6
               </span>
             </div>
           </button>

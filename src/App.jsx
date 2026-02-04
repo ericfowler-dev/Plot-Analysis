@@ -1968,7 +1968,8 @@ function analysisReducer(state, action) {
         fileName: primaryEcm.fileName,
         parsed: true,
         activeTab: 'overview-ecm',
-        ecmFaultsForOverlay: bothCombinedFaults
+        ecmFaultsForOverlay: bothCombinedFaults,
+        pendingRoleSelection: null
       };
     }
     case 'SET_ECM_FAULTS_FOR_OVERLAY':
