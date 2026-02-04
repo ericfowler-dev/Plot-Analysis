@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Temp files
+tmpclaude-*
+*.tmp
+
+# Claude
+.claude/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Server uploads
+server/uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated output
+*.png
