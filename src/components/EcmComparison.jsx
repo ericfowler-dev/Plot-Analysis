@@ -348,12 +348,22 @@ const EcmComparison = ({
 
         {/* Difference Heatmap */}
         {histogramDiff ? (
-          <DifferenceHeatmap
-            differenceData={histogramDiff}
-            title={`${selectedHistogram} - Primary vs Secondary Difference`}
-            primaryLabel={primaryEcm.fileName}
-            secondaryLabel={secondaryEcm.fileName}
-          />
+          (() => {
+            const isBackfireHistogram = selectedHistogram === 'backfireLifetime' || selectedHistogram === 'backfireRecent';
+            const unitLabel = isBackfireHistogram ? 'events' : 'hours';
+            const metricLabel = isBackfireHistogram ? 'backfire occurrence counts' : 'operating time';
+            const selectedHistogramMeta = histogramOptions.find((option) => option.key === selectedHistogram);
+            return (
+              <DifferenceHeatmap
+                differenceData={histogramDiff}
+                title={`${selectedHistogramMeta?.name || selectedHistogram} - Primary vs Secondary Difference`}
+                primaryLabel={primaryEcm.fileName}
+                secondaryLabel={secondaryEcm.fileName}
+                unitLabel={unitLabel}
+                metricLabel={metricLabel}
+              />
+            );
+          })()
         ) : (
           <div className="text-center py-8 text-slate-500">
             <BarChart3 className="w-12 h-12 mx-auto mb-3 text-slate-600" />

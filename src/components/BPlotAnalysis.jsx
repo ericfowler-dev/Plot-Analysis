@@ -1246,6 +1246,14 @@ const BPlotAnalysis = ({
 
         {activeTab === 'channels' && (
           <div className="space-y-4">
+            {dualCorrelatedMode && (
+              <div className="bg-slate-900/60 border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300">
+                Channel values are currently from <span className={activeCorrelatedRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'}>
+                  {activeCorrelatedRole === 'secondary' ? 'Secondary Plot' : 'Primary Plot'}
+                </span>{' '}
+                ({activePlotFileName}).
+              </div>
+            )}
             {Object.entries(orderedCategories).map(([category, channels]) => (
               <div key={category} className="bg-slate-900/50 rounded-xl border border-slate-800">
                 <button

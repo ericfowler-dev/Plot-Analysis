@@ -17,7 +17,9 @@ const DifferenceHeatmap = ({
   differenceData,
   title = 'Histogram Difference',
   primaryLabel = 'Primary',
-  secondaryLabel = 'Secondary'
+  secondaryLabel = 'Secondary',
+  unitLabel = 'hours',
+  metricLabel = 'operating time'
 }) => {
   if (!differenceData || !differenceData.data || differenceData.data.length === 0) {
     return (
@@ -29,6 +31,11 @@ const DifferenceHeatmap = ({
   }
 
   const { data, xLabels, yLabels, maxAbsDiff } = differenceData;
+  const isEventUnits = unitLabel === 'events' || unitLabel === 'counts' || unitLabel === 'occurrences';
+  const valueDecimals = isEventUnits ? 0 : 2;
+  const tooltipDecimals = isEventUnits ? 0 : 4;
+  const comparisonNoun = isEventUnits ? 'events' : 'time';
+  const overallUnitNoun = isEventUnits ? 'events' : unitLabel;
 
   // Calculate totals for each column and row
   const rowTotals = data.map(row => row.reduce((sum, val) => sum + val, 0));
@@ -63,7 +70,7 @@ const DifferenceHeatmap = ({
   // Calculate summary stats
   const totalDiff = rowTotals.reduce((sum, val) => sum + val, 0);
   const primaryMore = totalDiff > 0;
-  const diffHours = Math.abs(totalDiff).toFixed(2);
+  const diffMagnitude = Math.abs(totalDiff).toFixed(valueDecimals);
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900/50 overflow-hidden">
@@ -76,7 +83,7 @@ const DifferenceHeatmap = ({
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-blue-500/60" />
-                <span className="text-blue-400">Primary has more time</span>
+                <span className="text-blue-400">Primary has more {comparisonNoun}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-slate-700" />
@@ -84,7 +91,7 @@ const DifferenceHeatmap = ({
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-orange-500/60" />
-                <span className="text-orange-400">Secondary has more time</span>
+                <span className="text-orange-400">Secondary has more {comparisonNoun}</span>
               </div>
             </div>
           </div>
@@ -93,13 +100,13 @@ const DifferenceHeatmap = ({
         <div className="bg-slate-900/50 rounded-lg p-3 text-sm">
           <div className="font-semibold text-white mb-1">What does this show?</div>
           <p className="text-slate-400 text-xs leading-relaxed">
-            This heatmap compares operating time between the Primary and Secondary ECMs at each RPM/MAP combination.
+            This heatmap compares {metricLabel} between the Primary and Secondary ECMs at each RPM/MAP combination.
             {totalDiff !== 0 ? (
               <span className={primaryMore ? 'text-blue-400' : 'text-orange-400'}>
-                {' '}Overall, the <strong>{primaryMore ? 'Primary' : 'Secondary'} ECM</strong> logged <strong>{diffHours} more hours</strong> of operation.
+                {' '}Overall, the <strong>{primaryMore ? 'Primary' : 'Secondary'} ECM</strong> logged <strong>{diffMagnitude} more {overallUnitNoun}</strong>.
               </span>
             ) : (
-              <span className="text-slate-300"> Both ECMs have logged identical operating time.</span>
+              <span className="text-slate-300"> Both ECMs have identical {metricLabel}.</span>
             )}
           </p>
         </div>
@@ -139,11 +146,11 @@ const DifferenceHeatmap = ({
                       key={xIdx}
                       className={`p-2 rounded border border-white/5 text-center transition-all hover:border-green-500/50`}
                       style={{ backgroundColor: typeof bgColor === 'string' && bgColor.startsWith('rgba') ? bgColor : undefined }}
-                      title={`RPM: ${yLabel}, MAP: ${xLabels[xIdx]}\nDifference: ${formatNumber(value, 4)}h\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
+                      title={`RPM: ${yLabel}, MAP: ${xLabels[xIdx]}\nDifference: ${formatNumber(value, tooltipDecimals)} ${unitLabel}\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
                     >
                       {value !== 0 ? (
                         <div className={`text-[11px] font-mono font-bold ${textColor}`}>
-                          {value > 0 ? '+' : ''}{formatNumber(value, value === 0 ? 0 : Math.abs(value) < 0.01 ? 4 : 2)}
+                          {value > 0 ? '+' : ''}{formatNumber(value, isEventUnits ? 0 : (Math.abs(value) < 0.01 ? 4 : 2))}
                         </div>
                       ) : (
                         <div className="text-[11px] text-slate-600">0</div>
@@ -164,12 +171,12 @@ const DifferenceHeatmap = ({
               </td>
               {colTotals.map((total, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs font-bold font-mono border-t border-slate-700/50 ${getCellTextColor(total)}`}>
-                  {total !== 0 && (total > 0 ? '+' : '')}{formatNumber(total, 2)}
+                  {total !== 0 && (total > 0 ? '+' : '')}{formatNumber(total, valueDecimals)}
                 </td>
               ))}
               <td className="p-2 text-center text-xs font-bold text-white font-mono border-t border-l border-slate-700/50">
                 {/* Grand total */}
-                {formatNumber(rowTotals.reduce((sum, val) => sum + val, 0), 2)}h
+                {formatNumber(rowTotals.reduce((sum, val) => sum + val, 0), valueDecimals)} {unitLabel}
               </td>
             </tr>
           </tfoot>
@@ -180,19 +187,19 @@ const DifferenceHeatmap = ({
       <div className="px-4 py-3 border-t border-slate-700 bg-slate-800/30 flex justify-between items-center text-xs text-slate-400">
         <div className="flex gap-6">
           <span>
-            Max Positive: <span className="text-blue-400 font-mono">{formatNumber(differenceData.maxDiff, 4)}h</span>
+            Max Positive: <span className="text-blue-400 font-mono">{formatNumber(differenceData.maxDiff, tooltipDecimals)} {unitLabel}</span>
           </span>
           <span>
-            Max Negative: <span className="text-orange-400 font-mono">{formatNumber(differenceData.minDiff, 4)}h</span>
+            Max Negative: <span className="text-orange-400 font-mono">{formatNumber(differenceData.minDiff, tooltipDecimals)} {unitLabel}</span>
           </span>
           <span>
             Total Diff: <span className={`font-mono ${getCellTextColor(rowTotals.reduce((sum, val) => sum + val, 0))}`}>
-              {formatNumber(rowTotals.reduce((sum, val) => sum + val, 0), 2)}h
+              {formatNumber(rowTotals.reduce((sum, val) => sum + val, 0), valueDecimals)} {unitLabel}
             </span>
           </span>
         </div>
         <div className="text-[10px] text-slate-500">
-          Positive = Primary has more time | Negative = Secondary has more time
+          Positive = Primary has more {comparisonNoun} | Negative = Secondary has more {comparisonNoun}
         </div>
       </div>
     </div>

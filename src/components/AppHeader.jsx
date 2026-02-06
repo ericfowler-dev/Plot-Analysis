@@ -20,7 +20,7 @@ const TAB_CONFIGS = {
   multiEcm: [
     { id: 'overview', label: 'Overview', source: null },
     { id: 'ecm-compare', label: 'ECM Compare', source: null },
-    { id: 'ecm-faults', label: 'Faults', source: null },
+    { id: 'fault-correlation', label: 'Fault Correlation', source: null },
     { id: 'charts', label: 'Charts', source: null }
   ],
   // BPLT only: Overview - Charts - Channels - Events
@@ -45,10 +45,9 @@ const TAB_CONFIGS = {
     { id: 'overview-ecm', label: 'Overview', source: 'ECM' },
     { id: 'ecm-compare', label: 'ECM Compare', source: null },
     { id: 'charts-ecm', label: 'Charts', source: 'ECM' },
-    { id: 'ecm-faults', label: 'Fault Timeline', source: 'ECM' },
+    { id: 'fault-correlation', label: 'Fault Correlation', source: null },
     { id: 'overview-bplt', label: 'Overview', source: 'BPLT' },
     { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
-    { id: 'combined-faults', label: 'Correlated Faults', source: null },
     { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
     { id: 'events-bplt', label: 'Events', source: 'BPLT' }
   ]
@@ -143,7 +142,7 @@ const FileIndicator = ({ type, fileName, role }) => {
 const NavTab = ({ tab, isActive, onClick, eventCount, faultCount }) => {
   // Determine if this tab should show a count badge
   const showEventCount = tab.id.includes('events') && eventCount > 0;
-  const showFaultCount = (tab.id.includes('fault') || tab.id === 'ecm-faults' || tab.id === 'combined-faults') && faultCount > 0;
+  const showFaultCount = (tab.id.includes('fault') || tab.id === 'fault-correlation') && faultCount > 0;
 
   return (
     <button
@@ -212,6 +211,7 @@ const AppHeader = ({
   faultCount = 0,       // Combined fault count for multi-ECM
   activeProfileName = null,
   activeProfileId = null,
+  activeEcmRole = null,
   userFields,
   userFieldsDraft,
   isUserFieldsEditing = false,
@@ -342,6 +342,29 @@ const AppHeader = ({
             <>
               <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
               <ProfileIndicator profileName={activeProfileName} profileId={activeProfileId} />
+            </>
+          )}
+
+          {/* Active ECM context */}
+          {hasMultiEcm && activeEcmRole && (
+            <>
+              <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
+              <div
+                className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/50 border border-blue-500/30 rounded text-[10px]"
+                title="Current ECM context for Overview and Charts"
+              >
+                <span className="text-slate-500 uppercase tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
+                  ECM View
+                </span>
+                <span
+                  className={`font-bold uppercase tracking-wide ${
+                    activeEcmRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'
+                  }`}
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  {activeEcmRole === 'secondary' ? 'Secondary' : 'Primary'}
+                </span>
+              </div>
             </>
           )}
         </div>

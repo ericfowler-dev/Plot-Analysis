@@ -1226,7 +1226,7 @@ const FaultMasterDetail = ({ faults, selectedFaultIndex, onSelectFault, engineHo
 // =============================================================================
 // FAULT TIMELINE TAB - Initial/Last occurrence sequencing
 // =============================================================================
-const FaultTimelineTab = ({ faults, engineHours, sortKey, onSortChange }) => {
+const FaultTimelineTab = ({ faults, engineHours, sortKey, onSortChange, showSource = false }) => {
   if (!faults || faults.length === 0) {
     return (
       <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-8 text-center">
@@ -1313,7 +1313,8 @@ const FaultTimelineTab = ({ faults, engineHours, sortKey, onSortChange }) => {
       <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
         <div className="grid grid-cols-12 gap-2 px-4 py-3 text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-800">
           <div className="col-span-2">DTC</div>
-          <div className="col-span-4">Description</div>
+          {showSource && <div className="col-span-1">ECM</div>}
+          <div className={showSource ? 'col-span-3' : 'col-span-4'}>Description</div>
           <div className="col-span-1">Status</div>
           <div className="col-span-2">Initial</div>
           <div className="col-span-2">Last</div>
@@ -1330,10 +1331,22 @@ const FaultTimelineTab = ({ faults, engineHours, sortKey, onSortChange }) => {
               : recency.className === 'fault-recency-recent'
                 ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-400/40'
                 : '';
+            const sourceIsPrimary = fault?.sourceRole === 'primary';
             return (
               <div key={`${fault.code}-${index}`} className="grid grid-cols-12 gap-2 px-4 py-3 text-sm text-slate-200">
                 <div className="col-span-2 font-mono text-green-400">DTC {fault.code}</div>
-                <div className="col-span-4 text-slate-100">{fault.description || 'Unknown fault'}</div>
+                {showSource && (
+                  <div className="col-span-1">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
+                      sourceIsPrimary
+                        ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                        : 'bg-orange-500/20 border-orange-500/40 text-orange-300'
+                    }`}>
+                      {sourceIsPrimary ? 'P' : 'S'}
+                    </span>
+                  </div>
+                )}
+                <div className={showSource ? 'col-span-3 text-slate-100' : 'col-span-4 text-slate-100'}>{fault.description || 'Unknown fault'}</div>
                 <div className="col-span-1">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                     status === 'Active'
@@ -2200,6 +2213,45 @@ const PlotAnalyzer = () => {
   const reportRef = useRef(null);
   const workerRef = useRef(null);
   const alertsRef = useRef(null);
+  const [ecmDisplayRole, setEcmDisplayRole] = useState('primary');
+
+  const hasDualEcm = hasPrimaryEcm && hasSecondaryEcm;
+  const activeEcmFile = useMemo(() => {
+    if (!hasDualEcm) return null;
+    return (
+      ecmFiles.find((file) => file.role === ecmDisplayRole) ||
+      ecmFiles.find((file) => file.role === 'primary') ||
+      ecmFiles[0] ||
+      null
+    );
+  }, [hasDualEcm, ecmFiles, ecmDisplayRole]);
+
+  const displayEcmInfo = hasDualEcm ? (activeEcmFile?.ecmInfo || {}) : ecmInfo;
+  const displayHistograms = hasDualEcm ? (activeEcmFile?.histograms || {}) : histograms;
+  const displayFaults = hasDualEcm ? (activeEcmFile?.faults || []) : faults;
+  const displayStats = hasDualEcm ? (activeEcmFile?.stats || {}) : stats;
+  const displayProcessedHistograms = hasDualEcm ? (activeEcmFile?.processedHistograms || {}) : processedHistograms;
+
+  const displayAnalysis = useMemo(() => {
+    if (!hasDualEcm) return analysis;
+    return analyzeECMData(displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats);
+  }, [hasDualEcm, analysis, displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats]);
+
+  const displaySummaryStats = useMemo(() => {
+    if (!hasDualEcm) return summaryStats;
+    return generateSummaryStats(displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats);
+  }, [hasDualEcm, summaryStats, displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats]);
+
+  const ecmDisplayRoleLabel = activeEcmFile?.role === 'secondary' ? 'Secondary' : 'Primary';
+  const ecmChartsTabId = hasBplt ? 'charts-ecm' : 'charts';
+  const showEcmContextToggle = hasDualEcm && (
+    activeTab === 'overview' ||
+    activeTab === 'overview-ecm' ||
+    activeTab === 'charts' ||
+    activeTab === 'charts-ecm' ||
+    activeTab === 'faults' ||
+    activeTab === 'faults-ecm'
+  );
 
   useEffect(() => {
     if (PERF) console.log(`[perf] tab change: ${activeTab}`);
@@ -2208,12 +2260,12 @@ const PlotAnalyzer = () => {
   useEffect(() => {
     if (!scrollToAlerts) return;
     if (activeTab !== 'charts' && activeTab !== 'charts-ecm') return;
-    if (!analysis?.alerts?.length) return;
+    if (!displayAnalysis?.alerts?.length) return;
     if (alertsRef.current) {
       alertsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     setScrollToAlerts(false);
-  }, [scrollToAlerts, activeTab, analysis?.alerts?.length]);
+  }, [scrollToAlerts, activeTab, displayAnalysis?.alerts?.length]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2222,21 +2274,21 @@ const PlotAnalyzer = () => {
 
   useEffect(() => {
     setSelectedFaultIndex(null);
-  }, [faultFilter, sortFaultsByRecency, stats.engineHours]);
+  }, [faultFilter, sortFaultsByRecency, displayStats.engineHours, ecmDisplayRole]);
 
   const faultRecencyCounts = useMemo(() => {
-    if (!faults || faults.length === 0) {
+    if (!displayFaults || displayFaults.length === 0) {
       return { current: 0, recent: 0 };
     }
     let current = 0;
     let recent = 0;
-    faults.forEach((fault) => {
-      const info = getFaultRecencyInfo(stats.engineHours, fault?.lastOccurrence);
+    displayFaults.forEach((fault) => {
+      const info = getFaultRecencyInfo(displayStats.engineHours, fault?.lastOccurrence);
       if (info.rank === 0) current += 1;
       if (info.rank === 1) recent += 1;
     });
     return { current, recent };
-  }, [faults, stats.engineHours]);
+  }, [displayFaults, displayStats.engineHours]);
 
   // Initialize worker for plot data processing
   useEffect(() => {
@@ -2948,17 +3000,26 @@ const PlotAnalyzer = () => {
   // ECM CHART DATA - Prepare histogram data for visualization
   // ----------------------------------------------------------------------------
   const selectedHistogramData = useMemo(() => {
-    if (!processedHistograms[selectedHistogram]) return [];
-    return processedHistograms[selectedHistogram].data || [];
-  }, [processedHistograms, selectedHistogram]);
+    if (!displayProcessedHistograms[selectedHistogram]) return [];
+    return displayProcessedHistograms[selectedHistogram].data || [];
+  }, [displayProcessedHistograms, selectedHistogram]);
 
   const histogramOptions = useMemo(() => {
-    return Object.keys(processedHistograms).map(key => ({
+    return Object.keys(displayProcessedHistograms).map(key => ({
       key,
-      name: processedHistograms[key]?.title || key,
-      dataPoints: processedHistograms[key]?.stats?.dataPoints || 0
+      name: displayProcessedHistograms[key]?.title || key,
+      dataPoints: displayProcessedHistograms[key]?.stats?.dataPoints || 0
     }));
-  }, [processedHistograms]);
+  }, [displayProcessedHistograms]);
+
+  useEffect(() => {
+    if (!selectedHistogram) return;
+    if (displayProcessedHistograms[selectedHistogram]) return;
+    const firstHistogram = Object.keys(displayProcessedHistograms)[0];
+    if (firstHistogram) {
+      dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: firstHistogram });
+    }
+  }, [displayProcessedHistograms, selectedHistogram]);
 
   // ----------------------------------------------------------------------------
   // RAW DATA SECTIONS - Parse file into sections for raw data display
@@ -3336,9 +3397,10 @@ const PlotAnalyzer = () => {
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
           eventCount={bplotProcessed?.events?.length || 0}
-          faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : faults?.length || 0}
+          faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : displayFaults.length || 0}
           activeProfileName={activeThresholdProfile?.name}
           activeProfileId={activeThresholdProfile?.profileId}
+          activeEcmRole={hasDualEcm ? activeEcmFile?.role : null}
           userFields={userFields}
           userFieldsDraft={userFieldsDraft}
           isUserFieldsEditing={isUserFieldsEditing}
@@ -3387,9 +3449,10 @@ const PlotAnalyzer = () => {
         onExport={exportToPDF}
         onReportIssue={() => setShowReportIssue(true)}
         eventCount={bplotProcessed?.events?.length || 0}
-        faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : faults?.length || 0}
+        faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : displayFaults.length || 0}
         activeProfileName={activeThresholdProfile?.name}
         activeProfileId={activeThresholdProfile?.profileId}
+        activeEcmRole={hasDualEcm ? activeEcmFile?.role : null}
         userFields={userFields}
         userFieldsDraft={userFieldsDraft}
         isUserFieldsEditing={isUserFieldsEditing}
@@ -3401,6 +3464,42 @@ const PlotAnalyzer = () => {
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
       <main className="w-full px-6 py-6 space-y-8 mx-auto" style={{ maxWidth: '98%' }}>
+        {showEcmContextToggle && (
+          <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-200">ECM Display Context</div>
+                <div className="text-xs text-slate-500">
+                  Overview and Charts are currently showing {ecmDisplayRoleLabel} ECM data.
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEcmDisplayRole('primary')}
+                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
+                    ecmDisplayRoleLabel === 'Primary'
+                      ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Primary ECM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEcmDisplayRole('secondary')}
+                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
+                    ecmDisplayRoleLabel === 'Secondary'
+                      ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Secondary ECM
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ==================== OVERVIEW ==================== */}
         {(activeTab === 'overview' || activeTab === 'overview-ecm') && parsed && (
@@ -3411,36 +3510,36 @@ const PlotAnalyzer = () => {
                 <Cpu className="w-5 h-5 text-green-400" /> ECM Device Information
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-5">
-                <InfoBox label="Hardware P/N" value={ecmInfo['ECI H/W P/N']} />
-                <InfoBox label="Software Version" value={ecmInfo['ECI Mot XLS Rev']} />
-                <InfoBox label="Serial Number" value={ecmInfo['ECI H/W S/N']} small />
-                <InfoBox label="Engine P/N" value={(ecmInfo['Engine P/N'] || '').replace(/"/g, '')} />
-                <InfoBox label="Engine S/N" value={(ecmInfo['Engine S/N'] || '').replace(/"/g, '')} small />
-                <InfoBox label="Engine Hours" value={`${Number(stats.engineHours || 0).toFixed(1)}h`} />
+                <InfoBox label="Hardware P/N" value={displayEcmInfo['ECI H/W P/N']} />
+                <InfoBox label="Software Version" value={displayEcmInfo['ECI Mot XLS Rev']} />
+                <InfoBox label="Serial Number" value={displayEcmInfo['ECI H/W S/N']} small />
+                <InfoBox label="Engine P/N" value={(displayEcmInfo['Engine P/N'] || '').replace(/"/g, '')} />
+                <InfoBox label="Engine S/N" value={(displayEcmInfo['Engine S/N'] || '').replace(/"/g, '')} small />
+                <InfoBox label="Engine Hours" value={`${Number(displayStats.engineHours || 0).toFixed(1)}h`} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 border-t border-slate-700 pt-5">
-                <InfoBox label="Customer S/W P/N" value={(ecmInfo['Customer S/W P/N'] || '').replace(/"/g, '')} />
-                <InfoBox label="Download Date" value={ecmInfo['Download Date']} />
-                <InfoBox label="Download Time" value={ecmInfo['Download Time']} />
-                <InfoBox label="Manufacture Date" value={ecmInfo['ECI Manufacture Date']} />
-                <InfoBox label="Calibration Date" value={ecmInfo['ECI Current Cal Date']} />
-                <InfoBox label="Starts" value={stats.engineStarts || 0} />
+                <InfoBox label="Customer S/W P/N" value={(displayEcmInfo['Customer S/W P/N'] || '').replace(/"/g, '')} />
+                <InfoBox label="Download Date" value={displayEcmInfo['Download Date']} />
+                <InfoBox label="Download Time" value={displayEcmInfo['Download Time']} />
+                <InfoBox label="Manufacture Date" value={displayEcmInfo['ECI Manufacture Date']} />
+                <InfoBox label="Calibration Date" value={displayEcmInfo['ECI Current Cal Date']} />
+                <InfoBox label="Starts" value={displayStats.engineStarts || 0} />
               </div>
             </div>
 
             {/* Alerts and Recommendations */}
-            {analysis?.alerts?.length > 0 && (
+            {displayAnalysis?.alerts?.length > 0 && (
               <div className="bg-red-950/50 border border-red-600/70 rounded-xl p-4">
                 <div className="flex items-center gap-3">
                   <ShieldAlert className="w-6 h-6 text-red-400" />
                   <div className="flex-1">
-                    <div className="font-semibold text-red-400">{analysis.alerts.length} System Alert{analysis.alerts.length > 1 ? 's' : ''}</div>
+                    <div className="font-semibold text-red-400">{displayAnalysis.alerts.length} System Alert{displayAnalysis.alerts.length > 1 ? 's' : ''}</div>
                     <div className="text-sm text-red-300/70">Issues detected requiring attention</div>
                   </div>
                   <button
                     onClick={() => {
                       setScrollToAlerts(true);
-                      handleTabChange('charts');
+                      handleTabChange(ecmChartsTabId);
                     }}
                     className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm"
                   >
@@ -3453,17 +3552,17 @@ const PlotAnalyzer = () => {
             {/* Key Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
               <MetricCard icon={<Gauge className="text-emerald-400 w-5 h-5" />} label="Engine Hours"
-                value={Number(stats.engineHours || 0).toFixed(1)} unit="h" sub="Total runtime" />
+                value={Number(displayStats.engineHours || 0).toFixed(1)} unit="h" sub="Total runtime" />
               <MetricCard icon={<Activity className="text-green-400 w-5 h-5" />} label="Histograms"
-                value={stats.histogramCount || 0} sub="Data sets analyzed" />
+                value={displayStats.histogramCount || 0} sub="Data sets analyzed" />
               <MetricCard icon={<Wrench className="text-amber-400 w-5 h-5" />} label="Faults"
-                value={stats.totalFaults || 0} sub={`${faults.filter(f => f?.isCritical).length} critical`} />
+                value={displayStats.totalFaults || 0} sub={`${displayFaults.filter(f => f?.isCritical).length} critical`} />
               <MetricCard
-                icon={<AlertTriangle className={`w-5 h-5 ${summaryStats.health?.overallHealth < 70 ? 'text-red-400' : summaryStats.health?.overallHealth < 85 ? 'text-orange-400' : 'text-emerald-400'}`} />}
+                icon={<AlertTriangle className={`w-5 h-5 ${displaySummaryStats.health?.overallHealth < 70 ? 'text-red-400' : displaySummaryStats.health?.overallHealth < 85 ? 'text-orange-400' : 'text-emerald-400'}`} />}
                 label="Health Score"
-                value={summaryStats.health?.overallHealth || 0} unit="%"
+                value={displaySummaryStats.health?.overallHealth || 0} unit="%"
                 sub="System health indicator"
-                alert={summaryStats.health?.overallHealth < 70}
+                alert={displaySummaryStats.health?.overallHealth < 70}
                 info={
                   <div className="space-y-2">
                     <p>Starts at <span className="text-white font-semibold">100%</span> and deducts points based on:</p>
@@ -3496,95 +3595,118 @@ const PlotAnalyzer = () => {
             {/* Histogram Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <SpeedLoadSummaryCard
-                histogram={histograms.speedLoad}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'speedLoad' }); handleTabChange('charts'); }}
+                histogram={displayHistograms.speedLoad}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'speedLoad' }); handleTabChange(ecmChartsTabId); }}
               />
               <KnockSummaryCard
-                histogram={histograms.knock}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'knock' }); handleTabChange('charts'); }}
+                histogram={displayHistograms.knock}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'knock' }); handleTabChange(ecmChartsTabId); }}
               />
               <ECTSummaryCard
-                histogram={histograms.ect}
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'ect' }); handleTabChange('charts'); }}
+                histogram={displayHistograms.ect}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'ect' }); handleTabChange(ecmChartsTabId); }}
               />
               <BackfireSummaryCard
-                histogram={histograms.backfireLifetime}
+                histogram={displayHistograms.backfireLifetime}
                 title="Backfire (Lifetime)"
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireLifetime' }); handleTabChange('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireLifetime' }); handleTabChange(ecmChartsTabId); }}
               />
               <BackfireSummaryCard
-                histogram={histograms.backfireRecent}
+                histogram={displayHistograms.backfireRecent}
                 title="Backfire (Recent)"
-                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireRecent' }); handleTabChange('charts'); }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED_HISTOGRAM', payload: 'backfireRecent' }); handleTabChange(ecmChartsTabId); }}
               />
             </div>
 
             {/* Fault Snapshot Section */}
-            <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-base font-semibold text-slate-300">
-                  <AlertTriangle className="w-5 h-5 text-red-400" /> Fault Snapshot Data
-                </div>
-                {faults.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={sortFaultsByRecency}
-                        onChange={(e) => setSortFaultsByRecency(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-400 focus:ring-emerald-400"
-                      />
-                      Sort by recency
-                    </label>
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      {[
-                        { key: 'current', label: 'Current', count: faultRecencyCounts.current, classes: 'text-red-300 border-red-500/40' },
-                        { key: 'recent', label: 'Recent', count: faultRecencyCounts.recent, classes: 'text-yellow-200 border-yellow-400/40' },
-                        { key: 'shutdown', label: 'Shutdown', count: faults.filter(f => f?.causedShutdown).length, classes: 'text-red-300 border-red-500/40' },
-                        { key: 'total', label: 'Total', count: faults.length, classes: 'text-slate-300 border-slate-600/50' }
-                      ].map((pill) => (
-                        <button
-                          key={pill.key}
-                          onClick={() => setFaultFilter(pill.key)}
-                          className={`px-3 py-1 rounded-full border transition-all ${
-                            faultFilter === pill.key
-                              ? `bg-slate-800/70 ${pill.classes} shadow-[0_0_10px_rgba(148,163,184,0.15)]`
-                              : 'bg-slate-900/40 text-slate-400 border-slate-700/60 hover:border-slate-500/70 hover:text-slate-200'
-                          }`}
-                        >
-                          {pill.count} {pill.label}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setFaultFilter('total')}
-                        className="px-3 py-1 rounded-full border border-slate-600/60 text-slate-300 hover:text-white hover:border-slate-400/80 transition-colors"
-                      >
-                        Reset Filter
-                      </button>
+            {hasDualEcm ? (
+              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-base font-semibold text-slate-300">
+                      <AlertTriangle className="w-5 h-5 text-red-400" /> Fault Correlation Workspace
                     </div>
+                    <p className="text-sm text-slate-500 mt-2">
+                      Snapshot details, fault timeline, and Primary/Secondary correlation are unified in one page.
+                    </p>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('fault-correlation')}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-yellow-500/50 text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors rounded"
+                  >
+                    Open Fault Correlation
+                  </button>
+                </div>
               </div>
+            ) : (
+              <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-base font-semibold text-slate-300">
+                    <AlertTriangle className="w-5 h-5 text-red-400" /> Fault Snapshot Data
+                  </div>
+                  {displayFaults.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sortFaultsByRecency}
+                          onChange={(e) => setSortFaultsByRecency(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-400 focus:ring-emerald-400"
+                        />
+                        Sort by recency
+                      </label>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        {[
+                          { key: 'current', label: 'Current', count: faultRecencyCounts.current, classes: 'text-red-300 border-red-500/40' },
+                          { key: 'recent', label: 'Recent', count: faultRecencyCounts.recent, classes: 'text-yellow-200 border-yellow-400/40' },
+                          { key: 'shutdown', label: 'Shutdown', count: displayFaults.filter(f => f?.causedShutdown).length, classes: 'text-red-300 border-red-500/40' },
+                          { key: 'total', label: 'Total', count: displayFaults.length, classes: 'text-slate-300 border-slate-600/50' }
+                        ].map((pill) => (
+                          <button
+                            key={pill.key}
+                            onClick={() => setFaultFilter(pill.key)}
+                            className={`px-3 py-1 rounded-full border transition-all ${
+                              faultFilter === pill.key
+                                ? `bg-slate-800/70 ${pill.classes} shadow-[0_0_10px_rgba(148,163,184,0.15)]`
+                                : 'bg-slate-900/40 text-slate-400 border-slate-700/60 hover:border-slate-500/70 hover:text-slate-200'
+                            }`}
+                          >
+                            {pill.count} {pill.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setFaultFilter('total')}
+                          className="px-3 py-1 rounded-full border border-slate-600/60 text-slate-300 hover:text-white hover:border-slate-400/80 transition-colors"
+                        >
+                          Reset Filter
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              <FaultMasterDetail
-                faults={faults}
-                selectedFaultIndex={selectedFaultIndex}
-                onSelectFault={setSelectedFaultIndex}
-                engineHours={stats.engineHours}
-                sortByRecency={sortFaultsByRecency}
-                faultFilter={faultFilter}
-              />
-            </div>
+                <FaultMasterDetail
+                  faults={displayFaults}
+                  selectedFaultIndex={selectedFaultIndex}
+                  onSelectFault={setSelectedFaultIndex}
+                  engineHours={displayStats.engineHours}
+                  sortByRecency={sortFaultsByRecency}
+                  faultFilter={faultFilter}
+                />
+              </div>
+            )}
           </>
         )}
 
         {/* ==================== FAULT TIMELINE ==================== */}
         {(activeTab === 'faults' || activeTab === 'faults-ecm') && (
           <FaultTimelineTab
-            faults={faults}
-            engineHours={stats.engineHours}
+            faults={displayFaults}
+            engineHours={displayStats.engineHours}
             sortKey={faultTimelineSort}
             onSortChange={setFaultTimelineSort}
+            showSource={hasDualEcm}
           />
         )}
 
@@ -3598,19 +3720,8 @@ const PlotAnalyzer = () => {
           />
         )}
 
-        {/* ==================== ECM FAULTS (Multi-ECM) ==================== */}
-        {activeTab === 'ecm-faults' && hasPrimaryEcm && hasSecondaryEcm && (
-          <FaultTimelineTab
-            faults={combinedEcmFaults}
-            engineHours={stats.engineHours}
-            sortKey={faultTimelineSort}
-            onSortChange={setFaultTimelineSort}
-            showSource={true}
-          />
-        )}
-
-        {/* ==================== COMBINED FAULTS (ECM + BPLOT) ==================== */}
-        {activeTab === 'combined-faults' && hasPrimaryEcm && hasSecondaryEcm && hasBplt && (
+        {/* ==================== FAULT CORRELATION (Unified) ==================== */}
+        {(activeTab === 'fault-correlation' || activeTab === 'ecm-faults' || activeTab === 'combined-faults') && hasPrimaryEcm && hasSecondaryEcm && (
           <CombinedFaultView
             combinedFaults={combinedEcmFaults}
             ecmComparisonStats={ecmComparisonStats}
@@ -3622,14 +3733,14 @@ const PlotAnalyzer = () => {
         {/* ==================== CHARTS ==================== */}
         {(activeTab === 'charts' || activeTab === 'charts-ecm') && (
           <div className="space-y-6">
-            {analysis?.alerts?.length > 0 && (
+            {displayAnalysis?.alerts?.length > 0 && (
               <div ref={alertsRef} className="bg-red-950/50 border border-red-600/70 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <ShieldAlert className="w-5 h-5 text-red-400" />
                   <div className="font-semibold text-red-400">System Alerts</div>
                 </div>
                 <div className="space-y-3">
-                  {analysis.alerts.map((alert, index) => {
+                  {displayAnalysis.alerts.map((alert, index) => {
                     const isWarning = alert.level === 'warning';
                     const borderColor = isWarning ? 'border-red-500/40' : 'border-red-500/60';
                     const bgColor = isWarning ? 'bg-red-950/40' : 'bg-red-950/60';
@@ -3658,7 +3769,7 @@ const PlotAnalyzer = () => {
                     <BarChart3 className="w-5 h-5 text-[#22c55e]" />
                     <span className="text-base font-semibold text-white">Histogram Analysis</span>
                   </div>
-                  {faults.length > 0 && (
+                  {displayFaults.length > 0 && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -3666,7 +3777,7 @@ const PlotAnalyzer = () => {
                         onChange={(e) => setShowFaultOverlays(e.target.checked)}
                         className="w-4 h-4 rounded border-[#344d65] bg-[#1a2632] text-[#22c55e] focus:ring-[#22c55e]"
                       />
-                      <span className="text-sm text-[#93adc8]">Show Fault Overlays ({faults.length})</span>
+                      <span className="text-sm text-[#93adc8]">Show Fault Overlays ({displayFaults.length})</span>
                     </label>
                   )}
                 </div>
@@ -3689,11 +3800,11 @@ const PlotAnalyzer = () => {
             )}
 
             {/* Heatmap Table for 2D Histograms */}
-            {selectedHistogram && histograms[selectedHistogram] && selectedHistogram !== 'ect' && (
+            {selectedHistogram && displayHistograms[selectedHistogram] && selectedHistogram !== 'ect' && (
               <HeatmapTable
-                histogram={histograms[selectedHistogram]}
-                title={`${processedHistograms[selectedHistogram]?.title || selectedHistogram} - Distribution Matrix (${selectedHistogram.includes('backfire') ? 'Events' : 'Hours'} / %)`}
-                faultOverlays={showFaultOverlays ? faults : []}
+                histogram={displayHistograms[selectedHistogram]}
+                title={`${displayProcessedHistograms[selectedHistogram]?.title || selectedHistogram} - Distribution Matrix (${selectedHistogram.includes('backfire') ? 'Events' : 'Hours'} / %)`}
+                faultOverlays={showFaultOverlays ? displayFaults : []}
                 unit={selectedHistogram.includes('backfire') ? 'events' : 'hours'}
                 sourceInSeconds={selectedHistogram.includes('knock')}
                 secondsPerUnit={ECM_HISTOGRAM_CONFIG.knock?.secondsPerUnit || 1}
@@ -3701,19 +3812,19 @@ const PlotAnalyzer = () => {
             )}
 
             {/* ECT Bar Chart for Temperature Distribution */}
-            {selectedHistogram === 'ect' && histograms.ect && (
-              <ECTBarChart histogram={histograms.ect} />
+            {selectedHistogram === 'ect' && displayHistograms.ect && (
+              <ECTBarChart histogram={displayHistograms.ect} />
             )}
 
             {/* Fault Correlation Panel */}
-            {faults.length > 0 && selectedHistogram === 'speedLoad' && (
+            {displayFaults.length > 0 && selectedHistogram === 'speedLoad' && (
               <div className="bg-[#111921] rounded-xl border border-[#344d65] p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
                   <h3 className="text-white font-bold">Fault Operating Conditions</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {faults.map((fault, idx) => (
+                  {displayFaults.map((fault, idx) => (
                     <div
                       key={idx}
                       className="bg-[#1a2632] rounded-lg p-4 border border-[#344d65] hover:border-red-500/50 cursor-pointer transition-all"
@@ -3754,10 +3865,10 @@ const PlotAnalyzer = () => {
             )}
 
             {/* Fault Detail View */}
-            {selectedFaultIndex !== null && faults[selectedFaultIndex] && (
+            {selectedFaultIndex !== null && displayFaults[selectedFaultIndex] && (
               <FaultSnapshotDetail
-                fault={faults[selectedFaultIndex]}
-                histograms={histograms}
+                fault={displayFaults[selectedFaultIndex]}
+                histograms={displayHistograms}
                 onClose={() => setSelectedFaultIndex(null)}
               />
             )}
