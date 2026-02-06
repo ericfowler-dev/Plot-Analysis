@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, ReferenceArea, Brush
@@ -263,6 +263,8 @@ const BPlotAnalysis = ({
   ecmFaults = [],           // ECM faults for overlay
   fileBoundaries = [],      // File boundaries for multi-file view
   bplotFiles = [],          // Array of loaded B-Plot files
+  bplotMergeMode = 'sequential',
+  bplotCorrelation = null,
   onAddEcmFile,             // Callback to add ECM file for overlay
   onExport,                 // Callback to export report
   onReportIssue,            // Callback to open report issue modal
@@ -290,19 +292,55 @@ const BPlotAnalysis = ({
   const [showFileBoundaries, setShowFileBoundaries] = useState(true);
   const [highlightedChannel, setHighlightedChannel] = useState(null);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [activeCorrelatedRole, setActiveCorrelatedRole] = useState('primary');
+
+  const primaryBplotFile = useMemo(
+    () => bplotFiles.find((file) => file.role === 'primary'),
+    [bplotFiles]
+  );
+  const secondaryBplotFile = useMemo(
+    () => bplotFiles.find((file) => file.role === 'secondary'),
+    [bplotFiles]
+  );
+  const dualCorrelatedMode = bplotMergeMode === 'correlated' && primaryBplotFile && secondaryBplotFile;
+
+  useEffect(() => {
+    if (!dualCorrelatedMode) return;
+    if (activeCorrelatedRole === 'secondary' && !secondaryBplotFile) {
+      setActiveCorrelatedRole('primary');
+    }
+  }, [dualCorrelatedMode, activeCorrelatedRole, secondaryBplotFile]);
+
+  const activeBplotFile = useMemo(() => {
+    if (!dualCorrelatedMode) return null;
+    if (activeCorrelatedRole === 'secondary') {
+      return secondaryBplotFile || primaryBplotFile;
+    }
+    return primaryBplotFile || secondaryBplotFile;
+  }, [dualCorrelatedMode, activeCorrelatedRole, primaryBplotFile, secondaryBplotFile]);
+
+  const effectiveProcessedData = dualCorrelatedMode
+    ? (activeBplotFile?.processed || processedData)
+    : processedData;
 
   const {
-    timeInfo,
-    channelStats,
-    timeInStateStats,
-    engineEvents,
-    channelsByCategory,
-    operatingStats,
-    alerts,
-    summary,
-    chartData,
-    rawData
-  } = processedData;
+    timeInfo = null,
+    channelStats = {},
+    timeInStateStats = {},
+    engineEvents = [],
+    channelsByCategory = {},
+    operatingStats = {},
+    alerts = [],
+    summary = {},
+    chartData = [],
+    rawData = []
+  } = effectiveProcessedData || {};
+
+  const activePlotFileName = activeBplotFile?.fileName || data?.fileName || fileName;
+  const displayFileName = dualCorrelatedMode
+    ? `${primaryBplotFile?.fileName || 'Primary'} + ${secondaryBplotFile?.fileName || 'Secondary'}`
+    : fileName;
+  const shouldShowFileBoundaries = !dualCorrelatedMode && fileBoundaries.length > 1;
 
   // Calculate MIL status - check if MILout_mirror = 1 while engine running (RPM >= 500) for minimum duration
   const milStatus = useMemo(() => {
@@ -509,13 +547,14 @@ const BPlotAnalysis = ({
             hasEcm={false}
             hasBplt={true}
             ecmFileName=""
-            bpltFileName={fileName}
+            bpltFileName={displayFileName}
+            bplotFiles={bplotFiles}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onImport={onReset}
             onExport={onExport}
             onReportIssue={onReportIssue}
-            eventCount={processedData?.events?.length || 0}
+            eventCount={engineEvents.length || 0}
             activeProfileName={resolvedProfile?.name}
             activeProfileId={resolvedProfile?.profileId}
             userFields={userFields}
@@ -537,6 +576,35 @@ const BPlotAnalysis = ({
 
               {/* Overlay Controls */}
               <div className="flex items-center gap-3">
+                {dualCorrelatedMode && (
+                  <div className="flex items-center gap-2 pr-2 border-r border-slate-700/60">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                      Correlated Plots
+                    </span>
+                    <button
+                      onClick={() => setActiveCorrelatedRole('primary')}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        activeCorrelatedRole === 'primary'
+                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      Primary Plot
+                    </button>
+                    <button
+                      onClick={() => setActiveCorrelatedRole('secondary')}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        activeCorrelatedRole === 'secondary'
+                          ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      Secondary Plot
+                    </button>
+                  </div>
+                )}
                 {ecmFaults.length > 0 && (
                   <button
                     onClick={() => setShowFaultOverlays(!showFaultOverlays)}
@@ -552,7 +620,7 @@ const BPlotAnalysis = ({
                     DTC ({ecmFaults.length})
                   </button>
                 )}
-                {fileBoundaries.length > 1 && (
+                {shouldShowFileBoundaries && (
                   <button
                     onClick={() => setShowFileBoundaries(!showFileBoundaries)}
                     className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
@@ -578,6 +646,11 @@ const BPlotAnalysis = ({
                     Add ECM Data
                   </button>
                 )}
+                {dualCorrelatedMode && bplotCorrelation?.overlapRatio !== null && (
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | Active: {activePlotFileName}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -592,6 +665,32 @@ const BPlotAnalysis = ({
               <MILStatusIndicator isActive={milStatus.isActive} />
             </div>
             <div className="flex items-center gap-3">
+              {dualCorrelatedMode && (
+                <>
+                  <button
+                    onClick={() => setActiveCorrelatedRole('primary')}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      activeCorrelatedRole === 'primary'
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    Primary Plot
+                  </button>
+                  <button
+                    onClick={() => setActiveCorrelatedRole('secondary')}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      activeCorrelatedRole === 'secondary'
+                        ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    Secondary Plot
+                  </button>
+                </>
+              )}
               {ecmFaults.length > 0 && (
                 <button
                   onClick={() => setShowFaultOverlays(!showFaultOverlays)}
@@ -605,6 +704,25 @@ const BPlotAnalysis = ({
                   {showFaultOverlays ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   DTC ({ecmFaults.length})
                 </button>
+              )}
+              {shouldShowFileBoundaries && (
+                <button
+                  onClick={() => setShowFileBoundaries(!showFileBoundaries)}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                    showFileBoundaries
+                      ? 'bg-green-500/15 border border-green-500/40 text-green-400'
+                      : 'bg-slate-800/50 border border-slate-700 text-slate-400'
+                  }`}
+                  style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                >
+                  <FileText className="w-3 h-3" />
+                  Files ({fileBoundaries.length})
+                </button>
+              )}
+              {dualCorrelatedMode && bplotCorrelation?.overlapRatio !== null && (
+                <span className="text-[10px] font-mono text-slate-400">
+                  Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | Active: {activePlotFileName}
+                </span>
               )}
             </div>
           </div>
@@ -636,6 +754,51 @@ const BPlotAnalysis = ({
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {dualCorrelatedMode && (
+              <div className="bg-slate-900/60 border border-blue-500/30 rounded-xl p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-blue-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    Dual Plot Correlation
+                  </h3>
+                  {bplotCorrelation?.overlapRatio !== null && (
+                    <span className="text-xs text-slate-300 font-mono">
+                      Window overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-slate-800/50 border border-blue-500/20 rounded-lg p-3">
+                    <div className="text-blue-300 uppercase tracking-wider mb-1">Primary Plot</div>
+                    <div className="text-white font-mono truncate" title={primaryBplotFile?.fileName}>{primaryBplotFile?.fileName || '-'}</div>
+                    <div className="text-slate-400 mt-1">
+                      Duration: {(bplotCorrelation?.primary?.duration || 0).toFixed(1)}s
+                    </div>
+                    {bplotCorrelation?.primary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-3">
+                    <div className="text-orange-300 uppercase tracking-wider mb-1">Secondary Plot</div>
+                    <div className="text-white font-mono truncate" title={secondaryBplotFile?.fileName}>{secondaryBplotFile?.fileName || '-'}</div>
+                    <div className="text-slate-400 mt-1">
+                      Duration: {(bplotCorrelation?.secondary?.duration || 0).toFixed(1)}s
+                    </div>
+                    {bplotCorrelation?.secondary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {bplotCorrelation?.overlapWindow && (
+                  <div className="mt-3 text-xs text-emerald-300">
+                    Correlated operating window: {bplotCorrelation.overlapWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.overlapWindow.end.toFixed(2)}h
+                  </div>
+                )}
+              </div>
+            )}
             {/* Engine Hours */}
             {engineHours && (
               <div className="grid grid-cols-2 gap-4">
@@ -957,7 +1120,7 @@ const BPlotAnalysis = ({
                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px', maxHeight: '40vh', overflowY: 'auto' }}
                       labelFormatter={(v, payload) => {
                         const sourceFile = payload?.[0]?.payload?._sourceFile;
-                        if (sourceFile && fileBoundaries.length > 1) {
+                        if (sourceFile && shouldShowFileBoundaries) {
                           return `Time: ${formatDuration(v)} | File: ${sourceFile}`;
                         }
                         return `Time: ${formatDuration(v)}`;
@@ -992,7 +1155,7 @@ const BPlotAnalysis = ({
                       />
                     ))}
                     {/* File boundary markers for multi-file view */}
-                    {showFileBoundaries && fileBoundaries.length > 1 && fileBoundaries.map((boundary, idx) => (
+                    {showFileBoundaries && shouldShowFileBoundaries && fileBoundaries.map((boundary, idx) => (
                       idx > 0 && (
                         <ReferenceLine
                           key={`file-boundary-${boundary.fileId}`}

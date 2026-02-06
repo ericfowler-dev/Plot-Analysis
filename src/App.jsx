@@ -67,6 +67,27 @@ const PERF = false;
 const MAX_FILE_SIZE_MB = 100;
 const WARN_FILE_SIZE_MB = 20;
 const MB_BYTES = 1024 * 1024;
+const GUI_REVISION = '1.4.6';
+
+const PRIMARY_ROLE_HINTS = [
+  /\bprimary\b/i,
+  /\bpri\b/i,
+  /\becm1\b/i,
+  /\bplot1\b/i,
+  /\bbank[_\s-]*1\b/i,
+  /\bleft\b/i,
+  /\blh\b/i
+];
+
+const SECONDARY_ROLE_HINTS = [
+  /\bsecondary\b/i,
+  /\bsec\b/i,
+  /\becm2\b/i,
+  /\bplot2\b/i,
+  /\bbank[_\s-]*2\b/i,
+  /\bright\b/i,
+  /\brh\b/i
+];
 
 const perfNow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
@@ -118,6 +139,69 @@ const parseHoursValue = (value) => {
   const cleaned = String(value).replace(/[^0-9.+-]/g, '');
   const numericValue = parseFloat(cleaned);
   return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const inferRoleFromFileName = (fileName = '') => {
+  const normalized = String(fileName || '').toLowerCase();
+  if (PRIMARY_ROLE_HINTS.some((pattern) => pattern.test(normalized))) {
+    return { role: 'primary', confidence: 'high' };
+  }
+  if (SECONDARY_ROLE_HINTS.some((pattern) => pattern.test(normalized))) {
+    return { role: 'secondary', confidence: 'high' };
+  }
+  return { role: null, confidence: 'low' };
+};
+
+const assignRolesForDualFiles = (files) => {
+  if (!Array.isArray(files) || files.length === 0) return [];
+
+  const withHints = files.map((file, index) => {
+    if (file.role === 'primary' || file.role === 'secondary') {
+      return { ...file, roleConfidence: 'high' };
+    }
+    const inferred = inferRoleFromFileName(file.fileName || file.name || '');
+    return {
+      ...file,
+      role: inferred.role || (index === 0 ? 'primary' : 'secondary'),
+      roleConfidence: inferred.confidence
+    };
+  });
+
+  // Enforce exactly one primary when possible.
+  const primaryIndices = withHints
+    .map((file, index) => ({ role: file.role, index }))
+    .filter((item) => item.role === 'primary')
+    .map((item) => item.index);
+
+  if (primaryIndices.length === 0) {
+    withHints[0].role = 'primary';
+    withHints[0].roleConfidence = 'low';
+  } else if (primaryIndices.length > 1) {
+    const keepPrimary = primaryIndices[0];
+    primaryIndices.slice(1).forEach((idx) => {
+      withHints[idx].role = 'secondary';
+      withHints[idx].roleConfidence = 'low';
+    });
+    withHints[keepPrimary].role = 'primary';
+  }
+
+  if (withHints.length > 1 && !withHints.some((file) => file.role === 'secondary')) {
+    const firstNonPrimaryIndex = withHints.findIndex((file) => file.role !== 'primary');
+    const targetIndex = firstNonPrimaryIndex >= 0 ? firstNonPrimaryIndex : 1;
+    withHints[targetIndex].role = 'secondary';
+    withHints[targetIndex].roleConfidence = 'low';
+  }
+
+  return withHints;
+};
+
+const requiresRoleSelection = (files) => {
+  if (!Array.isArray(files) || files.length <= 1) return false;
+  if (files.length !== 2) return true;
+  const primaryCount = files.filter((file) => file.role === 'primary').length;
+  const secondaryCount = files.filter((file) => file.role === 'secondary').length;
+  const highConfidence = files.every((file) => file.roleConfidence === 'high');
+  return !(primaryCount === 1 && secondaryCount === 1 && highConfidence);
 };
 
 const getFaultRecencyInfo = (engineHours, lastAtHours) => {
@@ -1652,6 +1736,8 @@ const analysisInitialState = {
   combinedBplotData: null,     // Merged timeline data for unified view
   combinedBplotProcessed: null,// Combined processed results
   fileBoundaries: [],          // Array of { fileId, fileName, startTime, endTime }
+  bplotMergeMode: 'sequential',// 'single' | 'sequential' | 'correlated'
+  bplotCorrelation: null,      // Correlation summary for dual-plot mode
   // ECM fault overlay for B-Plot charts
   ecmFaultsForOverlay: [],     // ECM faults to overlay on B-Plot charts
   ecmFaultsBySource: { primary: [], secondary: [] }, // ECM faults separated by source
@@ -1810,6 +1896,8 @@ function analysisReducer(state, action) {
         fileType: state.hasEcm ? 'both' : FILE_TYPES.BPLOT,
         bplotData: action.payload.data,
         bplotProcessed: action.payload.processed,
+        bplotMergeMode: 'single',
+        bplotCorrelation: null,
         fileName: action.payload.fileName,
         parsed: true,
         activeTab: state.hasEcm ? 'overview-ecm' : 'overview'
@@ -1829,6 +1917,8 @@ function analysisReducer(state, action) {
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
+        bplotMergeMode: action.payload.mergeMode || 'sequential',
+        bplotCorrelation: action.payload.correlation || null,
         // Set primary data to combined for display
         bplotData: action.payload.combinedData,
         bplotProcessed: action.payload.combinedProcessed,
@@ -1871,6 +1961,8 @@ function analysisReducer(state, action) {
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
+        bplotMergeMode: action.payload.mergeMode || state.bplotMergeMode,
+        bplotCorrelation: action.payload.correlation || state.bplotCorrelation,
         bplotData: action.payload.combinedData,
         bplotProcessed: action.payload.combinedProcessed
       };
@@ -1883,6 +1975,8 @@ function analysisReducer(state, action) {
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
+        bplotMergeMode: action.payload.mergeMode || state.bplotMergeMode,
+        bplotCorrelation: action.payload.correlation || state.bplotCorrelation,
         bplotData: action.payload.combinedData,
         bplotProcessed: action.payload.combinedProcessed,
         fileName: newFiles.map(f => f.fileName).join(', ')
@@ -1961,6 +2055,8 @@ function analysisReducer(state, action) {
         combinedBplotData: action.payload.combinedData,
         combinedBplotProcessed: action.payload.combinedProcessed,
         fileBoundaries: action.payload.fileBoundaries || [],
+        bplotMergeMode: action.payload.mergeMode || 'sequential',
+        bplotCorrelation: action.payload.correlation || null,
         bplotData: action.payload.combinedData,
         bplotProcessed: action.payload.combinedProcessed,
         // Combined
@@ -2055,7 +2151,7 @@ const PlotAnalyzer = () => {
     fileType, ecmInfo, histograms, faults, stats, analysis, summaryStats,
     processedHistograms, selectedHistogram, fileName, parsed,
     bplotData, bplotProcessed,
-    bplotFiles, combinedBplotData, combinedBplotProcessed, fileBoundaries,
+    bplotFiles, combinedBplotData, combinedBplotProcessed, fileBoundaries, bplotMergeMode, bplotCorrelation,
     ecmFaultsForOverlay,
     // Multi-ECM state
     ecmFiles, hasPrimaryEcm, hasSecondaryEcm, combinedEcmHistograms,
@@ -2212,14 +2308,16 @@ const PlotAnalyzer = () => {
         ...file,
         processed: processBPlotData(file.data, activeThresholdProfile, baselineOptions)
       }));
-      const combined = combineTimelineData(updatedFiles);
+      const combined = combineTimelineData(updatedFiles, { mode: 'auto' });
       dispatch({
         type: 'BPLOT_FILES_REPROCESSED',
         payload: {
           files: updatedFiles,
           combinedData: combined.data,
           combinedProcessed: combined.processed,
-          fileBoundaries: combined.fileBoundaries
+          fileBoundaries: combined.fileBoundaries,
+          mergeMode: combined.mode,
+          correlation: combined.correlation
         }
       });
       return;
@@ -2645,35 +2743,29 @@ const PlotAnalyzer = () => {
       }
 
       // Dispatch based on what was loaded
-      const hasBpltFiles = bplotFilesData.length > 0;
-      const hasEcmFiles = ecmFilesData.length > 0;
-      const hasMultipleEcmFiles = ecmFilesData.length > 1;
-      const hasMultipleBplotFiles = bplotFilesData.length > 1;
+      const bplotFilesWithRoles = assignRolesForDualFiles(bplotFilesData);
+      const ecmFilesWithRoles = assignRolesForDualFiles(ecmFilesData);
+      const hasBpltFiles = bplotFilesWithRoles.length > 0;
+      const hasEcmFiles = ecmFilesWithRoles.length > 0;
+      const needsEcmRoleSelection = requiresRoleSelection(ecmFilesWithRoles);
+      const needsBplotRoleSelection = requiresRoleSelection(bplotFilesWithRoles);
 
       // Debug logging
-      console.log(`[Multi-file upload] ECM files: ${ecmFilesData.length}, BPLOT files: ${bplotFilesData.length}`);
-      if (ecmFilesData.length > 0) {
-        console.log('[Multi-file upload] ECM file names:', ecmFilesData.map(f => f.fileName));
+      console.log(`[Multi-file upload] ECM files: ${ecmFilesWithRoles.length}, BPLOT files: ${bplotFilesWithRoles.length}`);
+      if (ecmFilesWithRoles.length > 0) {
+        console.log('[Multi-file upload] ECM file names:', ecmFilesWithRoles.map(f => f.fileName));
       }
 
       // Check if we need role selection (2+ files of same type)
-      if (hasMultipleEcmFiles || hasMultipleBplotFiles) {
+      if (needsEcmRoleSelection || needsBplotRoleSelection) {
         console.log('[Multi-file upload] Showing role selection modal');
-
-        // Assign default roles (first = primary, rest = secondary)
-        ecmFilesData.forEach((f, idx) => {
-          f.role = idx === 0 ? 'primary' : 'secondary';
-        });
-        bplotFilesData.forEach((f, idx) => {
-          f.role = idx === 0 ? 'primary' : 'secondary';
-        });
 
         // Store pending files and show role selection modal
         const pendingFiles = {
-          ecmFiles: ecmFilesData,
-          bplotFiles: bplotFilesData,
-          needsEcmRoleSelection: hasMultipleEcmFiles,
-          needsBplotRoleSelection: hasMultipleBplotFiles
+          ecmFiles: ecmFilesWithRoles,
+          bplotFiles: bplotFilesWithRoles,
+          needsEcmRoleSelection,
+          needsBplotRoleSelection
         };
 
         dispatch({
@@ -2687,40 +2779,44 @@ const PlotAnalyzer = () => {
 
       if (hasBpltFiles && hasEcmFiles) {
         // BOTH files loaded - use single combined action
-        const combined = combineTimelineData(bplotFilesData);
+        const combined = combineTimelineData(bplotFilesWithRoles, { mode: 'auto' });
         dispatch({
           type: 'BOTH_FILES_LOADED',
           payload: {
-            ecmData: ecmFilesData.length === 1 ? ecmFilesData[0] : ecmFilesData,
-            bplotFiles: bplotFilesData,
+            ecmData: ecmFilesWithRoles.length === 1 ? ecmFilesWithRoles[0] : ecmFilesWithRoles,
+            bplotFiles: bplotFilesWithRoles,
             combinedData: combined.data,
             combinedProcessed: combined.processed,
-            fileBoundaries: combined.fileBoundaries
+            fileBoundaries: combined.fileBoundaries,
+            mergeMode: combined.mode,
+            correlation: combined.correlation
           }
         });
       } else if (hasBpltFiles) {
         // Only BPLT files
-        const combined = combineTimelineData(bplotFilesData);
+        const combined = combineTimelineData(bplotFilesWithRoles, { mode: 'auto' });
         dispatch({
           type: 'BPLOT_FILES_LOADED',
           payload: {
-            files: bplotFilesData,
+            files: bplotFilesWithRoles,
             combinedData: combined.data,
             combinedProcessed: combined.processed,
-            fileBoundaries: combined.fileBoundaries
+            fileBoundaries: combined.fileBoundaries,
+            mergeMode: combined.mode,
+            correlation: combined.correlation
           }
         });
       } else if (hasEcmFiles) {
         // Only ECM file(s)
-        if (ecmFilesData.length === 1) {
+        if (ecmFilesWithRoles.length === 1) {
           dispatch({
             type: 'ECM_FILE_LOADED',
-            payload: ecmFilesData[0]
+            payload: ecmFilesWithRoles[0]
           });
         } else {
           dispatch({
             type: 'ECM_FILES_LOADED',
-            payload: { files: ecmFilesData }
+            payload: { files: ecmFilesWithRoles }
           });
         }
       } else if (files.length === 1) {
@@ -2803,7 +2899,7 @@ const PlotAnalyzer = () => {
 
     if (hasBplotFiles && hasEcmFiles) {
       // BOTH files loaded
-      const combined = combineTimelineData(updatedBplotFiles);
+      const combined = combineTimelineData(updatedBplotFiles, { mode: 'auto' });
       dispatch({
         type: 'BOTH_FILES_LOADED',
         payload: {
@@ -2811,18 +2907,22 @@ const PlotAnalyzer = () => {
           bplotFiles: updatedBplotFiles,
           combinedData: combined.data,
           combinedProcessed: combined.processed,
-          fileBoundaries: combined.fileBoundaries
+          fileBoundaries: combined.fileBoundaries,
+          mergeMode: combined.mode,
+          correlation: combined.correlation
         }
       });
     } else if (hasBplotFiles) {
-      const combined = combineTimelineData(updatedBplotFiles);
+      const combined = combineTimelineData(updatedBplotFiles, { mode: 'auto' });
       dispatch({
         type: 'BPLOT_FILES_LOADED',
         payload: {
           files: updatedBplotFiles,
           combinedData: combined.data,
           combinedProcessed: combined.processed,
-          fileBoundaries: combined.fileBoundaries
+          fileBoundaries: combined.fileBoundaries,
+          mergeMode: combined.mode,
+          correlation: combined.correlation
         }
       });
     } else if (hasEcmFiles) {
@@ -3047,7 +3147,7 @@ const PlotAnalyzer = () => {
               </div>
               <div>
                 <h1 className="font-black text-lg tracking-wider leading-none text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>PLOT ANALYZER</h1>
-                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V1.4.5</p>
+                <p className="text-[10px] tracking-widest text-[#00FF88] mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>DATA ANALYSIS V{GUI_REVISION}</p>
               </div>
             </div>
             <button
@@ -3109,11 +3209,11 @@ const PlotAnalyzer = () => {
                     </h2>
                     <div className="space-y-2">
                       <p className="text-xl font-medium text-slate-100">
-                        Drop your ECM CSV or B-Plot files to analyze
+                        Upload dual-ECM files or drop mixed ECM/B-Plot files to analyze
                       </p>
                       <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
                         Supports: ECM download CSV, .bplt, BPLT CSV files<br />
-                        Upload .bplt + ECM Download for unified multi-tab view<br />
+                        Dual ECM V-Engine: Primary Plot + Primary ECM + Secondary Plot + Secondary ECM<br />
                         Max file size: {MAX_FILE_SIZE_MB} MB per file
                       </p>
                     </div>
@@ -3185,6 +3285,8 @@ const PlotAnalyzer = () => {
           ecmFaults={ecmFaultsForOverlay}
           fileBoundaries={fileBoundaries}
           bplotFiles={bplotFiles}
+          bplotMergeMode={bplotMergeMode}
+          bplotCorrelation={bplotCorrelation}
           onAddEcmFile={handleAddEcmFile}
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
@@ -3222,14 +3324,19 @@ const PlotAnalyzer = () => {
         <AppHeader
           hasEcm={hasEcm}
           hasBplt={hasBplt}
+          hasPrimaryEcm={hasPrimaryEcm}
+          hasSecondaryEcm={hasSecondaryEcm}
           ecmFileName={ecmFileName}
           bpltFileName={bpltFileName}
+          ecmFiles={ecmFiles}
+          bplotFiles={bplotFiles}
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onImport={reset}
           onExport={exportToPDF}
           onReportIssue={() => setShowReportIssue(true)}
           eventCount={bplotProcessed?.events?.length || 0}
+          faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : faults?.length || 0}
           activeProfileName={activeThresholdProfile?.name}
           activeProfileId={activeThresholdProfile?.profileId}
           userFields={userFields}
@@ -3249,6 +3356,8 @@ const PlotAnalyzer = () => {
           ecmFaults={ecmFaultsForOverlay}
           fileBoundaries={fileBoundaries}
           bplotFiles={bplotFiles}
+          bplotMergeMode={bplotMergeMode}
+          bplotCorrelation={bplotCorrelation}
           onAddEcmFile={null}
           externalActiveTab={mappedTab}
           hideHeader={true}
@@ -3266,14 +3375,19 @@ const PlotAnalyzer = () => {
       <AppHeader
         hasEcm={hasEcm}
         hasBplt={hasBplt}
+        hasPrimaryEcm={hasPrimaryEcm}
+        hasSecondaryEcm={hasSecondaryEcm}
         ecmFileName={ecmFileName || fileName}
         bpltFileName={bpltFileName}
+        ecmFiles={ecmFiles}
+        bplotFiles={bplotFiles}
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onImport={reset}
         onExport={exportToPDF}
         onReportIssue={() => setShowReportIssue(true)}
-        eventCount={faults?.length || 0}
+        eventCount={bplotProcessed?.events?.length || 0}
+        faultCount={hasPrimaryEcm && hasSecondaryEcm ? combinedEcmFaults.length : faults?.length || 0}
         activeProfileName={activeThresholdProfile?.name}
         activeProfileId={activeThresholdProfile?.profileId}
         userFields={userFields}
@@ -3477,10 +3591,10 @@ const PlotAnalyzer = () => {
         {/* ==================== ECM COMPARE ==================== */}
         {activeTab === 'ecm-compare' && hasPrimaryEcm && hasSecondaryEcm && (
           <EcmComparison
-            primaryEcm={ecmFiles?.find(f => f.role === 'primary')}
-            secondaryEcm={ecmFiles?.find(f => f.role === 'secondary')}
-            comparisonStats={ecmComparisonStats}
-            combinedHistograms={combinedEcmHistograms}
+            ecmFiles={ecmFiles}
+            combinedEcmHistograms={combinedEcmHistograms}
+            combinedEcmFaults={combinedEcmFaults}
+            ecmComparisonStats={ecmComparisonStats}
           />
         )}
 
@@ -3498,10 +3612,10 @@ const PlotAnalyzer = () => {
         {/* ==================== COMBINED FAULTS (ECM + BPLOT) ==================== */}
         {activeTab === 'combined-faults' && hasPrimaryEcm && hasSecondaryEcm && hasBplt && (
           <CombinedFaultView
-            ecmFaults={combinedEcmFaults}
-            bplotEvents={bplotProcessed?.events || []}
-            primaryEcm={ecmFiles?.find(f => f.role === 'primary')}
-            secondaryEcm={ecmFiles?.find(f => f.role === 'secondary')}
+            combinedFaults={combinedEcmFaults}
+            ecmComparisonStats={ecmComparisonStats}
+            primaryEngineHours={ecmComparisonStats?.engineHours?.primary}
+            secondaryEngineHours={ecmComparisonStats?.engineHours?.secondary}
           />
         )}
 

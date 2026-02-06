@@ -11,20 +11,153 @@ export function generateFileId() {
   return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+const HOUR_COLUMN_CANDIDATES = [
+  'Hour meter',
+  'Hour Meter',
+  'HourMeter',
+  'Engine Hours',
+  'HM_RAM_seconds',
+  'hm_ram_seconds',
+  'HM_RAM',
+  'hm_ram',
+  'hm_hours',
+  'HM_Hours'
+];
+
+const toFiniteNumber = (value) => {
+  const numeric = typeof value === 'number' ? value : parseFloat(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const getFileDuration = (file) => {
+  const duration = file?.processed?.timeInfo?.duration;
+  return Number.isFinite(duration) ? duration : 0;
+};
+
+const findHourColumn = (rows) => {
+  if (!rows || rows.length === 0) return null;
+  const firstRowKeys = Object.keys(rows[0] || {});
+  for (const candidate of HOUR_COLUMN_CANDIDATES) {
+    const matchedKey = firstRowKeys.find((key) => key.toLowerCase() === candidate.toLowerCase());
+    if (matchedKey) return matchedKey;
+  }
+  return null;
+};
+
+const normalizeHourValue = (column, value) => {
+  const numeric = toFiniteNumber(value);
+  if (numeric === null) return null;
+  if (column?.toLowerCase().includes('seconds')) {
+    return numeric / 3600;
+  }
+  return numeric;
+};
+
+const extractHourWindow = (file) => {
+  const rows = file?.data?.data;
+  if (!rows || rows.length === 0) return null;
+
+  const hourColumn = findHourColumn(rows);
+  if (!hourColumn) return null;
+
+  let start = Infinity;
+  let end = -Infinity;
+  for (const row of rows) {
+    const normalized = normalizeHourValue(hourColumn, row?.[hourColumn]);
+    if (normalized === null) continue;
+    if (normalized < start) start = normalized;
+    if (normalized > end) end = normalized;
+  }
+
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return {
+    column: hourColumn,
+    start,
+    end,
+    duration: Math.max(0, end - start)
+  };
+};
+
+const summarizeDualCorrelation = (files) => {
+  const primary = files.find((file) => file.role === 'primary') || files[0] || null;
+  const secondary = files.find((file) => file.role === 'secondary') || files.find((file) => file.id !== primary?.id) || null;
+
+  if (!primary || !secondary) {
+    return {
+      mode: 'sequential',
+      overlapRatio: null,
+      durationSimilarity: null,
+      reason: 'missing_primary_or_secondary'
+    };
+  }
+
+  const primaryDuration = getFileDuration(primary);
+  const secondaryDuration = getFileDuration(secondary);
+  const maxDuration = Math.max(primaryDuration, secondaryDuration);
+  const minDuration = Math.min(primaryDuration, secondaryDuration);
+  const durationSimilarity = maxDuration > 0 ? minDuration / maxDuration : null;
+
+  const primaryHours = extractHourWindow(primary);
+  const secondaryHours = extractHourWindow(secondary);
+
+  let hourOverlapWindow = null;
+  let hourOverlapRatio = null;
+  if (primaryHours && secondaryHours) {
+    const overlapStart = Math.max(primaryHours.start, secondaryHours.start);
+    const overlapEnd = Math.min(primaryHours.end, secondaryHours.end);
+    const overlapDuration = Math.max(0, overlapEnd - overlapStart);
+    const referenceDuration = Math.max(0, Math.min(primaryHours.duration, secondaryHours.duration));
+    hourOverlapRatio = referenceDuration > 0 ? overlapDuration / referenceDuration : null;
+    hourOverlapWindow = overlapDuration > 0 ? {
+      start: overlapStart,
+      end: overlapEnd,
+      duration: overlapDuration
+    } : null;
+  }
+
+  const overlapRatio = hourOverlapRatio ?? durationSimilarity ?? 0;
+  const correlated = overlapRatio >= 0.8;
+
+  return {
+    mode: correlated ? 'correlated' : 'sequential',
+    overlapRatio,
+    durationSimilarity,
+    reason: correlated ? 'aligned_dual_capture' : 'insufficient_overlap',
+    primary: {
+      fileId: primary.id,
+      fileName: primary.fileName,
+      duration: primaryDuration,
+      hourWindow: primaryHours
+    },
+    secondary: {
+      fileId: secondary.id,
+      fileName: secondary.fileName,
+      duration: secondaryDuration,
+      hourWindow: secondaryHours
+    },
+    overlapWindow: hourOverlapWindow
+  };
+};
+
 /**
  * Combine multiple B-Plot files into a unified timeline
  * Files are placed sequentially with time offsets
  *
- * @param {Array} files - Array of { id, fileName, data, processed }
+ * @param {Array} files - Array of { id, fileName, role, data, processed }
+ * @param {Object} options
+ * @param {'auto'|'sequential'|'correlated'} options.mode
  * @returns {Object} Combined data with file source markers
  */
-export function combineTimelineData(files) {
+export function combineTimelineData(files, options = {}) {
+  const mode = options.mode || 'auto';
   if (!files || files.length === 0) {
     return {
       data: null,
       processed: null,
       fileBoundaries: [],
-      totalDuration: 0
+      totalDuration: 0,
+      mode: 'sequential',
+      correlation: null
     };
   }
 
@@ -41,7 +174,62 @@ export function combineTimelineData(files) {
         startTime: 0,
         endTime: duration
       }],
-      totalDuration: duration
+      totalDuration: duration,
+      mode: 'single',
+      correlation: {
+        mode: 'single',
+        primary: {
+          fileId: file.id,
+          fileName: file.fileName,
+          duration
+        }
+      }
+    };
+  }
+
+  const correlation = summarizeDualCorrelation(files);
+  const hasRolePair = Boolean(correlation?.primary && correlation?.secondary);
+  const shouldUseCorrelatedMode = (
+    (mode === 'correlated' && hasRolePair) ||
+    (mode === 'auto' && correlation.mode === 'correlated')
+  );
+
+  if (shouldUseCorrelatedMode) {
+    const primary = files.find((file) => file.role === 'primary') || files[0];
+    const secondary = files.find((file) => file.role === 'secondary') || files.find((file) => file.id !== primary.id);
+    const primaryDuration = getFileDuration(primary);
+    const secondaryDuration = getFileDuration(secondary);
+    const fileBoundaries = [
+      {
+        fileId: primary.id,
+        fileName: primary.fileName,
+        role: 'primary',
+        startTime: 0,
+        endTime: primaryDuration,
+        correlated: true
+      },
+      {
+        fileId: secondary.id,
+        fileName: secondary.fileName,
+        role: 'secondary',
+        startTime: 0,
+        endTime: secondaryDuration,
+        correlated: true
+      }
+    ];
+
+    // Correlated mode keeps plot channels unmerged and uses Primary as canonical chart data.
+    // Secondary remains available for role-aware context and comparison.
+    return {
+      data: primary.data,
+      processed: primary.processed,
+      fileBoundaries,
+      totalDuration: Math.max(primaryDuration, secondaryDuration),
+      mode: 'correlated',
+      correlation: {
+        ...correlation,
+        mode: 'correlated'
+      }
     };
   }
 
@@ -151,7 +339,9 @@ export function combineTimelineData(files) {
     data: combinedData,
     processed: combinedProcessed,
     fileBoundaries,
-    totalDuration: cumulativeOffset
+    totalDuration: cumulativeOffset,
+    mode: 'sequential',
+    correlation
   };
 }
 

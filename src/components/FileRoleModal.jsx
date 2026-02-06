@@ -104,7 +104,7 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
               SELECT FILE ROLES
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              Designate which files are Primary and Secondary for dual-ECM analysis
+              For dual ECM engines, map files as Primary Plot + Primary ECM and Secondary Plot + Secondary ECM
             </p>
           </div>
           <button
@@ -170,6 +170,7 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
                 <ul className="list-disc list-inside space-y-1 text-slate-400">
                   <li><span className="text-blue-400">Primary</span> - Main ECM data used for overview displays</li>
                   <li><span className="text-slate-300">Secondary</span> - Comparison data shown in ECM Compare view</li>
+                  <li>Dual-plot V-engine upload: Primary B-Plot + Primary ECM, Secondary B-Plot + Secondary ECM</li>
                   <li>Faults from both ECMs are combined with source attribution</li>
                   <li>Histogram differences help identify ECM-specific issues</li>
                 </ul>

@@ -6,6 +6,8 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
+const GUI_REVISION_LABEL = 'config v3.1 app v2.6.7';
+
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
   // ECM only: Overview - Charts - Fault Timeline
@@ -42,9 +44,11 @@ const TAB_CONFIGS = {
   fullSystem: [
     { id: 'overview-ecm', label: 'Overview', source: 'ECM' },
     { id: 'ecm-compare', label: 'ECM Compare', source: null },
+    { id: 'charts-ecm', label: 'Charts', source: 'ECM' },
+    { id: 'ecm-faults', label: 'Fault Timeline', source: 'ECM' },
     { id: 'overview-bplt', label: 'Overview', source: 'BPLT' },
     { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
-    { id: 'combined-faults', label: 'Faults', source: null },
+    { id: 'combined-faults', label: 'Correlated Faults', source: null },
     { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
     { id: 'events-bplt', label: 'Events', source: 'BPLT' }
   ]
@@ -221,34 +225,25 @@ const AppHeader = ({
 
   // Determine which tab configuration to use
   const getTabConfig = () => {
-    console.log('[AppHeader] hasMultiEcm:', hasMultiEcm, 'hasBplt:', hasBplt, 'hasEcm:', hasEcm);
-    console.log('[AppHeader] hasPrimaryEcm:', hasPrimaryEcm, 'hasSecondaryEcm:', hasSecondaryEcm);
     if (hasMultiEcm && hasBplt) {
-      console.log('[AppHeader] Using fullSystem tab config');
       return TAB_CONFIGS.fullSystem;
     }
     if (hasMultiEcm) {
-      console.log('[AppHeader] Using multiEcm tab config');
       return TAB_CONFIGS.multiEcm;
     }
     if (hasEcm && hasBplt) {
-      console.log('[AppHeader] Using both tab config');
       return TAB_CONFIGS.both;
     }
     if (hasEcm) {
-      console.log('[AppHeader] Using ecmOnly tab config');
       return TAB_CONFIGS.ecmOnly;
     }
     if (hasBplt) {
-      console.log('[AppHeader] Using bpltOnly tab config');
       return TAB_CONFIGS.bpltOnly;
     }
-    console.log('[AppHeader] No tabs (no files loaded)');
     return [];
   };
 
   const tabs = getTabConfig();
-  console.log('[AppHeader] Tabs to display:', tabs.map(t => t.id));
 
   const resolvedUserFields = userFields || { engineSn: '', caseFile: '', ref: '' };
   const resolvedDraft = userFieldsDraft || resolvedUserFields;
@@ -292,7 +287,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                config v3.1 app v2.6.6
+                {GUI_REVISION_LABEL}
               </span>
             </div>
           </button>
