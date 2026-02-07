@@ -47,24 +47,29 @@ const DifferenceHeatmap = ({
   // Green = Primary higher, Red = Secondary higher
   const getCellColor = (value) => {
     if (value === 0 || maxAbsDiff === 0) {
-      return 'bg-slate-800';
+      return 'rgba(51, 65, 85, 0.45)';
     }
 
     const intensity = Math.min(Math.abs(value) / maxAbsDiff, 1);
-    const alpha = 0.2 + (intensity * 0.6);
+    const alpha = 0.18 + (intensity * 0.45);
 
     if (value > 0) {
       // Primary higher - blue tint
-      return `rgba(59, 130, 246, ${alpha})`; // blue-500
+      return `rgba(37, 99, 235, ${alpha})`; // blue-600
     } else {
       // Secondary higher - orange tint
-      return `rgba(249, 115, 22, ${alpha})`; // orange-500
+      return `rgba(194, 65, 12, ${alpha})`; // orange-700
     }
   };
 
   const getCellTextColor = (value) => {
-    if (value === 0) return 'text-slate-500';
-    return value > 0 ? 'text-blue-400' : 'text-orange-400';
+    if (value === 0) return 'text-slate-200';
+    return 'text-white';
+  };
+
+  const getTotalTextColor = (value) => {
+    if (value === 0) return 'text-slate-300';
+    return value > 0 ? 'text-blue-200' : 'text-orange-200';
   };
 
   // Calculate summary stats
@@ -145,20 +150,20 @@ const DifferenceHeatmap = ({
                     <td
                       key={xIdx}
                       className={`p-2 rounded border border-white/5 text-center transition-all hover:border-green-500/50`}
-                      style={{ backgroundColor: typeof bgColor === 'string' && bgColor.startsWith('rgba') ? bgColor : undefined }}
+                      style={{ backgroundColor: bgColor }}
                       title={`RPM: ${yLabel}, MAP: ${xLabels[xIdx]}\nDifference: ${formatNumber(value, tooltipDecimals)} ${unitLabel}\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
                     >
                       {value !== 0 ? (
-                        <div className={`text-[11px] font-mono font-bold ${textColor}`}>
+                        <div className={`text-[11px] font-mono font-bold ${textColor} drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]`}>
                           {value > 0 ? '+' : ''}{formatNumber(value, isEventUnits ? 0 : (Math.abs(value) < 0.01 ? 4 : 2))}
                         </div>
                       ) : (
-                        <div className="text-[11px] text-slate-600">0</div>
+                        <div className="text-[11px] text-slate-300 font-mono">0</div>
                       )}
                     </td>
                   );
                 })}
-                <td className={`p-2 text-center text-xs font-bold font-mono border-l border-slate-700/50 ${getCellTextColor(rowTotals[yIdx])}`}>
+                <td className={`p-2 text-center text-xs font-bold font-mono border-l border-slate-700/50 ${getTotalTextColor(rowTotals[yIdx])}`}>
                   {rowTotals[yIdx] !== 0 && (rowTotals[yIdx] > 0 ? '+' : '')}{formatNumber(rowTotals[yIdx], 2)}
                 </td>
               </tr>
@@ -170,7 +175,7 @@ const DifferenceHeatmap = ({
                 Col Sum
               </td>
               {colTotals.map((total, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs font-bold font-mono border-t border-slate-700/50 ${getCellTextColor(total)}`}>
+                <td key={idx} className={`p-2 text-center text-xs font-bold font-mono border-t border-slate-700/50 ${getTotalTextColor(total)}`}>
                   {total !== 0 && (total > 0 ? '+' : '')}{formatNumber(total, valueDecimals)}
                 </td>
               ))}
@@ -193,7 +198,7 @@ const DifferenceHeatmap = ({
             Max Negative: <span className="text-orange-400 font-mono">{formatNumber(differenceData.minDiff, tooltipDecimals)} {unitLabel}</span>
           </span>
           <span>
-            Total Diff: <span className={`font-mono ${getCellTextColor(rowTotals.reduce((sum, val) => sum + val, 0))}`}>
+            Total Diff: <span className={`font-mono ${getTotalTextColor(rowTotals.reduce((sum, val) => sum + val, 0))}`}>
               {formatNumber(rowTotals.reduce((sum, val) => sum + val, 0), valueDecimals)} {unitLabel}
             </span>
           </span>

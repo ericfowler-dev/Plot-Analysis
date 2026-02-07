@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Filter, Search } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, LabelList } from 'recharts';
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, LabelList } from 'recharts';
 
 // =============================================================================
 // COMBINED FAULT VIEW COMPONENT
@@ -21,24 +21,19 @@ const parseHours = (value) => {
   return Number.isFinite(numeric) ? numeric : null;
 };
 
-const toTimelineLabel = (fault) => {
-  const code = fault?.code ? `DTC ${fault.code}` : 'DTC';
-  const description = String(fault?.description || 'Unknown fault')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const full = `${code} ${description}`.trim();
-  if (full.length <= 56) return full;
-  return `${full.slice(0, 55)}...`;
-};
+const toTimelineLabel = (fault) => (fault?.code ? `DTC ${fault.code}` : 'DTC');
 
 const TimelineLabel = ({ x, y, value, payload }) => {
   if (typeof x !== 'number' || typeof y !== 'number' || !value) return null;
+  const rank = Number.isFinite(payload?.labelRank) ? payload.labelRank : 0;
+  const verticalOffset = ((rank % 3) - 1) * 11;
   return (
     <text
       x={x + 8}
-      y={y + 4}
+      y={y + 4 + verticalOffset}
       fill={payload?.sourceRole === 'primary' ? '#bfdbfe' : '#fed7aa'}
-      fontSize={10}
+      fontSize={9}
+      fontWeight={600}
       style={{ pointerEvents: 'none' }}
     >
       {value}
@@ -357,21 +352,31 @@ const CombinedFaultView = ({
     const minHour = Math.min(...basePoints.map((point) => point.hour));
     const maxHour = Math.max(...basePoints.map((point) => point.hour));
     const hourRange = Math.max(0.01, maxHour - minHour);
-    const minLabelGap = Math.max(0.35, hourRange / 18);
+    const minLabelGap = Math.max(0.9, hourRange / 10);
+    const maxLabelsPerLane = 10;
     const lastLabeledHourByLane = new Map();
+    const laneLabelCount = new Map();
 
     return basePoints.map((point) => {
       const lastLabeledHour = lastLabeledHourByLane.get(point.lane);
+      const currentLaneCount = laneLabelCount.get(point.lane) || 0;
+      const laneHasCapacity = currentLaneCount < maxLabelsPerLane;
       const forceLabel = point.filteredIndex === selectedFaultIndex;
-      const shouldLabel = forceLabel || lastLabeledHour === undefined || Math.abs(point.hour - lastLabeledHour) >= minLabelGap;
+      const shouldLabel = forceLabel || (
+        laneHasCapacity && (
+          lastLabeledHour === undefined || Math.abs(point.hour - lastLabeledHour) >= minLabelGap
+        )
+      );
 
       if (shouldLabel) {
         lastLabeledHourByLane.set(point.lane, point.hour);
+        laneLabelCount.set(point.lane, currentLaneCount + 1);
       }
 
       return {
         ...point,
-        timelineLabel: shouldLabel ? point.timelineLabel : ''
+        timelineLabel: shouldLabel ? point.timelineLabel : '',
+        labelRank: shouldLabel ? currentLaneCount : undefined
       };
     });
   }, [filteredFaults, selectedFaultIndex]);
@@ -531,15 +536,6 @@ const CombinedFaultView = ({
                   tickFormatter={(value) => (value === 1 ? 'Primary' : 'Secondary')}
                 />
                 <Tooltip content={<FaultTimelineTooltip />} />
-
-                {timelinePoints.slice(0, 120).map((point, idx) => (
-                  <ReferenceLine
-                    key={`fault-line-${point.code}-${idx}`}
-                    x={point.hour}
-                    stroke={point.sourceRole === 'primary' ? 'rgba(96,165,250,0.25)' : 'rgba(251,146,60,0.25)'}
-                    strokeWidth={1}
-                  />
-                ))}
 
                 <Scatter
                   name="Primary ECM"
