@@ -33,14 +33,6 @@ const normalizeColor = (value, fallback = '#38bdf8') => (
   isValidHexColor(value) ? value.toLowerCase() : fallback
 );
 
-const parseOverlaySeriesKey = (seriesKey = '') => {
-  const match = seriesKey.match(/^(.*)__(primary|secondary)$/);
-  if (!match) {
-    return { channel: seriesKey, role: null };
-  }
-  return { channel: match[1], role: match[2] };
-};
-
 const getSeriesColorKey = (channel, role = null) => (
   role ? `${channel}__${role}` : channel
 );
@@ -221,6 +213,15 @@ const safeToFixed = (value, decimals, fallback = '-') => {
   return value.toFixed(decimals);
 };
 
+const parseTooltipNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = parseFloat(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
 const ChartValueTooltip = ({
   active,
   label,
@@ -238,7 +239,7 @@ const ChartValueTooltip = ({
 
   const rows = chartSeries.map((series) => {
     const fromPayload = payloadByKey.get(series.key)?.value;
-    let numericValue = typeof fromPayload === 'number' && Number.isFinite(fromPayload) ? fromPayload : null;
+    let numericValue = parseTooltipNumber(fromPayload);
     let isApproximate = false;
 
     if (numericValue === null && hasNumericTime) {
@@ -249,7 +250,8 @@ const ChartValueTooltip = ({
       }
     }
 
-    const { channel: channelName, role } = parseOverlaySeriesKey(series.key);
+    const channelName = series.channel || series.key;
+    const role = series.role || null;
     const param = BPLOT_PARAMETERS[channelName];
     const decimals = getDecimalPlaces(channelName);
     const isCategorical = Boolean(VALUE_MAPPINGS[channelName]) || channelName === 'sync_state';
@@ -432,7 +434,6 @@ const BPlotAnalysis = ({
   const [overlayCorrelatedPlots, setOverlayCorrelatedPlots] = useState(false);
   const [showColorControls, setShowColorControls] = useState(false);
   const [channelColorOverrides, setChannelColorOverrides] = useState({});
-  const [channelColorDrafts, setChannelColorDrafts] = useState({});
 
   const primaryBplotFile = useMemo(
     () => bplotFiles.find((file) => file.role === 'primary'),
@@ -731,50 +732,15 @@ const BPlotAnalysis = ({
     }));
   }, [selectedChannels, shouldOverlayCorrelatedPlots]);
 
-  useEffect(() => {
-    if (!showColorControls) return;
-    setChannelColorDrafts((prev) => {
-      const next = { ...prev };
-      colorControlEntries.forEach((entry) => {
-        const committed = normalizeColor(
-          channelColorOverrides[entry.key] || entry.fallback,
-          entry.fallback
-        );
-        if (!next[entry.key]) {
-          next[entry.key] = committed;
-        }
-      });
-      Object.keys(next).forEach((colorKey) => {
-        if (!colorControlEntries.some((entry) => entry.key === colorKey)) {
-          delete next[colorKey];
-        }
-      });
-      return next;
-    });
-  }, [showColorControls, colorControlEntries, channelColorOverrides]);
-
-  const hasDraftColorChanges = useMemo(() => {
-    return colorControlEntries.some((entry) => {
-      const committed = normalizeColor(
-        channelColorOverrides[entry.key] || entry.fallback,
-        entry.fallback
-      );
-      const draft = normalizeColor(channelColorDrafts[entry.key] || committed, committed);
-      return draft !== committed;
-    });
-  }, [colorControlEntries, channelColorOverrides, channelColorDrafts]);
-
-  const applyDraftColors = () => {
+  const updateSeriesColor = (entry, nextColor) => {
+    const normalized = normalizeColor(nextColor, entry.fallback);
     setChannelColorOverrides((prev) => {
       const next = { ...prev };
-      colorControlEntries.forEach((entry) => {
-        const draft = normalizeColor(channelColorDrafts[entry.key], entry.fallback);
-        if (draft === entry.fallback) {
-          delete next[entry.key];
-        } else {
-          next[entry.key] = draft;
-        }
-      });
+      if (normalized === entry.fallback) {
+        delete next[entry.key];
+      } else {
+        next[entry.key] = normalized;
+      }
       return next;
     });
   };
@@ -1417,25 +1383,10 @@ const BPlotAnalysis = ({
                     >
                       {showColorControls ? 'Hide Colors' : 'Colors'}
                     </button>
-                    {showColorControls && (
-                      <button
-                        onClick={applyDraftColors}
-                        disabled={!hasDraftColorChanges}
-                        className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
-                          hasDraftColorChanges
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:text-white'
-                            : 'bg-slate-800/60 border-slate-700 text-slate-500'
-                        }`}
-                        style={{ fontFamily: 'Orbitron, sans-serif' }}
-                      >
-                        Apply Colors
-                      </button>
-                    )}
                     {Object.keys(channelColorOverrides).length > 0 && (
                       <button
                         onClick={() => {
                           setChannelColorOverrides({});
-                          setChannelColorDrafts({});
                         }}
                         className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white"
                         style={{ fontFamily: 'Orbitron, sans-serif' }}
@@ -1448,24 +1399,20 @@ const BPlotAnalysis = ({
                 {showColorControls && colorControlEntries.length > 0 && (
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                     {colorControlEntries.map((entry) => {
-                      const draftColor = normalizeColor(
-                        channelColorDrafts[entry.key] || channelColorOverrides[entry.key] || entry.fallback,
+                      const selectedColor = normalizeColor(
+                        channelColorOverrides[entry.key] || entry.fallback,
                         entry.fallback
                       );
-                      const canResetDraft = draftColor !== entry.fallback;
+                      const canResetColor = selectedColor !== entry.fallback;
                       return (
                         <div key={`color-${entry.key}`} className="flex items-center justify-between gap-3 rounded border border-slate-700/60 bg-slate-800/30 px-2.5 py-1.5">
                           <span className="text-[11px] text-slate-200 truncate" title={entry.label}>{entry.label}</span>
                           <div className="flex items-center gap-2">
                             <input
                               type="color"
-                              value={draftColor}
+                              value={selectedColor}
                               onChange={(e) => {
-                                const nextColor = normalizeColor(e.target.value, draftColor);
-                                setChannelColorDrafts((prev) => ({
-                                  ...prev,
-                                  [entry.key]: nextColor
-                                }));
+                                updateSeriesColor(entry, e.target.value);
                               }}
                               className="h-6 w-10 border border-slate-600 rounded bg-transparent cursor-pointer"
                               title={`Set ${entry.label} color`}
@@ -1473,11 +1420,11 @@ const BPlotAnalysis = ({
                             <button
                               type="button"
                               onClick={() => {
-                                setChannelColorDrafts((prev) => ({ ...prev, [entry.key]: entry.fallback }));
+                                updateSeriesColor(entry, entry.fallback);
                               }}
-                              disabled={!canResetDraft}
+                              disabled={!canResetColor}
                               className={`text-[10px] uppercase tracking-wide ${
-                                canResetDraft ? 'text-slate-300 hover:text-white' : 'text-slate-600'
+                                canResetColor ? 'text-slate-300 hover:text-white' : 'text-slate-600'
                               }`}
                             >
                               Default

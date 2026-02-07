@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
-const GUI_REVISION_LABEL = 'config v3.1 app v2.6.8';
+const GUI_REVISION_LABEL = 'config v3.1 app v2.6.9';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
@@ -148,7 +148,7 @@ const NavTab = ({ tab, isActive, onClick, eventCount, faultCount }) => {
     <button
       onClick={() => onClick(tab.id)}
       className={`
-        relative flex items-center h-9 px-3 lg:h-10 lg:px-4 transition-all duration-300
+        relative flex-none whitespace-nowrap flex items-center h-9 px-3 lg:h-10 lg:px-4 transition-all duration-300
         ${isActive
           ? 'text-green-400 border-green-500/60 bg-gradient-to-br from-green-500/20 via-green-500/5 to-transparent shadow-[0_0_25px_rgba(57,255,20,0.2),inset_0_0_30px_rgba(57,255,20,0.08)]'
           : 'text-slate-400 border-green-500/20 bg-gradient-to-br from-green-500/8 to-transparent hover:text-white hover:border-green-500/50 hover:bg-gradient-to-br hover:from-green-500/15 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)]'
@@ -255,10 +255,10 @@ const AppHeader = ({
       className="sticky top-0 z-40 bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
-      <div className="max-w-[1920px] mx-auto w-full flex flex-col lg:flex-row items-center justify-between px-6 py-4 gap-4">
+      <div className="max-w-[1920px] mx-auto w-full px-4 sm:px-6 py-4 flex flex-col gap-4">
 
         {/* Left: Branding & Status */}
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex w-full flex-wrap items-center gap-4 min-w-0">
           <button
             type="button"
             onClick={onImport}
@@ -399,73 +399,77 @@ const AppHeader = ({
           )}
         </div>
 
-        {/* Navigation Tabs */}
-        {tabs.length > 0 && (
-          <nav className="flex items-center w-full lg:flex-1 lg:min-w-0 lg:ml-6">
-            <div className="flex items-center gap-1.5 flex-nowrap justify-start overflow-hidden max-w-full">
-              {tabs.map(tab => (
-                <NavTab
-                  key={tab.id}
-                  tab={tab}
-                  isActive={activeTab === tab.id}
-                  onClick={onTabChange}
-                  eventCount={tab.id.includes('events') ? eventCount : 0}
-                  faultCount={tab.id.includes('fault') ? faultCount : 0}
-                />
-              ))}
-            </div>
-          </nav>
-        )}
+        <div className="flex w-full flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          {/* Navigation Tabs */}
+          {tabs.length > 0 && (
+            <nav className="w-full min-w-0 xl:flex-1">
+              <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto max-w-full pb-1 pr-1">
+                {tabs.map(tab => (
+                  <NavTab
+                    key={tab.id}
+                    tab={tab}
+                    isActive={activeTab === tab.id}
+                    onClick={onTabChange}
+                    eventCount={tab.id.includes('events') ? eventCount : 0}
+                    faultCount={tab.id.includes('fault') ? faultCount : 0}
+                  />
+                ))}
+              </div>
+            </nav>
+          )}
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {(hasEcm || hasBplt) && onExport && (
+          {/* Right: Actions */}
+          <div className="flex w-full xl:w-auto items-center gap-2 sm:gap-3 flex-wrap xl:flex-nowrap xl:justify-end">
+            {(hasEcm || hasBplt) && onExport && (
+              <button
+                onClick={onExport}
+                className="flex items-center justify-center gap-2 flex-1 sm:flex-none h-9 px-4 lg:h-10 lg:px-5 text-slate-400 border border-green-500/25 bg-gradient-to-br from-green-500/5 to-transparent hover:text-white hover:border-green-500/60 hover:bg-gradient-to-br hover:from-green-500/12 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)] transition-all duration-300"
+                style={{
+                  clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
+                }}
+              >
+                <Download className="w-4 h-4 text-green-400/70" />
+                <span
+                  className="text-[9px] lg:text-[10px] font-bold uppercase"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Export
+                </span>
+              </button>
+            )}
             <button
-              onClick={onExport}
-              className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-slate-400 border border-green-500/25 bg-gradient-to-br from-green-500/5 to-transparent hover:text-white hover:border-green-500/60 hover:bg-gradient-to-br hover:from-green-500/12 hover:via-green-500/3 hover:to-transparent hover:shadow-[0_0_20px_rgba(57,255,20,0.15)] transition-all duration-300"
+              onClick={onReportIssue}
+              className="flex items-center justify-center gap-2 flex-1 sm:flex-none h-9 px-4 lg:h-10 lg:px-5 text-white border border-red-500 bg-red-600/30 hover:bg-red-600/50 hover:border-red-400 shadow-[0_0_15px_rgba(255,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] transition-all duration-300"
               style={{
                 clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
               }}
             >
-              <Download className="w-4 h-4 text-green-400/70" />
+              <Bug className="w-4 h-4 text-red-300" />
               <span
                 className="text-[9px] lg:text-[10px] font-bold uppercase"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                Export
+                <span className="sm:hidden">Report</span>
+                <span className="hidden sm:inline">Report Issue</span>
               </span>
             </button>
-          )}
-          <button
-            onClick={onReportIssue}
-            className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-white border border-red-500 bg-red-600/30 hover:bg-red-600/50 hover:border-red-400 shadow-[0_0_15px_rgba(255,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] transition-all duration-300"
-            style={{
-              clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
-            }}
-          >
-            <Bug className="w-4 h-4 text-red-300" />
-            <span
-              className="text-[9px] lg:text-[10px] font-bold uppercase"
-              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            <button
+              onClick={onImport}
+              className="flex items-center justify-center gap-2 flex-1 sm:flex-none h-9 px-4 lg:h-10 lg:px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
+              style={{
+                clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
+              }}
             >
-              Report Issue
-            </span>
-          </button>
-          <button
-            onClick={onImport}
-            className="flex items-center gap-2 h-9 px-4 lg:h-10 lg:px-5 text-white border border-green-400/50 bg-green-400/10 hover:bg-green-400/20 hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-all duration-300"
-            style={{
-              clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
-            }}
-          >
-            <Upload className="w-4 h-4 text-green-400" />
-            <span
-              className="text-[9px] lg:text-[10px] font-bold uppercase"
-              style={{ fontFamily: 'Orbitron, sans-serif' }}
-            >
-              Import New Files
-            </span>
-          </button>
+              <Upload className="w-4 h-4 text-green-400" />
+              <span
+                className="text-[9px] lg:text-[10px] font-bold uppercase"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                <span className="sm:hidden">Import</span>
+                <span className="hidden sm:inline">Import New Files</span>
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
