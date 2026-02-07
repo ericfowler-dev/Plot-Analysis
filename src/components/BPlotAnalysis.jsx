@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, ReferenceArea, Brush
@@ -17,6 +17,41 @@ import { useThresholds } from '../contexts/ThresholdContext';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 20;
+const DEFAULT_CHART_PALETTE = [
+  '#38bdf8', '#f97316', '#22c55e', '#eab308', '#a78bfa',
+  '#ef4444', '#14b8a6', '#f43f5e', '#84cc16', '#f59e0b',
+  '#60a5fa', '#2dd4bf', '#f472b6', '#fb7185', '#94a3b8'
+];
+
+const isValidHexColor = (value) => /^#[0-9a-fA-F]{6}$/.test(value || '');
+
+const normalizeColor = (value, fallback = '#38bdf8') => (
+  isValidHexColor(value) ? value.toLowerCase() : fallback
+);
+
+const adjustHexLuminance = (hex, amount = 0) => {
+  if (!isValidHexColor(hex)) return hex;
+  const normalizedAmount = Math.max(-1, Math.min(1, amount));
+  const toChannel = (segment) => {
+    const channel = parseInt(segment, 16);
+    if (normalizedAmount >= 0) {
+      return Math.round(channel + (255 - channel) * normalizedAmount);
+    }
+    return Math.round(channel * (1 + normalizedAmount));
+  };
+  const r = toChannel(hex.slice(1, 3));
+  const g = toChannel(hex.slice(3, 5));
+  const b = toChannel(hex.slice(5, 7));
+  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+};
+
+const parseOverlaySeriesKey = (seriesKey = '') => {
+  const match = seriesKey.match(/^(.*)__(primary|secondary)$/);
+  if (!match) {
+    return { channel: seriesKey, role: null };
+  }
+  return { channel: match[1], role: match[2] };
+};
 
 // =============================================================================
 // HELPER COMPONENTS
@@ -263,10 +298,14 @@ const BPlotAnalysis = ({
   ecmFaults = [],           // ECM faults for overlay
   fileBoundaries = [],      // File boundaries for multi-file view
   bplotFiles = [],          // Array of loaded B-Plot files
+  bplotMergeMode = 'sequential',
+  bplotCorrelation = null,
   onAddEcmFile,             // Callback to add ECM file for overlay
   onExport,                 // Callback to export report
   onReportIssue,            // Callback to open report issue modal
   externalActiveTab,        // External tab control (for combined view)
+  activeCorrelatedRole: externalCorrelatedRole = null,
+  onCorrelatedRoleChange = null,
   hideHeader = false,       // Hide header when embedded in combined view
   reportRef,               // Ref for PDF export
   userFields,
@@ -290,19 +329,89 @@ const BPlotAnalysis = ({
   const [showFileBoundaries, setShowFileBoundaries] = useState(true);
   const [highlightedChannel, setHighlightedChannel] = useState(null);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [internalCorrelatedRole, setInternalCorrelatedRole] = useState('primary');
+  const [overlayCorrelatedPlots, setOverlayCorrelatedPlots] = useState(false);
+  const [showColorControls, setShowColorControls] = useState(false);
+  const [channelColorOverrides, setChannelColorOverrides] = useState({});
+  const [channelColorDrafts, setChannelColorDrafts] = useState({});
+
+  const primaryBplotFile = useMemo(
+    () => bplotFiles.find((file) => file.role === 'primary'),
+    [bplotFiles]
+  );
+  const secondaryBplotFile = useMemo(
+    () => bplotFiles.find((file) => file.role === 'secondary'),
+    [bplotFiles]
+  );
+  const dualCorrelatedMode = bplotMergeMode === 'correlated' && primaryBplotFile && secondaryBplotFile;
+  const activeCorrelatedRole = (
+    externalCorrelatedRole === 'secondary' || externalCorrelatedRole === 'primary'
+  ) ? externalCorrelatedRole : internalCorrelatedRole;
+  const setCorrelatedRole = onCorrelatedRoleChange || setInternalCorrelatedRole;
+
+  useEffect(() => {
+    if (!dualCorrelatedMode) return;
+    if (activeCorrelatedRole === 'secondary' && !secondaryBplotFile) {
+      setCorrelatedRole('primary');
+    }
+  }, [dualCorrelatedMode, activeCorrelatedRole, secondaryBplotFile, setCorrelatedRole]);
+
+  useEffect(() => {
+    if (!dualCorrelatedMode && overlayCorrelatedPlots) {
+      setOverlayCorrelatedPlots(false);
+    }
+  }, [dualCorrelatedMode, overlayCorrelatedPlots]);
+
+  useEffect(() => {
+    if (!showColorControls) return;
+    setChannelColorDrafts((prev) => {
+      const next = { ...prev };
+      selectedChannels.forEach((channel, channelIndex) => {
+        const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+        const committed = normalizeColor(channelColorOverrides[channel] || fallback, fallback);
+        if (!next[channel]) {
+          next[channel] = committed;
+        }
+      });
+      Object.keys(next).forEach((channel) => {
+        if (!selectedChannels.includes(channel)) {
+          delete next[channel];
+        }
+      });
+      return next;
+    });
+  }, [showColorControls, selectedChannels, channelColorOverrides]);
+
+  const activeBplotFile = useMemo(() => {
+    if (!dualCorrelatedMode) return null;
+    if (activeCorrelatedRole === 'secondary') {
+      return secondaryBplotFile || primaryBplotFile;
+    }
+    return primaryBplotFile || secondaryBplotFile;
+  }, [dualCorrelatedMode, activeCorrelatedRole, primaryBplotFile, secondaryBplotFile]);
+
+  const effectiveProcessedData = dualCorrelatedMode
+    ? (activeBplotFile?.processed || processedData)
+    : processedData;
 
   const {
-    timeInfo,
-    channelStats,
-    timeInStateStats,
-    engineEvents,
-    channelsByCategory,
-    operatingStats,
-    alerts,
-    summary,
-    chartData,
-    rawData
-  } = processedData;
+    timeInfo = null,
+    channelStats = {},
+    timeInStateStats = {},
+    engineEvents = [],
+    channelsByCategory = {},
+    operatingStats = {},
+    alerts = [],
+    summary = {},
+    chartData = [],
+    rawData = []
+  } = effectiveProcessedData || {};
+
+  const activePlotFileName = activeBplotFile?.fileName || data?.fileName || fileName;
+  const displayFileName = dualCorrelatedMode
+    ? `${primaryBplotFile?.fileName || 'Primary'} + ${secondaryBplotFile?.fileName || 'Secondary'}`
+    : fileName;
+  const shouldShowFileBoundaries = !dualCorrelatedMode && fileBoundaries.length > 1;
 
   // Calculate MIL status - check if MILout_mirror = 1 while engine running (RPM >= 500) for minimum duration
   const milStatus = useMemo(() => {
@@ -382,17 +491,50 @@ const BPlotAnalysis = ({
     return result;
   }, [channelsByCategory]);
 
-  // Get chart data for selected channels
-  const displayChartData = useMemo(() => {
-    if (!chartData || chartData.length === 0) return [];
-    return chartData.map(row => {
-      const point = { Time: row.Time };
-      selectedChannels.forEach(ch => {
-        point[ch] = row[ch];
+  const primaryChartData = primaryBplotFile?.processed?.chartData || [];
+  const secondaryChartData = secondaryBplotFile?.processed?.chartData || [];
+
+  const shouldOverlayCorrelatedPlots = dualCorrelatedMode && overlayCorrelatedPlots;
+
+  const correlatedOverlayChartData = useMemo(() => {
+    if (!shouldOverlayCorrelatedPlots) return [];
+    const merged = new Map();
+
+    const addRows = (rows, role) => {
+      rows.forEach((row) => {
+        const rawTime = row?.Time;
+        const numericTime = typeof rawTime === 'number' ? rawTime : parseFloat(rawTime);
+        if (!Number.isFinite(numericTime)) return;
+        const timeKey = numericTime.toFixed(3);
+        if (!merged.has(timeKey)) {
+          merged.set(timeKey, { Time: numericTime });
+        }
+        const point = merged.get(timeKey);
+        selectedChannels.forEach((channel) => {
+          const rawValue = row?.[channel];
+          if (rawValue === undefined || rawValue === null || rawValue === '') return;
+          if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+            point[`${channel}__${role}`] = rawValue;
+            return;
+          }
+          const parsedValue = parseFloat(rawValue);
+          if (Number.isFinite(parsedValue)) {
+            point[`${channel}__${role}`] = parsedValue;
+          }
+        });
       });
-      return point;
-    });
-  }, [chartData, selectedChannels]);
+    };
+
+    addRows(primaryChartData, 'primary');
+    addRows(secondaryChartData, 'secondary');
+
+    return Array.from(merged.values()).sort((a, b) => (a.Time || 0) - (b.Time || 0));
+  }, [shouldOverlayCorrelatedPlots, primaryChartData, secondaryChartData, selectedChannels]);
+
+  const chartRenderData = useMemo(() => {
+    if (shouldOverlayCorrelatedPlots) return correlatedOverlayChartData;
+    return chartData || [];
+  }, [shouldOverlayCorrelatedPlots, correlatedOverlayChartData, chartData]);
 
   // Calculate unique Y-axes needed based on selected channels' unit types
   const chartAxes = useMemo(() => {
@@ -431,6 +573,87 @@ const BPlotAnalysis = ({
       return acc;
     }, {}) };
   }, [selectedChannels]);
+
+  const channelBaseColors = useMemo(() => {
+    const next = {};
+    selectedChannels.forEach((channel, channelIndex) => {
+      const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+      next[channel] = normalizeColor(channelColorOverrides[channel] || fallback, fallback);
+    });
+    return next;
+  }, [selectedChannels, channelColorOverrides]);
+
+  const getSeriesColor = (channel, channelIndex, role = null) => {
+    const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+    const baseColor = channelBaseColors[channel] || fallback;
+    if (role === 'secondary') {
+      return adjustHexLuminance(baseColor, 0.25);
+    }
+    return baseColor;
+  };
+
+  const chartSeries = useMemo(() => {
+    if (shouldOverlayCorrelatedPlots) {
+      return selectedChannels.flatMap((channel, channelIndex) => {
+        const channelLabel = BPLOT_PARAMETERS[channel]?.name || channel;
+        const primaryKey = `${channel}__primary`;
+        const secondaryKey = `${channel}__secondary`;
+
+        return [
+          {
+            key: primaryKey,
+            channel,
+            role: 'primary',
+            name: `${channelLabel} (Primary)`,
+            color: getSeriesColor(channel, channelIndex, 'primary'),
+            strokeDasharray: undefined
+          },
+          {
+            key: secondaryKey,
+            channel,
+            role: 'secondary',
+            name: `${channelLabel} (Secondary)`,
+            color: getSeriesColor(channel, channelIndex, 'secondary'),
+            strokeDasharray: '7 3'
+          }
+        ];
+      });
+    }
+
+    return selectedChannels.map((channel, channelIndex) => ({
+      key: channel,
+      channel,
+      role: null,
+      name: BPLOT_PARAMETERS[channel]?.name || channel,
+      color: getSeriesColor(channel, channelIndex),
+      strokeDasharray: undefined
+    }));
+  }, [selectedChannels, shouldOverlayCorrelatedPlots, channelBaseColors]);
+
+  const hasDraftColorChanges = useMemo(() => {
+    return selectedChannels.some((channel, channelIndex) => {
+      const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+      const committed = normalizeColor(channelColorOverrides[channel] || fallback, fallback);
+      const draft = normalizeColor(channelColorDrafts[channel] || committed, committed);
+      return draft !== committed;
+    });
+  }, [selectedChannels, channelColorOverrides, channelColorDrafts]);
+
+  const applyDraftColors = () => {
+    setChannelColorOverrides((prev) => {
+      const next = { ...prev };
+      selectedChannels.forEach((channel, channelIndex) => {
+        const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+        const draft = normalizeColor(channelColorDrafts[channel], fallback);
+        if (draft === fallback) {
+          delete next[channel];
+        } else {
+          next[channel] = draft;
+        }
+      });
+      return next;
+    });
+  };
 
   // Compute fault overlay reference lines based on selected channels
   const faultOverlayLines = useMemo(() => {
@@ -509,13 +732,14 @@ const BPlotAnalysis = ({
             hasEcm={false}
             hasBplt={true}
             ecmFileName=""
-            bpltFileName={fileName}
+            bpltFileName={displayFileName}
+            bplotFiles={bplotFiles}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onImport={onReset}
             onExport={onExport}
             onReportIssue={onReportIssue}
-            eventCount={processedData?.events?.length || 0}
+            eventCount={engineEvents.length || 0}
             activeProfileName={resolvedProfile?.name}
             activeProfileId={resolvedProfile?.profileId}
             userFields={userFields}
@@ -537,6 +761,47 @@ const BPlotAnalysis = ({
 
               {/* Overlay Controls */}
               <div className="flex items-center gap-3">
+                {dualCorrelatedMode && (
+                  <div className="flex items-center gap-2 pr-2 border-r border-slate-700/60">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                      Correlated Plots
+                    </span>
+                    <button
+                      onClick={() => setCorrelatedRole('primary')}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        activeCorrelatedRole === 'primary'
+                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      Primary Plot
+                    </button>
+                    <button
+                      onClick={() => setCorrelatedRole('secondary')}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        activeCorrelatedRole === 'secondary'
+                          ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      Secondary Plot
+                    </button>
+                    <button
+                      onClick={() => setOverlayCorrelatedPlots((prev) => !prev)}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        overlayCorrelatedPlots
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      title="Overlay primary and secondary plots on the same chart"
+                    >
+                      Overlay P+S
+                    </button>
+                  </div>
+                )}
                 {ecmFaults.length > 0 && (
                   <button
                     onClick={() => setShowFaultOverlays(!showFaultOverlays)}
@@ -552,7 +817,7 @@ const BPlotAnalysis = ({
                     DTC ({ecmFaults.length})
                   </button>
                 )}
-                {fileBoundaries.length > 1 && (
+                {shouldShowFileBoundaries && (
                   <button
                     onClick={() => setShowFileBoundaries(!showFileBoundaries)}
                     className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
@@ -578,6 +843,11 @@ const BPlotAnalysis = ({
                     Add ECM Data
                   </button>
                 )}
+                {dualCorrelatedMode && bplotCorrelation?.overlapRatio !== null && (
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | {overlayCorrelatedPlots ? 'Mode: Overlay' : `Active: ${activePlotFileName}`}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -592,6 +862,44 @@ const BPlotAnalysis = ({
               <MILStatusIndicator isActive={milStatus.isActive} />
             </div>
             <div className="flex items-center gap-3">
+              {dualCorrelatedMode && (
+                <>
+                  <button
+                    onClick={() => setCorrelatedRole('primary')}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      activeCorrelatedRole === 'primary'
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    Primary Plot
+                  </button>
+                  <button
+                    onClick={() => setCorrelatedRole('secondary')}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      activeCorrelatedRole === 'secondary'
+                        ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    Secondary Plot
+                  </button>
+                  <button
+                    onClick={() => setOverlayCorrelatedPlots((prev) => !prev)}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      overlayCorrelatedPlots
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    title="Overlay primary and secondary plots on the same chart"
+                  >
+                    Overlay P+S
+                  </button>
+                </>
+              )}
               {ecmFaults.length > 0 && (
                 <button
                   onClick={() => setShowFaultOverlays(!showFaultOverlays)}
@@ -605,6 +913,25 @@ const BPlotAnalysis = ({
                   {showFaultOverlays ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   DTC ({ecmFaults.length})
                 </button>
+              )}
+              {shouldShowFileBoundaries && (
+                <button
+                  onClick={() => setShowFileBoundaries(!showFileBoundaries)}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                    showFileBoundaries
+                      ? 'bg-green-500/15 border border-green-500/40 text-green-400'
+                      : 'bg-slate-800/50 border border-slate-700 text-slate-400'
+                  }`}
+                  style={{ fontFamily: 'Orbitron, sans-serif', clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+                >
+                  <FileText className="w-3 h-3" />
+                  Files ({fileBoundaries.length})
+                </button>
+              )}
+              {dualCorrelatedMode && bplotCorrelation?.overlapRatio !== null && (
+                <span className="text-[10px] font-mono text-slate-400">
+                  Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | {overlayCorrelatedPlots ? 'Mode: Overlay' : `Active: ${activePlotFileName}`}
+                </span>
               )}
             </div>
           </div>
@@ -636,6 +963,56 @@ const BPlotAnalysis = ({
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {dualCorrelatedMode && (
+              <div className="bg-slate-900/60 border border-blue-500/30 rounded-xl p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-blue-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    Dual Plot Correlation
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className={`text-[11px] font-bold uppercase tracking-wider ${activeCorrelatedRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'}`}>
+                      Active Context: {activeCorrelatedRole === 'secondary' ? 'Secondary Plot' : 'Primary Plot'}
+                    </span>
+                    {bplotCorrelation?.overlapRatio !== null && (
+                      <span className="text-xs text-slate-300 font-mono">
+                        Window overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-slate-800/50 border border-blue-500/20 rounded-lg p-3">
+                    <div className="text-blue-300 uppercase tracking-wider mb-1">Primary Plot</div>
+                    <div className="text-white font-mono truncate" title={primaryBplotFile?.fileName}>{primaryBplotFile?.fileName || '-'}</div>
+                    <div className="text-slate-400 mt-1">
+                      Duration: {(bplotCorrelation?.primary?.duration || 0).toFixed(1)}s
+                    </div>
+                    {bplotCorrelation?.primary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-3">
+                    <div className="text-orange-300 uppercase tracking-wider mb-1">Secondary Plot</div>
+                    <div className="text-white font-mono truncate" title={secondaryBplotFile?.fileName}>{secondaryBplotFile?.fileName || '-'}</div>
+                    <div className="text-slate-400 mt-1">
+                      Duration: {(bplotCorrelation?.secondary?.duration || 0).toFixed(1)}s
+                    </div>
+                    {bplotCorrelation?.secondary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {bplotCorrelation?.overlapWindow && (
+                  <div className="mt-3 text-xs text-emerald-300">
+                    Correlated operating window: {bplotCorrelation.overlapWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.overlapWindow.end.toFixed(2)}h
+                  </div>
+                )}
+              </div>
+            )}
             {/* Engine Hours */}
             {engineHours && (
               <div className="grid grid-cols-2 gap-4">
@@ -798,7 +1175,18 @@ const BPlotAnalysis = ({
                     <YAxis yAxisId="map" orientation="right" stroke="#8b5cf6" fontSize={12} />
                     <Tooltip
                       wrapperStyle={{ maxWidth: '90vw', fontSize: '12px', pointerEvents: 'none' }}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '8px', maxWidth: '280px', maxHeight: '40vh', overflowY: 'auto' }}
+                      contentStyle={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #334155',
+                        padding: '8px',
+                        maxWidth: '280px',
+                        maxHeight: '40vh',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                      }}
+                      itemStyle={{ whiteSpace: 'normal' }}
                       labelFormatter={(v) => `Time: ${formatDuration(v)}`}
                       formatter={(value, name) => {
                         if (typeof value === 'number') {
@@ -918,9 +1306,100 @@ const BPlotAnalysis = ({
 
             {/* Main Chart Area */}
             <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
+              <div className="mb-3 rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider">
+                    Chart Appearance
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setShowColorControls((prev) => !prev)}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        showColorControls
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {showColorControls ? 'Hide Colors' : 'Colors'}
+                    </button>
+                    {showColorControls && (
+                      <button
+                        onClick={applyDraftColors}
+                        disabled={!hasDraftColorChanges}
+                        className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                          hasDraftColorChanges
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:text-white'
+                            : 'bg-slate-800/60 border-slate-700 text-slate-500'
+                        }`}
+                        style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      >
+                        Apply Colors
+                      </button>
+                    )}
+                    {Object.keys(channelColorOverrides).length > 0 && (
+                      <button
+                        onClick={() => {
+                          setChannelColorOverrides({});
+                          setChannelColorDrafts({});
+                        }}
+                        className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white"
+                        style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      >
+                        Reset Colors
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {showColorControls && selectedChannels.length > 0 && (
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                    {selectedChannels.map((channel, channelIndex) => {
+                      const fallback = DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+                      const label = BPLOT_PARAMETERS[channel]?.name || channel;
+                      const draftColor = normalizeColor(
+                        channelColorDrafts[channel] || channelBaseColors[channel] || fallback,
+                        fallback
+                      );
+                      const canResetDraft = draftColor !== fallback;
+                      return (
+                        <div key={`color-${channel}`} className="flex items-center justify-between gap-3 rounded border border-slate-700/60 bg-slate-800/30 px-2.5 py-1.5">
+                          <span className="text-[11px] text-slate-200 truncate" title={label}>{label}</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={draftColor}
+                              onChange={(e) => {
+                                const nextColor = normalizeColor(e.target.value, draftColor);
+                                setChannelColorDrafts((prev) => ({
+                                  ...prev,
+                                  [channel]: nextColor
+                                }));
+                              }}
+                              className="h-6 w-10 border border-slate-600 rounded bg-transparent cursor-pointer"
+                              title={`Set ${label} color`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChannelColorDrafts((prev) => ({ ...prev, [channel]: fallback }));
+                              }}
+                              disabled={!canResetDraft}
+                              className={`text-[10px] uppercase tracking-wide ${
+                                canResetDraft ? 'text-slate-300 hover:text-white' : 'text-slate-600'
+                              }`}
+                            >
+                              Default
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div className="flex-1 h-[300px] lg:h-auto">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
+                  <LineChart data={chartRenderData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
                       dataKey="Time"
@@ -954,45 +1433,64 @@ const BPlotAnalysis = ({
                     ))}
                     <Tooltip
                       wrapperStyle={{ maxWidth: '90vw', fontSize: '12px', pointerEvents: 'none' }}
-                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '6px', padding: '8px', maxWidth: '280px', maxHeight: '40vh', overflowY: 'auto' }}
+                      contentStyle={{
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid #334155',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        maxWidth: '320px',
+                        maxHeight: '40vh',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                      }}
+                      itemStyle={{ whiteSpace: 'normal' }}
                       labelFormatter={(v, payload) => {
                         const sourceFile = payload?.[0]?.payload?._sourceFile;
-                        if (sourceFile && fileBoundaries.length > 1) {
+                        if (sourceFile && shouldShowFileBoundaries) {
                           return `Time: ${formatDuration(v)} | File: ${sourceFile}`;
                         }
                         return `Time: ${formatDuration(v)}`;
                       }}
                       formatter={(value, name, entry) => {
-                        const channelName = entry?.dataKey || name;
+                        const dataKey = entry?.dataKey || name;
+                        const { channel: channelName, role } = parseOverlaySeriesKey(dataKey);
                         const param = BPLOT_PARAMETERS[channelName];
                         const decimals = getDecimalPlaces(channelName);
                         const isCategorical = VALUE_MAPPINGS[channelName] || channelName === 'sync_state';
+                        const roleSuffix = role ? ` (${role === 'primary' ? 'Primary' : 'Secondary'})` : '';
+                        const displayLabel = param
+                          ? `${param.name}${param.unit ? ` (${param.unit})` : ''}${roleSuffix}`
+                          : `${channelName}${roleSuffix}`;
                         if (isCategorical) {
                           const displayText = getDisplayValue(channelName, Math.round(value));
-                          return [displayText, param ? `${param.name}` : channelName];
+                          return [displayText, displayLabel];
                         }
                         return [
                           typeof value === 'number' ? safeToFixed(value, decimals) : value,
-                          param ? `${param.name} (${param.unit})` : channelName
+                          displayLabel
                         ];
                       }}
                     />
                     <Legend />
-                    {selectedChannels.map((channel, i) => (
+                    {chartSeries.map((series) => (
                       <Line
-                        key={channel}
-                        yAxisId={chartAxes.channelToAxis[channel]}
+                        key={series.key}
+                        yAxisId={chartAxes.channelToAxis[series.channel]}
                         type="monotone"
-                        dataKey={channel}
-                        stroke={Object.values(CATEGORY_COLORS)[i % Object.values(CATEGORY_COLORS).length]}
+                        dataKey={series.key}
+                        stroke={series.color}
                         dot={false}
-                        strokeWidth={highlightedChannel === channel ? 4 : 2}
-                        name={BPLOT_PARAMETERS[channel]?.name || channel}
-                        style={highlightedChannel === channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
+                        strokeDasharray={series.strokeDasharray}
+                        strokeWidth={highlightedChannel === series.channel ? 4 : 2}
+                        name={series.name}
+                        style={highlightedChannel === series.channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
+                        connectNulls
                       />
                     ))}
                     {/* File boundary markers for multi-file view */}
-                    {showFileBoundaries && fileBoundaries.length > 1 && fileBoundaries.map((boundary, idx) => (
+                    {showFileBoundaries && shouldShowFileBoundaries && fileBoundaries.map((boundary, idx) => (
                       idx > 0 && (
                         <ReferenceLine
                           key={`file-boundary-${boundary.fileId}`}
@@ -1083,6 +1581,14 @@ const BPlotAnalysis = ({
 
         {activeTab === 'channels' && (
           <div className="space-y-4">
+            {dualCorrelatedMode && (
+              <div className="bg-slate-900/60 border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300">
+                Channel values are currently from <span className={activeCorrelatedRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'}>
+                  {activeCorrelatedRole === 'secondary' ? 'Secondary Plot' : 'Primary Plot'}
+                </span>{' '}
+                ({activePlotFileName}). Use the top `ECM View` PRIMARY/SECONDARY selector to switch context across pages.
+              </div>
+            )}
             {Object.entries(orderedCategories).map(([category, channels]) => (
               <div key={category} className="bg-slate-900/50 rounded-xl border border-slate-800">
                 <button

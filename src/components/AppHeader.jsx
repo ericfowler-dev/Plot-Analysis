@@ -6,6 +6,8 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
+const GUI_REVISION_LABEL = 'config v3.1 app v2.6.8';
+
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
   // ECM only: Overview - Charts - Fault Timeline
@@ -18,7 +20,7 @@ const TAB_CONFIGS = {
   multiEcm: [
     { id: 'overview', label: 'Overview', source: null },
     { id: 'ecm-compare', label: 'ECM Compare', source: null },
-    { id: 'ecm-faults', label: 'Faults', source: null },
+    { id: 'fault-correlation', label: 'Fault Correlation', source: null },
     { id: 'charts', label: 'Charts', source: null }
   ],
   // BPLT only: Overview - Charts - Channels - Events
@@ -42,9 +44,10 @@ const TAB_CONFIGS = {
   fullSystem: [
     { id: 'overview-ecm', label: 'Overview', source: 'ECM' },
     { id: 'ecm-compare', label: 'ECM Compare', source: null },
+    { id: 'charts-ecm', label: 'Charts', source: 'ECM' },
+    { id: 'fault-correlation', label: 'Fault Correlation', source: null },
     { id: 'overview-bplt', label: 'Overview', source: 'BPLT' },
     { id: 'charts-bplt', label: 'Charts', source: 'BPLT' },
-    { id: 'combined-faults', label: 'Faults', source: null },
     { id: 'channels-bplt', label: 'Channels', source: 'BPLT' },
     { id: 'events-bplt', label: 'Events', source: 'BPLT' }
   ]
@@ -139,7 +142,7 @@ const FileIndicator = ({ type, fileName, role }) => {
 const NavTab = ({ tab, isActive, onClick, eventCount, faultCount }) => {
   // Determine if this tab should show a count badge
   const showEventCount = tab.id.includes('events') && eventCount > 0;
-  const showFaultCount = (tab.id.includes('fault') || tab.id === 'ecm-faults' || tab.id === 'combined-faults') && faultCount > 0;
+  const showFaultCount = (tab.id.includes('fault') || tab.id === 'fault-correlation') && faultCount > 0;
 
   return (
     <button
@@ -208,6 +211,8 @@ const AppHeader = ({
   faultCount = 0,       // Combined fault count for multi-ECM
   activeProfileName = null,
   activeProfileId = null,
+  activeEcmRole = null,
+  onEcmRoleChange = null,
   userFields,
   userFieldsDraft,
   isUserFieldsEditing = false,
@@ -221,11 +226,21 @@ const AppHeader = ({
 
   // Determine which tab configuration to use
   const getTabConfig = () => {
-    if (hasMultiEcm && hasBplt) return TAB_CONFIGS.fullSystem;
-    if (hasMultiEcm) return TAB_CONFIGS.multiEcm;
-    if (hasEcm && hasBplt) return TAB_CONFIGS.both;
-    if (hasEcm) return TAB_CONFIGS.ecmOnly;
-    if (hasBplt) return TAB_CONFIGS.bpltOnly;
+    if (hasMultiEcm && hasBplt) {
+      return TAB_CONFIGS.fullSystem;
+    }
+    if (hasMultiEcm) {
+      return TAB_CONFIGS.multiEcm;
+    }
+    if (hasEcm && hasBplt) {
+      return TAB_CONFIGS.both;
+    }
+    if (hasEcm) {
+      return TAB_CONFIGS.ecmOnly;
+    }
+    if (hasBplt) {
+      return TAB_CONFIGS.bpltOnly;
+    }
     return [];
   };
 
@@ -237,7 +252,7 @@ const AppHeader = ({
 
   return (
     <header
-      className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
+      className="sticky top-0 z-40 bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       <div className="max-w-[1920px] mx-auto w-full flex flex-col lg:flex-row items-center justify-between px-6 py-4 gap-4">
@@ -273,7 +288,7 @@ const AppHeader = ({
                 className="text-[9px] text-slate-500 font-bold tracking-[0.2em]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                config v3.1 app v2.6.1
+                {GUI_REVISION_LABEL}
               </span>
             </div>
           </button>
@@ -328,6 +343,58 @@ const AppHeader = ({
             <>
               <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
               <ProfileIndicator profileName={activeProfileName} profileId={activeProfileId} />
+            </>
+          )}
+
+          {/* Active ECM context */}
+          {hasMultiEcm && activeEcmRole && (
+            <>
+              <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
+              <div
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800/60 border border-blue-500/40 rounded"
+                title="Current ECM context for Overview and Charts"
+              >
+                <span className="text-[10px] text-slate-500 uppercase tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
+                  ECM View
+                </span>
+                {onEcmRoleChange ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onEcmRoleChange('primary')}
+                      className={`h-8 px-4 rounded border font-bold text-[11px] uppercase tracking-wider transition-colors ${
+                        activeEcmRole === 'primary'
+                          ? 'text-blue-100 border-blue-400/70 bg-blue-500/35 shadow-[0_0_14px_rgba(59,130,246,0.35)]'
+                          : 'text-slate-300 border-slate-600 hover:text-white hover:border-slate-400'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      PRIMARY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onEcmRoleChange('secondary')}
+                      className={`h-8 px-4 rounded border font-bold text-[11px] uppercase tracking-wider transition-colors ${
+                        activeEcmRole === 'secondary'
+                          ? 'text-orange-100 border-orange-400/70 bg-orange-500/35 shadow-[0_0_14px_rgba(249,115,22,0.35)]'
+                          : 'text-slate-300 border-slate-600 hover:text-white hover:border-slate-400'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      SECONDARY
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className={`font-bold text-sm uppercase tracking-wider ${
+                      activeEcmRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    {activeEcmRole === 'secondary' ? 'Secondary' : 'Primary'}
+                  </span>
+                )}
+              </div>
             </>
           )}
         </div>

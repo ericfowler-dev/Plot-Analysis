@@ -277,12 +277,19 @@ const EcmComparison = ({
         >
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-300">
             <BarChart3 className="w-4 h-4 text-green-400" />
-            ECM Configuration Comparison
+            Configuration Details
+            <span className="text-xs text-slate-500 font-normal ml-2">(click to expand)</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">
-              {infoComparison.filter(c => !c.match).length} differences found
-            </span>
+            {infoComparison.filter(c => !c.match).length > 0 ? (
+              <span className="text-xs text-yellow-400 bg-yellow-500/20 px-2 py-0.5 rounded">
+                {infoComparison.filter(c => !c.match).length} differences
+              </span>
+            ) : (
+              <span className="text-xs text-green-400 bg-green-500/20 px-2 py-0.5 rounded">
+                All match
+              </span>
+            )}
             {showInfoComparison ? (
               <ChevronDown className="w-4 h-4 text-slate-400" />
             ) : (
@@ -293,11 +300,16 @@ const EcmComparison = ({
 
         {showInfoComparison && (
           <div className="p-4">
+            {/* Explanation */}
+            <p className="text-xs text-slate-400 mb-3">
+              Compares hardware and software configuration between ECMs.
+              <span className="text-yellow-400"> Yellow rows</span> indicate differences that may need attention.
+            </p>
             {/* Header */}
             <div className="flex items-center py-2 px-3 bg-slate-800/50 rounded mb-2">
               <div className="w-1/4 text-[10px] text-slate-500 uppercase tracking-wider">Field</div>
-              <div className="w-5/12 text-[10px] text-blue-400 uppercase tracking-wider px-2">Primary</div>
-              <div className="w-5/12 text-[10px] text-slate-400 uppercase tracking-wider px-2">Secondary</div>
+              <div className="w-5/12 text-[10px] text-blue-400 uppercase tracking-wider px-2">Primary ECM</div>
+              <div className="w-5/12 text-[10px] text-orange-400 uppercase tracking-wider px-2">Secondary ECM</div>
               <div className="w-8 text-[10px] text-slate-500 uppercase tracking-wider text-center">Match</div>
             </div>
             {/* Rows */}
@@ -336,12 +348,22 @@ const EcmComparison = ({
 
         {/* Difference Heatmap */}
         {histogramDiff ? (
-          <DifferenceHeatmap
-            differenceData={histogramDiff}
-            title={`${selectedHistogram} - Primary vs Secondary Difference`}
-            primaryLabel={primaryEcm.fileName}
-            secondaryLabel={secondaryEcm.fileName}
-          />
+          (() => {
+            const isBackfireHistogram = selectedHistogram === 'backfireLifetime' || selectedHistogram === 'backfireRecent';
+            const unitLabel = isBackfireHistogram ? 'events' : 'hours';
+            const metricLabel = isBackfireHistogram ? 'backfire occurrence counts' : 'operating time';
+            const selectedHistogramMeta = histogramOptions.find((option) => option.key === selectedHistogram);
+            return (
+              <DifferenceHeatmap
+                differenceData={histogramDiff}
+                title={`${selectedHistogramMeta?.name || selectedHistogram} - Primary vs Secondary Difference`}
+                primaryLabel={primaryEcm.fileName}
+                secondaryLabel={secondaryEcm.fileName}
+                unitLabel={unitLabel}
+                metricLabel={metricLabel}
+              />
+            );
+          })()
         ) : (
           <div className="text-center py-8 text-slate-500">
             <BarChart3 className="w-12 h-12 mx-auto mb-3 text-slate-600" />
