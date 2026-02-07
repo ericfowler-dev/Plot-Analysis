@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
-const GUI_REVISION_LABEL = 'config v3.1 app v2.6.7';
+const GUI_REVISION_LABEL = 'config v3.1 app v2.6.8';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
@@ -212,6 +212,7 @@ const AppHeader = ({
   activeProfileName = null,
   activeProfileId = null,
   activeEcmRole = null,
+  onEcmRoleChange = null,
   userFields,
   userFieldsDraft,
   isUserFieldsEditing = false,
@@ -251,7 +252,7 @@ const AppHeader = ({
 
   return (
     <header
-      className="bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
+      className="sticky top-0 z-40 bg-[#020617] border-b border-green-500/20 shadow-[0_1px_25px_rgba(57,255,20,0.12)]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       <div className="max-w-[1920px] mx-auto w-full flex flex-col lg:flex-row items-center justify-between px-6 py-4 gap-4">
@@ -356,14 +357,43 @@ const AppHeader = ({
                 <span className="text-slate-500 uppercase tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
                   ECM View
                 </span>
-                <span
-                  className={`font-bold uppercase tracking-wide ${
-                    activeEcmRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'
-                  }`}
-                  style={{ fontFamily: 'Orbitron, sans-serif' }}
-                >
-                  {activeEcmRole === 'secondary' ? 'Secondary' : 'Primary'}
-                </span>
+                {onEcmRoleChange ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onEcmRoleChange('primary')}
+                      className={`px-1.5 py-0.5 rounded border font-bold uppercase tracking-wide ${
+                        activeEcmRole === 'primary'
+                          ? 'text-blue-300 border-blue-500/60 bg-blue-500/15'
+                          : 'text-slate-400 border-slate-700 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      P
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onEcmRoleChange('secondary')}
+                      className={`px-1.5 py-0.5 rounded border font-bold uppercase tracking-wide ${
+                        activeEcmRole === 'secondary'
+                          ? 'text-orange-300 border-orange-500/60 bg-orange-500/15'
+                          : 'text-slate-400 border-slate-700 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      S
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className={`font-bold uppercase tracking-wide ${
+                      activeEcmRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'
+                    }`}
+                    style={{ fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    {activeEcmRole === 'secondary' ? 'Secondary' : 'Primary'}
+                  </span>
+                )}
               </div>
             </>
           )}

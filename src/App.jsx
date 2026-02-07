@@ -2226,6 +2226,15 @@ const PlotAnalyzer = () => {
     );
   }, [hasDualEcm, ecmFiles, ecmDisplayRole]);
 
+  useEffect(() => {
+    if (!hasDualEcm && ecmDisplayRole !== 'primary') {
+      setEcmDisplayRole('primary');
+    }
+    if (hasDualEcm && !activeEcmFile) {
+      setEcmDisplayRole('primary');
+    }
+  }, [hasDualEcm, activeEcmFile, ecmDisplayRole]);
+
   const displayEcmInfo = hasDualEcm ? (activeEcmFile?.ecmInfo || {}) : ecmInfo;
   const displayHistograms = hasDualEcm ? (activeEcmFile?.histograms || {}) : histograms;
   const displayFaults = hasDualEcm ? (activeEcmFile?.faults || []) : faults;
@@ -2242,16 +2251,7 @@ const PlotAnalyzer = () => {
     return generateSummaryStats(displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats);
   }, [hasDualEcm, summaryStats, displayEcmInfo, displayProcessedHistograms, displayFaults, displayStats]);
 
-  const ecmDisplayRoleLabel = activeEcmFile?.role === 'secondary' ? 'Secondary' : 'Primary';
   const ecmChartsTabId = hasBplt ? 'charts-ecm' : 'charts';
-  const showEcmContextToggle = hasDualEcm && (
-    activeTab === 'overview' ||
-    activeTab === 'overview-ecm' ||
-    activeTab === 'charts' ||
-    activeTab === 'charts-ecm' ||
-    activeTab === 'faults' ||
-    activeTab === 'faults-ecm'
-  );
 
   useEffect(() => {
     if (PERF) console.log(`[perf] tab change: ${activeTab}`);
@@ -3401,6 +3401,7 @@ const PlotAnalyzer = () => {
           activeProfileName={activeThresholdProfile?.name}
           activeProfileId={activeThresholdProfile?.profileId}
           activeEcmRole={hasDualEcm ? activeEcmFile?.role : null}
+          onEcmRoleChange={hasDualEcm ? setEcmDisplayRole : null}
           userFields={userFields}
           userFieldsDraft={userFieldsDraft}
           isUserFieldsEditing={isUserFieldsEditing}
@@ -3453,6 +3454,7 @@ const PlotAnalyzer = () => {
         activeProfileName={activeThresholdProfile?.name}
         activeProfileId={activeThresholdProfile?.profileId}
         activeEcmRole={hasDualEcm ? activeEcmFile?.role : null}
+        onEcmRoleChange={hasDualEcm ? setEcmDisplayRole : null}
         userFields={userFields}
         userFieldsDraft={userFieldsDraft}
         isUserFieldsEditing={isUserFieldsEditing}
@@ -3464,43 +3466,6 @@ const PlotAnalyzer = () => {
       <input id="fileIn" type="file" accept=".csv,.xlsx,.xls,.bplt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" multiple onChange={handleFileUpload} className="hidden" />
 
       <main className="w-full px-6 py-6 space-y-8 mx-auto" style={{ maxWidth: '98%' }}>
-        {showEcmContextToggle && (
-          <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-200">ECM Display Context</div>
-                <div className="text-xs text-slate-500">
-                  Overview and Charts are currently showing {ecmDisplayRoleLabel} ECM data.
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEcmDisplayRole('primary')}
-                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
-                    ecmDisplayRoleLabel === 'Primary'
-                      ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Primary ECM
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEcmDisplayRole('secondary')}
-                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
-                    ecmDisplayRoleLabel === 'Secondary'
-                      ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
-                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Secondary ECM
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ==================== OVERVIEW ==================== */}
         {(activeTab === 'overview' || activeTab === 'overview-ecm') && parsed && (
           <>

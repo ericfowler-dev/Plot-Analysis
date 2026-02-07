@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Filter, Search } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, LabelList } from 'recharts';
 
 // =============================================================================
 // COMBINED FAULT VIEW COMPONENT
@@ -19,6 +19,31 @@ const parseHours = (value) => {
   if (value === null || value === undefined || value === '') return null;
   const numeric = typeof value === 'number' ? value : parseFloat(value);
   return Number.isFinite(numeric) ? numeric : null;
+};
+
+const toTimelineLabel = (fault) => {
+  const code = fault?.code ? `DTC ${fault.code}` : 'DTC';
+  const description = String(fault?.description || 'Unknown fault')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const full = `${code} ${description}`.trim();
+  if (full.length <= 56) return full;
+  return `${full.slice(0, 55)}...`;
+};
+
+const TimelineLabel = ({ x, y, value, payload }) => {
+  if (typeof x !== 'number' || typeof y !== 'number' || !value) return null;
+  return (
+    <text
+      x={x + 8}
+      y={y + 4}
+      fill={payload?.sourceRole === 'primary' ? '#bfdbfe' : '#fed7aa'}
+      fontSize={10}
+      style={{ pointerEvents: 'none' }}
+    >
+      {value}
+    </text>
+  );
 };
 
 // Source badge component
@@ -317,6 +342,7 @@ const CombinedFaultView = ({
           lane: fault.sourceRole === 'primary' ? 1 : 2,
           code: fault.code,
           description: fault.description,
+          timelineLabel: toTimelineLabel(fault),
           sourceRole: fault.sourceRole,
           occurrenceCount: fault.occurrenceCount,
           sourceFileName: fault.sourceFileName
@@ -501,7 +527,9 @@ const CombinedFaultView = ({
                       setSelectedFaultIndex(point.payload.filteredIndex);
                     }
                   }}
-                />
+                >
+                  <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
+                </Scatter>
                 <Scatter
                   name="Secondary ECM"
                   data={secondaryTimelinePoints}
@@ -511,7 +539,9 @@ const CombinedFaultView = ({
                       setSelectedFaultIndex(point.payload.filteredIndex);
                     }
                   }}
-                />
+                >
+                  <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
+                </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
           </div>
