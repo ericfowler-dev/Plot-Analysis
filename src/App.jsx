@@ -67,7 +67,12 @@ const PERF = false;
 const MAX_FILE_SIZE_MB = 100;
 const WARN_FILE_SIZE_MB = 20;
 const MB_BYTES = 1024 * 1024;
-const GUI_REVISION = '1.4.6';
+const GUI_REVISION = '2.6.9';
+const PDF_EXPORT_LIGHT_CLASS = 'pdf-export-light';
+
+const waitForNextPaint = () => new Promise((resolve) => {
+  requestAnimationFrame(() => requestAnimationFrame(resolve));
+});
 
 const PRIMARY_ROLE_HINTS = [
   /\bprimary\b/i,
@@ -3105,11 +3110,16 @@ const PlotAnalyzer = () => {
   };
 
   const exportToPDF = useCallback(async () => {
-    if (isExporting || !reportRef.current) return;
+    const reportNode = reportRef.current;
+    if (isExporting || !reportNode) return;
     setIsExporting(true);
 
     try {
-      const dataUrl = await toPng(reportRef.current, {
+      reportNode.classList.add(PDF_EXPORT_LIGHT_CLASS);
+      await waitForNextPaint();
+
+      const dataUrl = await toPng(reportNode, {
+        backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2
       });
@@ -3188,6 +3198,7 @@ const PlotAnalyzer = () => {
       console.error('PDF export failed:', error);
       setError('PDF export failed. Please try again.');
     } finally {
+      reportNode.classList.remove(PDF_EXPORT_LIGHT_CLASS);
       setIsExporting(false);
     }
   }, [isExporting, userFields]);

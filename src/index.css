@@ -265,3 +265,40 @@ header {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Light-only overrides used during PDF capture. */
+.pdf-export-light {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+.pdf-export-light [class*="bg-"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.pdf-export-light [class*="from-"],
+.pdf-export-light [class*="via-"],
+.pdf-export-light [class*="to-"] {
+  background-image: none !important;
+}
+
+.pdf-export-light [class*="text-white"],
+.pdf-export-light [class*="text-slate-"],
+.pdf-export-light [class*="text-zinc-"] {
+  color: #111827 !important;
+}
+
+.pdf-export-light [class*="border-slate-"],
+.pdf-export-light [class*="border-zinc-"] {
+  border-color: #9ca3af !important;
+}
+
+.pdf-export-light [class*="shadow"] {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.pdf-export-light canvas {
+  background: #ffffff !important;
+}
