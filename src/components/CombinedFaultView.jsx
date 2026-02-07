@@ -332,7 +332,7 @@ const CombinedFaultView = ({
   }, [filteredFaults.length, selectedFaultIndex]);
 
   const timelinePoints = useMemo(() => {
-    return filteredFaults
+    const basePoints = filteredFaults
       .map((fault, filteredIndex) => {
         const hour = parseHours(fault.lastOccurrence);
         if (!Number.isFinite(hour)) return null;
@@ -351,7 +351,30 @@ const CombinedFaultView = ({
       .filter(Boolean)
       // Keep rendering cost predictable on very large data sets.
       .slice(0, 240);
-  }, [filteredFaults]);
+
+    if (basePoints.length === 0) return basePoints;
+
+    const minHour = Math.min(...basePoints.map((point) => point.hour));
+    const maxHour = Math.max(...basePoints.map((point) => point.hour));
+    const hourRange = Math.max(0.01, maxHour - minHour);
+    const minLabelGap = Math.max(0.35, hourRange / 18);
+    const lastLabeledHourByLane = new Map();
+
+    return basePoints.map((point) => {
+      const lastLabeledHour = lastLabeledHourByLane.get(point.lane);
+      const forceLabel = point.filteredIndex === selectedFaultIndex;
+      const shouldLabel = forceLabel || lastLabeledHour === undefined || Math.abs(point.hour - lastLabeledHour) >= minLabelGap;
+
+      if (shouldLabel) {
+        lastLabeledHourByLane.set(point.lane, point.hour);
+      }
+
+      return {
+        ...point,
+        timelineLabel: shouldLabel ? point.timelineLabel : ''
+      };
+    });
+  }, [filteredFaults, selectedFaultIndex]);
 
   const primaryTimelinePoints = useMemo(
     () => timelinePoints.filter((point) => point.sourceRole === 'primary'),

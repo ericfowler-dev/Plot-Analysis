@@ -351,42 +351,42 @@ const AppHeader = ({
             <>
               <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
               <div
-                className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/50 border border-blue-500/30 rounded text-[10px]"
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800/60 border border-blue-500/40 rounded"
                 title="Current ECM context for Overview and Charts"
               >
-                <span className="text-slate-500 uppercase tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wide" style={{ fontFamily: 'Fira Code, monospace' }}>
                   ECM View
                 </span>
                 {onEcmRoleChange ? (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => onEcmRoleChange('primary')}
-                      className={`px-1.5 py-0.5 rounded border font-bold uppercase tracking-wide ${
+                      className={`h-8 px-4 rounded border font-bold text-[11px] uppercase tracking-wider transition-colors ${
                         activeEcmRole === 'primary'
-                          ? 'text-blue-300 border-blue-500/60 bg-blue-500/15'
-                          : 'text-slate-400 border-slate-700 hover:text-white'
+                          ? 'text-blue-100 border-blue-400/70 bg-blue-500/35 shadow-[0_0_14px_rgba(59,130,246,0.35)]'
+                          : 'text-slate-300 border-slate-600 hover:text-white hover:border-slate-400'
                       }`}
                       style={{ fontFamily: 'Orbitron, sans-serif' }}
                     >
-                      P
+                      PRIMARY
                     </button>
                     <button
                       type="button"
                       onClick={() => onEcmRoleChange('secondary')}
-                      className={`px-1.5 py-0.5 rounded border font-bold uppercase tracking-wide ${
+                      className={`h-8 px-4 rounded border font-bold text-[11px] uppercase tracking-wider transition-colors ${
                         activeEcmRole === 'secondary'
-                          ? 'text-orange-300 border-orange-500/60 bg-orange-500/15'
-                          : 'text-slate-400 border-slate-700 hover:text-white'
+                          ? 'text-orange-100 border-orange-400/70 bg-orange-500/35 shadow-[0_0_14px_rgba(249,115,22,0.35)]'
+                          : 'text-slate-300 border-slate-600 hover:text-white hover:border-slate-400'
                       }`}
                       style={{ fontFamily: 'Orbitron, sans-serif' }}
                     >
-                      S
+                      SECONDARY
                     </button>
                   </div>
                 ) : (
                   <span
-                    className={`font-bold uppercase tracking-wide ${
+                    className={`font-bold text-sm uppercase tracking-wider ${
                       activeEcmRole === 'secondary' ? 'text-orange-300' : 'text-blue-300'
                     }`}
                     style={{ fontFamily: 'Orbitron, sans-serif' }}

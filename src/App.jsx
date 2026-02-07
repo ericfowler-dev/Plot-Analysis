@@ -3423,6 +3423,8 @@ const PlotAnalyzer = () => {
           bplotCorrelation={bplotCorrelation}
           onAddEcmFile={null}
           externalActiveTab={mappedTab}
+          activeCorrelatedRole={hasDualEcm ? ecmDisplayRole : null}
+          onCorrelatedRoleChange={hasDualEcm ? setEcmDisplayRole : null}
           hideHeader={true}
         />
         <ReportIssue isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
