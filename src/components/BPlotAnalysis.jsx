@@ -1330,7 +1330,15 @@ const BPlotAnalysis = ({
                         return [value ?? '—', name];
                       }}
                     />
-                    <Legend />
+                    <Legend
+                      verticalAlign="top"
+                      height={60}
+                      wrapperStyle={{
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        paddingTop: '10px'
+                      }}
+                    />
                     <Line
                       yAxisId="rpm"
                       type="monotone"
@@ -1594,7 +1602,15 @@ const BPlotAnalysis = ({
                         />
                       )}
                     />
-                    <Legend />
+                    <Legend
+                      verticalAlign="top"
+                      height={60}
+                      wrapperStyle={{
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        paddingTop: '10px'
+                      }}
+                    />
                     {chartSeries.map((series) => (
                       <Line
                         key={series.key}
