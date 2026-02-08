@@ -5,6 +5,12 @@
 
 import { ENGINE_STATE, EngineStateTracker } from './engineState.js';
 import baselineAlertConfig from './baselineAlertConfig.json';
+import {
+  resolveOperatingPointThreshold,
+  resolveDeltaThreshold,
+  getOperatingPointValue,
+  findOperatingPointBin
+} from './operatingPointResolver.js';
 
 /**
  * Alert severity levels
@@ -155,7 +161,7 @@ function evaluateCondition(condition, row, columnMap) {
 }
 
 function shouldSkipThreshold(config, row, columnMap) {
-  if (!config) return false;
+  if (!config) return true;
 
   if (Array.isArray(config.ignoreWhen) && config.ignoreWhen.length > 0) {
     const shouldIgnore = config.ignoreWhen.some(condition => evaluateCondition(condition, row, columnMap));
@@ -974,6 +980,10 @@ export function detectAnomalies(data, thresholds, options = {}) {
     const engineState = engineStateTracker.update(rpm, time);
     statistics.engineStates[engineState.state]++;
 
+    // Compute operating point values for operating-point-aware thresholds
+    const mapValue = getParamValue(row, 'manifoldPressure', columnMap);
+    const operatingPoints = { rpm, MAP: mapValue };
+
     // Clear oil pressure alerts when transitioning out of RUNNING_STABLE
     if (prevEngineState === ENGINE_STATE.RUNNING_STABLE && engineState.state !== ENGINE_STATE.RUNNING_STABLE) {
       oilPressureAlertTracker.clearAll();
@@ -1002,18 +1012,18 @@ export function detectAnomalies(data, thresholds, options = {}) {
     // Run threshold checks
     if (thresholds.thresholds) {
       // Battery voltage check
-      if (thresholds.thresholds.battery?.enabled !== false) {
+      if (thresholds.thresholds.battery && thresholds.thresholds.battery.enabled !== false) {
         checkBatteryVoltage(row, time, thresholds.thresholds.battery, columnMap, hysteresis, alerts, alertStartTimes, alertValues);
       }
 
       // Coolant temperature check
-      if (thresholds.thresholds.coolantTemp?.enabled !== false && isRunning) {
+      if (thresholds.thresholds.coolantTemp && thresholds.thresholds.coolantTemp.enabled !== false && isRunning) {
         checkCoolantTemp(row, time, thresholds.thresholds.coolantTemp, columnMap, alerts, alertStartTimes, alertValues, i, graceSamples, effectiveSampleRate);
       }
 
       // Oil pressure check - uses engine state tracker for startup/shutdown awareness
-      // Only checks during RUNNING_STABLE state with RPM-based dynamic thresholds
-      if (thresholds.thresholds.oilPressure?.enabled !== false) {
+      // Now supports operating-point-aware thresholds indexed by RPM
+      if (thresholds.thresholds.oilPressure && thresholds.thresholds.oilPressure.enabled !== false) {
         checkOilPressure(
           row, time, thresholds.thresholds.oilPressure, columnMap,
           alerts, alertStartTimes, alertValues,
@@ -1022,18 +1032,26 @@ export function detectAnomalies(data, thresholds, options = {}) {
       }
 
       // RPM check
-      if (thresholds.thresholds.rpm?.enabled !== false && isRunning) {
+      if (thresholds.thresholds.rpm && thresholds.thresholds.rpm.enabled !== false && isRunning) {
         checkRPM(row, time, thresholds.thresholds.rpm, columnMap, alerts, alertStartTimes, alertValues, engineState);
       }
 
-      // Fuel trim check
-      if (thresholds.thresholds.fuelTrim?.enabled !== false && isRunning) {
-        checkFuelTrim(row, time, thresholds.thresholds.fuelTrim, columnMap, alerts, alertStartTimes, alertValues);
+      // Fuel trim check - now supports operating-point-aware thresholds indexed by MAP
+      if (thresholds.thresholds.fuelTrim && thresholds.thresholds.fuelTrim.enabled !== false && isRunning) {
+        checkFuelTrim(row, time, thresholds.thresholds.fuelTrim, columnMap, alerts, alertStartTimes, alertValues, operatingPoints);
       }
 
-      // Knock check
-      if (thresholds.thresholds.knock?.enabled !== false && isRunning) {
-        checkKnock(row, time, thresholds.thresholds.knock, columnMap, alerts, alertStartTimes, alertValues);
+      // Knock check - now supports operating-point-aware thresholds indexed by MAP
+      if (thresholds.thresholds.knock && thresholds.thresholds.knock.enabled !== false && isRunning) {
+        checkKnock(row, time, thresholds.thresholds.knock, columnMap, alerts, alertStartTimes, alertValues, operatingPoints);
+      }
+
+      // Delta threshold checks (e.g., TIP-MAP delta) with operating-point-aware bounds
+      if (thresholds.thresholds.tipMapDelta && thresholds.thresholds.tipMapDelta.enabled !== false && isRunning) {
+        checkDeltaThreshold(
+          row, time, thresholds.thresholds.tipMapDelta, columnMap,
+          alerts, alertStartTimes, alertValues, engineState
+        );
       }
     }
 
@@ -1258,14 +1276,11 @@ function checkOilPressure(row, time, config, columnMap, alerts, startTimes, valu
     }
   }
 
-  // Get user-configured thresholds (these are the primary thresholds)
-  const userWarningMin = config.warning?.min;
-  const userCriticalMin = config.critical?.min;
+  // Resolve thresholds - operating-point-aware if configured, otherwise flat
+  const resolved = resolveOperatingPointThreshold(config, rpm);
 
-  // Use user-configured thresholds directly
-  // These are the values set in the UI (Warning Min, Critical Min)
-  const warningThreshold = userWarningMin !== undefined ? userWarningMin : 8;
-  const criticalThreshold = userCriticalMin !== undefined ? userCriticalMin : 6;
+  const warningThreshold = resolved.warningMin ?? config.warning?.min ?? 8;
+  const criticalThreshold = resolved.criticalMin ?? config.critical?.min ?? 6;
 
   // Simple threshold comparison using user-configured values
   // Critical low
@@ -1357,20 +1372,29 @@ function checkRPM(row, time, config, columnMap, alerts, startTimes, values, engi
 /**
  * Fuel trim threshold check
  */
-function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values) {
+function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values, operatingPoints = {}) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
   const clTrim = getParamValue(row, 'fuelTrimCL', columnMap);
   const adaptTrim = getParamValue(row, 'fuelTrimAdaptive', columnMap);
 
-  // Closed loop trim checks
+  // Closed loop trim checks - operating-point-aware if configured (indexed by MAP)
   if (Number.isFinite(clTrim) && config.closedLoop) {
+    const clConfig = config.closedLoop;
+    const mapValue = operatingPoints.MAP;
+    const resolved = resolveOperatingPointThreshold(clConfig, mapValue);
+
+    const critMax = resolved.criticalMax ?? clConfig.critical?.max;
+    const critMin = resolved.criticalMin ?? clConfig.critical?.min;
+    const warnMax = resolved.warningMax ?? clConfig.warning?.max;
+    const warnMin = resolved.warningMin ?? clConfig.warning?.min;
+
     // Critical lean
-    if (config.closedLoop.critical?.max && clTrim > config.closedLoop.critical.max) {
+    if (critMax != null && clTrim > critMax) {
       handleAlertState('fuel_cl_critical_lean', true, time, clTrim, alerts, startTimes, values, {
         name: 'Critical Lean Fuel Trim',
         severity: SEVERITY.CRITICAL,
         category: CATEGORIES.FUEL,
-        threshold: config.closedLoop.critical.max,
+        threshold: critMax,
         unit: '%'
       });
     } else if (startTimes.has('fuel_cl_critical_lean')) {
@@ -1378,12 +1402,12 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
     }
 
     // Warning lean
-    if (config.closedLoop.warning?.max && clTrim > config.closedLoop.warning.max) {
+    if (warnMax != null && clTrim > warnMax) {
       handleAlertState('fuel_cl_warning_lean', true, time, clTrim, alerts, startTimes, values, {
         name: 'Lean Fuel Trim',
         severity: SEVERITY.WARNING,
         category: CATEGORIES.FUEL,
-        threshold: config.closedLoop.warning.max,
+        threshold: warnMax,
         unit: '%'
       });
     } else if (startTimes.has('fuel_cl_warning_lean')) {
@@ -1391,12 +1415,12 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
     }
 
     // Critical rich
-    if (config.closedLoop.critical?.min && clTrim < config.closedLoop.critical.min) {
+    if (critMin != null && clTrim < critMin) {
       handleAlertState('fuel_cl_critical_rich', true, time, clTrim, alerts, startTimes, values, {
         name: 'Critical Rich Fuel Trim',
         severity: SEVERITY.CRITICAL,
         category: CATEGORIES.FUEL,
-        threshold: config.closedLoop.critical.min,
+        threshold: critMin,
         unit: '%'
       });
     } else if (startTimes.has('fuel_cl_critical_rich')) {
@@ -1404,12 +1428,12 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
     }
 
     // Warning rich
-    if (config.closedLoop.warning?.min && clTrim < config.closedLoop.warning.min) {
+    if (warnMin != null && clTrim < warnMin) {
       handleAlertState('fuel_cl_warning_rich', true, time, clTrim, alerts, startTimes, values, {
         name: 'Rich Fuel Trim',
         severity: SEVERITY.WARNING,
         category: CATEGORIES.FUEL,
-        threshold: config.closedLoop.warning.min,
+        threshold: warnMin,
         unit: '%'
       });
     } else if (startTimes.has('fuel_cl_warning_rich')) {
@@ -1421,18 +1445,33 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values)
 /**
  * Knock detection check
  */
-function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
+function checkKnock(row, time, config, columnMap, alerts, startTimes, values, operatingPoints = {}) {
   if (shouldSkipThreshold(config, row, columnMap)) return;
   const knockRetard = getParamValue(row, 'knock', columnMap);
   if (!Number.isFinite(knockRetard)) return;
 
+  // Resolve operating-point-aware thresholds if configured (indexed by MAP)
+  const mapValue = operatingPoints.MAP;
+  const maxRetardConfig = config.maxRetard || {};
+  let criticalThreshold = maxRetardConfig.critical;
+  let warningThreshold = maxRetardConfig.warning;
+
+  // If maxRetard has operatingPointAware config, resolve thresholds by MAP
+  if (maxRetardConfig.operatingPointAware?.enabled && mapValue != null) {
+    const resolved = resolveOperatingPointThreshold(maxRetardConfig, mapValue);
+    if (resolved.isOperatingPointAware) {
+      criticalThreshold = resolved.criticalMax ?? criticalThreshold;
+      warningThreshold = resolved.warningMax ?? warningThreshold;
+    }
+  }
+
   // Critical knock
-  if (config.maxRetard?.critical && knockRetard > config.maxRetard.critical) {
+  if (criticalThreshold != null && knockRetard > criticalThreshold) {
     handleAlertState('knock_critical', true, time, knockRetard, alerts, startTimes, values, {
       name: 'Critical Knock Detected',
       severity: SEVERITY.CRITICAL,
       category: CATEGORIES.KNOCK,
-      threshold: config.maxRetard.critical,
+      threshold: criticalThreshold,
       unit: '°'
     });
   } else if (startTimes.has('knock_critical')) {
@@ -1440,12 +1479,12 @@ function checkKnock(row, time, config, columnMap, alerts, startTimes, values) {
   }
 
   // Warning knock
-  if (config.maxRetard?.warning && knockRetard > config.maxRetard.warning) {
+  if (warningThreshold != null && knockRetard > warningThreshold) {
     handleAlertState('knock_warning', true, time, knockRetard, alerts, startTimes, values, {
       name: 'Knock Detected',
       severity: SEVERITY.WARNING,
       category: CATEGORIES.KNOCK,
-      threshold: config.maxRetard.warning,
+      threshold: warningThreshold,
       unit: '°'
     });
   } else if (startTimes.has('knock_warning')) {
@@ -1550,20 +1589,125 @@ function evaluateRuleCondition(condition, row, columnMap, engineState = null) {
 }
 
 /**
+ * Delta threshold check with operating-point-aware bounds.
+ * Checks a computed delta (param1 - param2) against configurable boundaries
+ * that vary with operating conditions (e.g., TIP-MAP delta boundaries vary by MAP).
+ *
+ * @param {Object} row - Current data row
+ * @param {number} time - Current time
+ * @param {Object} config - Delta threshold config from profile
+ *   Shape: { enabled, param1, param2, operatingPointAware: {...}, warning: {min,max}, critical: {min,max} }
+ * @param {Object} columnMap - Column name mapping
+ * @param {Array} alerts - Alerts array (mutated)
+ * @param {Map} startTimes - Alert start times (mutated)
+ * @param {Map} values - Alert values (mutated)
+ * @param {Object} engineState - Current engine state
+ */
+function checkDeltaThreshold(row, time, config, columnMap, alerts, startTimes, values, engineState) {
+  if (!config?.enabled) return;
+  if (shouldSkipThreshold(config, row, columnMap)) return;
+
+  // Only check during stable running
+  if (engineState && engineState.state !== ENGINE_STATE.RUNNING_STABLE) return;
+
+  const result = resolveDeltaThreshold(config, row, columnMap);
+  if (!result) return;
+
+  const { delta, thresholds } = result;
+  const paramLabel = config.name || `${config.param1}-${config.param2} Delta`;
+  const alertPrefix = config.alertId || `delta_${(config.param1 || '').toLowerCase()}_${(config.param2 || '').toLowerCase()}`;
+
+  // Critical high
+  if (thresholds.criticalMax != null && delta > thresholds.criticalMax) {
+    handleAlertState(`${alertPrefix}_critical_high`, true, time, delta, alerts, startTimes, values, {
+      name: `Critical High ${paramLabel}`,
+      severity: SEVERITY.CRITICAL,
+      category: CATEGORIES.PRESSURE,
+      threshold: thresholds.criticalMax,
+      unit: config.unit || 'psi'
+    });
+  } else if (startTimes.has(`${alertPrefix}_critical_high`)) {
+    handleAlertState(`${alertPrefix}_critical_high`, false, time, delta, alerts, startTimes, values, {});
+  }
+
+  // Warning high
+  if (thresholds.warningMax != null && delta > thresholds.warningMax && (thresholds.criticalMax == null || delta <= thresholds.criticalMax)) {
+    handleAlertState(`${alertPrefix}_warning_high`, true, time, delta, alerts, startTimes, values, {
+      name: `High ${paramLabel}`,
+      severity: SEVERITY.WARNING,
+      category: CATEGORIES.PRESSURE,
+      threshold: thresholds.warningMax,
+      unit: config.unit || 'psi'
+    });
+  } else if (startTimes.has(`${alertPrefix}_warning_high`)) {
+    handleAlertState(`${alertPrefix}_warning_high`, false, time, delta, alerts, startTimes, values, {});
+  }
+
+  // Critical low
+  if (thresholds.criticalMin != null && delta < thresholds.criticalMin) {
+    handleAlertState(`${alertPrefix}_critical_low`, true, time, delta, alerts, startTimes, values, {
+      name: `Critical Low ${paramLabel}`,
+      severity: SEVERITY.CRITICAL,
+      category: CATEGORIES.PRESSURE,
+      threshold: thresholds.criticalMin,
+      unit: config.unit || 'psi'
+    });
+  } else if (startTimes.has(`${alertPrefix}_critical_low`)) {
+    handleAlertState(`${alertPrefix}_critical_low`, false, time, delta, alerts, startTimes, values, {});
+  }
+
+  // Warning low
+  if (thresholds.warningMin != null && delta < thresholds.warningMin && (thresholds.criticalMin == null || delta >= thresholds.criticalMin)) {
+    handleAlertState(`${alertPrefix}_warning_low`, true, time, delta, alerts, startTimes, values, {
+      name: `Low ${paramLabel}`,
+      severity: SEVERITY.WARNING,
+      category: CATEGORIES.PRESSURE,
+      threshold: thresholds.warningMin,
+      unit: config.unit || 'psi'
+    });
+  } else if (startTimes.has(`${alertPrefix}_warning_low`)) {
+    handleAlertState(`${alertPrefix}_warning_low`, false, time, delta, alerts, startTimes, values, {});
+  }
+}
+
+/**
  * Baseline bounds check (p05/p95 padded) for info-level alerts.
+ * Now supports operating-point-binned baselines via byOperatingPoint field.
  */
 function checkBaselineBounds(row, time, baseline, baselineChannels, columnMap, alerts, startTimes, values, config) {
   for (const param of baselineChannels) {
     const stats = baseline?.[param];
     if (!stats) continue;
 
-    const lower = stats.p05_padded;
-    const upper = stats.p95_padded;
-    if (!Number.isFinite(lower) && !Number.isFinite(upper)) continue;
-
     const rawValue = row[param] ?? getParamValue(row, param, columnMap);
     const numericValue = coerceNumber(rawValue);
     if (numericValue === null) continue;
+
+    // Try operating-point-binned bounds first, fall back to global
+    let lower = null;
+    let upper = null;
+    const opBinned = stats.byOperatingPoint;
+
+    if (opBinned?.bins && opBinned.indexParam) {
+      const indexValue = getOperatingPointValue(row, opBinned.indexParam, opBinned.indexParamAliases || [], columnMap);
+      if (indexValue != null) {
+        const bin = findOperatingPointBin(opBinned.bins, indexValue);
+        if (bin && (bin.n == null || bin.n >= 20)) {
+          // Use bin-specific bounds
+          lower = bin.p05_padded ?? bin.p05;
+          upper = bin.p95_padded ?? bin.p95;
+        }
+      }
+    }
+
+    // Fall back to global stats if no bin match or bin too sparse
+    if (lower == null && upper == null) {
+      const globalStats = stats.global || stats;
+      lower = globalStats.p05_padded;
+      upper = globalStats.p95_padded;
+    }
+
+    if (!Number.isFinite(lower) && !Number.isFinite(upper)) continue;
 
     const lowAlertId = `baseline_low_${param}`;
     const highAlertId = `baseline_high_${param}`;
