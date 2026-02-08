@@ -350,6 +350,7 @@ const EcmComparison = ({
         {histogramDiff ? (
           (() => {
             const isBackfireHistogram = selectedHistogram === 'backfireLifetime' || selectedHistogram === 'backfireRecent';
+            const isKnockHistogram = selectedHistogram === 'knock';
             const unitLabel = isBackfireHistogram ? 'events' : 'hours';
             const metricLabel = isBackfireHistogram ? 'backfire occurrence counts' : 'operating time';
             const selectedHistogramMeta = histogramOptions.find((option) => option.key === selectedHistogram);
@@ -361,6 +362,8 @@ const EcmComparison = ({
                 secondaryLabel={secondaryEcm.fileName}
                 unitLabel={unitLabel}
                 metricLabel={metricLabel}
+                sourceInSeconds={isKnockHistogram}
+                secondsPerUnit={isKnockHistogram ? 6.6 : 1}
               />
             );
           })()

@@ -757,7 +757,8 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
                   );
                 })}
                 <td className="p-2 text-center text-xs font-bold text-white border-l border-[#344d65]/50 font-mono">
-                  {grandTotal > 0 ? (rowTotals[yIdx] / grandTotal * 100).toFixed(1) : 0}%
+                  <div>{grandTotal > 0 ? (rowTotals[yIdx] / grandTotal * 100).toFixed(1) : 0}%</div>
+                  <div className="text-[10px] text-[#93adc8]">{unit === 'events' ? formatNumber(rowTotals[yIdx], 0) : rowTotals[yIdx].toFixed(2) + 'h'}</div>
                 </td>
               </tr>
             ))}
@@ -769,7 +770,8 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
               </td>
               {colTotals.map((total, idx) => (
                 <td key={idx} className="p-2 text-center text-xs font-bold text-[#93adc8] border-t border-[#344d65]/50 font-mono">
-                  {grandTotal > 0 ? (total / grandTotal * 100).toFixed(1) : 0}%
+                  <div>{grandTotal > 0 ? (total / grandTotal * 100).toFixed(1) : 0}%</div>
+                  <div className="text-[10px]">{unit === 'events' ? formatNumber(total, 0) : total.toFixed(2) + 'h'}</div>
                 </td>
               ))}
               <td className="p-2 text-center text-xs font-bold text-white border-t border-l border-[#344d65]/50 font-mono">

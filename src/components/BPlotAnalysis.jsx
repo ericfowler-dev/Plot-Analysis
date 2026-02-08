@@ -852,6 +852,9 @@ const BPlotAnalysis = ({
             onUserFieldsDraftChange={onUserFieldsDraftChange}
             onSaveUserFields={onSaveUserFields}
             onCancelUserFields={onCancelUserFields}
+            dualRoleMode={dualRoleMode}
+            overlayCorrelatedPlots={overlayCorrelatedPlots}
+            onToggleOverlay={() => setOverlayCorrelatedPlots(prev => !prev)}
           />
 
           {/* Secondary Controls Bar */}
