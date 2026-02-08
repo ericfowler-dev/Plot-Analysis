@@ -110,7 +110,7 @@ const formatNumber = (value, decimals = null) => {
 
 const stripQuotes = (value) => {
   if (!value) return '-';
-  return String(value).replace(/"/g, '');
+  return String(value).replace(/"/g, '').replace(/,{2,}/g, '').replace(/^,+|,+$/g, '').trim() || '-';
 };
 
 const SNAPSHOT_HOUR_KEYS = [

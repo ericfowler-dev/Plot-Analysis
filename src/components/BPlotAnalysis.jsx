@@ -270,9 +270,7 @@ const ChartValueTooltip = ({
       } else {
         displayValue = safeToFixed(numericValue, decimals);
       }
-      if (isApproximate) {
-        displayValue = `~${displayValue}`;
-      }
+      // Approximate indicator removed per user request
     }
 
     return {
