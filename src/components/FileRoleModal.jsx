@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Check } from 'lucide-react';
+import { X, FileText, Check, Cpu, ToggleLeft, ToggleRight } from 'lucide-react';
 
 // =============================================================================
 // FILE ROLE MODAL
-// Modal dialog for designating Primary/Secondary roles when 2+ files uploaded
+// Modal dialog for designating Primary/Secondary roles when 2+ files uploaded.
+// Supports two modes:
+//   - Dual ECM V-Engine: Primary/Secondary mapped per ECM bank
+//   - Single ECM Engine: Compare plots from different times on same engine
 // =============================================================================
 
 const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
   const [ecmRoles, setEcmRoles] = useState({});
   const [bplotRoles, setBplotRoles] = useState({});
+  const [engineMode, setEngineMode] = useState('single'); // 'single' or 'dual'
 
   // Initialize roles from pending files
   useEffect(() => {
     if (!pendingFiles) return;
+
+    // Auto-detect mode: if ECM files need role selection, default to dual
+    if (pendingFiles.needsEcmRoleSelection && pendingFiles.ecmFiles?.length > 1) {
+      setEngineMode('dual');
+    } else {
+      setEngineMode('single');
+    }
 
     if (pendingFiles.ecmFiles?.length > 0) {
       const initial = {};
@@ -35,10 +46,11 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
 
   const { ecmFiles = [], bplotFiles = [], needsEcmRoleSelection, needsBplotRoleSelection } = pendingFiles;
 
+  const isDualMode = engineMode === 'dual';
+
   const handleEcmRoleChange = (fileId, role) => {
     setEcmRoles(prev => {
       const updated = { ...prev };
-      // If setting as primary, set all others to secondary
       if (role === 'primary') {
         Object.keys(updated).forEach(id => {
           updated[id] = id === fileId ? 'primary' : 'secondary';
@@ -65,10 +77,9 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
   };
 
   const handleConfirm = () => {
-    // Apply roles to files
     const updatedEcmFiles = ecmFiles.map(file => ({
       ...file,
-      role: ecmRoles[file.id] || 'secondary'
+      role: isDualMode ? (ecmRoles[file.id] || 'secondary') : 'primary'
     }));
 
     const updatedBplotFiles = bplotFiles.map(file => ({
@@ -76,13 +87,15 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
       role: bplotRoles[file.id] || 'secondary'
     }));
 
-    onComplete({ ecmFiles: updatedEcmFiles, bplotFiles: updatedBplotFiles });
+    onComplete({ ecmFiles: updatedEcmFiles, bplotFiles: updatedBplotFiles, engineMode });
   };
 
-  // Check if a primary is selected for each type that needs it
+  // Validation
   const hasEcmPrimary = Object.values(ecmRoles).includes('primary');
   const hasBplotPrimary = Object.values(bplotRoles).includes('primary');
-  const canConfirm = (!needsEcmRoleSelection || hasEcmPrimary) && (!needsBplotRoleSelection || hasBplotPrimary);
+  const canConfirm = isDualMode
+    ? (!needsEcmRoleSelection || hasEcmPrimary) && (!needsBplotRoleSelection || hasBplotPrimary)
+    : (!needsBplotRoleSelection || hasBplotPrimary);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -104,7 +117,10 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
               SELECT FILE ROLES
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              For dual ECM engines, map files as Primary Plot + Primary ECM and Secondary Plot + Secondary ECM
+              {isDualMode
+                ? 'For dual ECM engines, map files as Primary Plot + Primary ECM and Secondary Plot + Secondary ECM'
+                : 'Compare two plots from different times on the same engine'
+              }
             </p>
           </div>
           <button
@@ -117,8 +133,36 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
 
         {/* Content */}
         <div className="px-6 py-5 space-y-6 max-h-[60vh] overflow-y-auto">
-          {/* ECM Files Section */}
-          {needsEcmRoleSelection && ecmFiles.length > 0 && (
+          {/* Engine Mode Selector */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setEngineMode('single')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all ${
+                !isDualMode
+                  ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                  : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+              }`}
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              <Cpu className="w-4 h-4" />
+              Single ECM Engine
+            </button>
+            <button
+              onClick={() => setEngineMode('dual')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all ${
+                isDualMode
+                  ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-lg shadow-orange-500/10'
+                  : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+              }`}
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              <Cpu className="w-4 h-4" />
+              Dual ECM V-Engine
+            </button>
+          </div>
+
+          {/* ECM Files Section - only in dual mode */}
+          {isDualMode && needsEcmRoleSelection && ecmFiles.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-orange-400" />
@@ -159,21 +203,36 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
             </div>
           )}
 
-          {/* Info box */}
+          {/* Info box - context-dependent */}
           <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-4 h-4 text-blue-400" />
               </div>
               <div className="text-sm text-slate-300">
-                <p className="font-medium text-white mb-1">About Primary/Secondary Roles</p>
-                <ul className="list-disc list-inside space-y-1 text-slate-400">
-                  <li><span className="text-blue-400">Primary</span> - Main ECM data used for overview displays</li>
-                  <li><span className="text-slate-300">Secondary</span> - Comparison data shown in ECM Compare view</li>
-                  <li>Dual-plot V-engine upload: Primary B-Plot + Primary ECM, Secondary B-Plot + Secondary ECM</li>
-                  <li>Faults from both ECMs are combined with source attribution</li>
-                  <li>Histogram differences help identify ECM-specific issues</li>
-                </ul>
+                {isDualMode ? (
+                  <>
+                    <p className="font-medium text-white mb-1">About Primary/Secondary Roles</p>
+                    <ul className="list-disc list-inside space-y-1 text-slate-400">
+                      <li><span className="text-blue-400">Primary</span> - Main ECM data used for overview displays</li>
+                      <li><span className="text-slate-300">Secondary</span> - Comparison data shown in ECM Compare view</li>
+                      <li>Dual-plot V-engine upload: Primary B-Plot + Primary ECM, Secondary B-Plot + Secondary ECM</li>
+                      <li>Faults from both ECMs are combined with source attribution</li>
+                      <li>Histogram differences help identify ECM-specific issues</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-white mb-1">Comparing Plots from Different Times</p>
+                    <ul className="list-disc list-inside space-y-1 text-slate-400">
+                      <li><span className="text-blue-400">Primary</span> - Baseline or reference plot (e.g., before service)</li>
+                      <li><span className="text-slate-300">Secondary</span> - Comparison plot (e.g., after service)</li>
+                      <li>Use Overlay P+S to view both plots on the same chart</li>
+                      <li>Primary traces are solid lines, Secondary traces are dashed</li>
+                      <li>Color-coded for quick visual comparison across channels</li>
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
           </div>
