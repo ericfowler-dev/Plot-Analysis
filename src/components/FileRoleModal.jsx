@@ -137,26 +137,26 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setEngineMode('single')}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all ${
                 !isDualMode
                   ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-lg shadow-cyan-500/10'
                   : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
               }`}
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              <Cpu className="w-4 h-4" />
+              <Cpu className="w-5 h-5" />
               Single ECM Engine
             </button>
             <button
               onClick={() => setEngineMode('dual')}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all ${
                 isDualMode
                   ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-lg shadow-orange-500/10'
                   : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
               }`}
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              <Cpu className="w-4 h-4" />
+              <Cpu className="w-5 h-5" />
               Dual ECM V-Engine
             </button>
           </div>
@@ -197,6 +197,7 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
                     role={bplotRoles[file.id]}
                     onRoleChange={(role) => handleBplotRoleChange(file.id, role)}
                     type="BPLOT"
+                    engineMode={engineMode}
                   />
                 ))}
               </div>
@@ -225,10 +226,10 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
                   <>
                     <p className="font-medium text-white mb-1">Comparing Plots from Different Times</p>
                     <ul className="list-disc list-inside space-y-1 text-slate-400">
-                      <li><span className="text-blue-400">Primary</span> - Baseline or reference plot (e.g., before service)</li>
-                      <li><span className="text-slate-300">Secondary</span> - Comparison plot (e.g., after service)</li>
+                      <li><span className="text-blue-400">First Plot</span> - Baseline or reference plot (e.g., before service)</li>
+                      <li><span className="text-slate-300">Second Plot</span> - Comparison plot (e.g., after service)</li>
                       <li>Use Overlay P+S to view both plots on the same chart</li>
-                      <li>Primary traces are solid lines, Secondary traces are dashed</li>
+                      <li>First Plot traces are solid lines, Second Plot traces are dashed</li>
                       <li>Color-coded for quick visual comparison across channels</li>
                     </ul>
                   </>
@@ -266,9 +267,12 @@ const FileRoleModal = ({ isOpen, pendingFiles, onComplete, onCancel }) => {
 };
 
 // Individual file row with role selection
-const FileRoleRow = ({ file, role, onRoleChange, type }) => {
+const FileRoleRow = ({ file, role, onRoleChange, type, engineMode }) => {
   const isPrimary = role === 'primary';
   const isEcm = type === 'ECM';
+  const isSingleMode = engineMode === 'single' && !isEcm;
+  const primaryLabel = isSingleMode ? 'First Plot' : 'Primary';
+  const secondaryLabel = isSingleMode ? 'Second Plot' : 'Secondary';
 
   return (
     <div className={`
@@ -313,7 +317,7 @@ const FileRoleRow = ({ file, role, onRoleChange, type }) => {
           `}
           style={{ fontFamily: 'Orbitron, sans-serif' }}
         >
-          Primary
+          {primaryLabel}
         </button>
         <button
           onClick={() => onRoleChange('secondary')}
@@ -326,7 +330,7 @@ const FileRoleRow = ({ file, role, onRoleChange, type }) => {
           `}
           style={{ fontFamily: 'Orbitron, sans-serif' }}
         >
-          Secondary
+          {secondaryLabel}
         </button>
       </div>
     </div>

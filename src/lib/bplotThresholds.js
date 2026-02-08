@@ -323,6 +323,19 @@ export const BPLOT_PARAMETERS = {
     showTimeInState: true
   },
 
+  // Aliases to ensure these always land in ENGINE category regardless of CSV column name
+  hm_hours: { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  HM_hours: { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  HM_Hours: { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  engine_hours: { name: 'Engine Hours', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  'Engine Hours': { name: 'Engine Hours', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  'Hour Meter': { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  'Hour meter': { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  'HourMeter': { name: 'Hour Meter', unit: 'hrs', description: 'Engine hours', category: 'engine', hideAverage: true },
+  mil_status: { name: 'MIL Status', unit: '', description: '0=DTC Not Active; 1=DTC Active', category: 'engine', hideAverage: true, showTimeInState: true },
+  MIL_Status: { name: 'MIL Status', unit: '', description: '0=DTC Not Active; 1=DTC Active', category: 'engine', hideAverage: true, showTimeInState: true },
+  MIL_status: { name: 'MIL Status', unit: '', description: '0=DTC Not Active; 1=DTC Active', category: 'engine', hideAverage: true, showTimeInState: true },
+
   // =============================================================================
   // SPEED CONTROL SECTION
   // =============================================================================
@@ -571,6 +584,20 @@ export const BPLOT_PARAMETERS = {
     name: 'MFG Fuel Pressure (psig)',
     unit: 'psig',
     description: 'Computed MFG fuel gauge pressure. Formula: MFG_USPress - BP. Valid range: 0.74-1.11 psig.',
+    category: 'fuel',
+    computed: true
+  },
+  MFG_USPress_inWC: {
+    name: 'MFG Upstream Pressure (inWC)',
+    unit: 'inWC',
+    description: 'Computed MFG upstream pressure in inches of water column. Formula: (MFG_USPress - BP) × 27.',
+    category: 'fuel',
+    computed: true
+  },
+  MFG_DSPress_inWC: {
+    name: 'MFG Downstream Pressure (inWC)',
+    unit: 'inWC',
+    description: 'Computed MFG downstream pressure in inches of water column. Formula: (MFG_DSPress - BP) × 27.',
     category: 'fuel',
     computed: true
   },

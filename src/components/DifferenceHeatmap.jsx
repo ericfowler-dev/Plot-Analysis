@@ -19,7 +19,9 @@ const DifferenceHeatmap = ({
   primaryLabel = 'Primary',
   secondaryLabel = 'Secondary',
   unitLabel = 'hours',
-  metricLabel = 'operating time'
+  metricLabel = 'operating time',
+  sourceInSeconds = false,
+  secondsPerUnit = 1
 }) => {
   if (!differenceData || !differenceData.data || differenceData.data.length === 0) {
     return (
@@ -30,8 +32,16 @@ const DifferenceHeatmap = ({
     );
   }
 
-  const { data, xLabels, yLabels, maxAbsDiff } = differenceData;
+  const { data: rawData, xLabels, yLabels, maxAbsDiff: rawMaxAbsDiff } = differenceData;
   const isEventUnits = unitLabel === 'events' || unitLabel === 'counts' || unitLabel === 'occurrences';
+
+  // Conversion factor: if source is in seconds, convert to hours for display
+  const conversionFactor = sourceInSeconds ? (secondsPerUnit / 3600) : 1;
+
+  // Apply conversion to data
+  const data = rawData.map(row => row.map(val => val * conversionFactor));
+  const maxAbsDiff = rawMaxAbsDiff * conversionFactor;
+
   const valueDecimals = isEventUnits ? 0 : 2;
   const tooltipDecimals = isEventUnits ? 0 : 4;
   const comparisonNoun = isEventUnits ? 'events' : 'time';
@@ -154,8 +164,8 @@ const DifferenceHeatmap = ({
                       title={`RPM: ${yLabel}, MAP: ${xLabels[xIdx]}\nDifference: ${formatNumber(value, tooltipDecimals)} ${unitLabel}\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
                     >
                       {value !== 0 ? (
-                        <div className={`text-[11px] font-mono font-bold ${textColor} drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]`}>
-                          {value > 0 ? '+' : ''}{formatNumber(value, isEventUnits ? 0 : (Math.abs(value) < 0.01 ? 4 : 2))}
+                        <div className={`text-[11px] font-mono font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)] ${value > 0 ? 'text-blue-200' : 'text-orange-200'}`}>
+                          <span className="text-[9px]">{value > 0 ? 'P+' : 'S+'}</span>{formatNumber(Math.abs(value), isEventUnits ? 0 : (Math.abs(value) < 0.01 ? 4 : 2))}
                         </div>
                       ) : (
                         <div className="text-[11px] text-slate-300 font-mono">0</div>
@@ -164,7 +174,7 @@ const DifferenceHeatmap = ({
                   );
                 })}
                 <td className={`p-2 text-center text-xs font-bold font-mono border-l border-slate-700/50 ${getTotalTextColor(rowTotals[yIdx])}`}>
-                  {rowTotals[yIdx] !== 0 && (rowTotals[yIdx] > 0 ? '+' : '')}{formatNumber(rowTotals[yIdx], 2)}
+                  {rowTotals[yIdx] !== 0 ? (<><span className="text-[9px]">{rowTotals[yIdx] > 0 ? 'P+' : 'S+'}</span>{formatNumber(Math.abs(rowTotals[yIdx]), 2)}</>) : '0'}
                 </td>
               </tr>
             ))}
@@ -176,7 +186,7 @@ const DifferenceHeatmap = ({
               </td>
               {colTotals.map((total, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs font-bold font-mono border-t border-slate-700/50 ${getTotalTextColor(total)}`}>
-                  {total !== 0 && (total > 0 ? '+' : '')}{formatNumber(total, valueDecimals)}
+                  {total !== 0 ? (<><span className="text-[9px]">{total > 0 ? 'P+' : 'S+'}</span>{formatNumber(Math.abs(total), valueDecimals)}</>) : '0'}
                 </td>
               ))}
               <td className="p-2 text-center text-xs font-bold text-white font-mono border-t border-l border-slate-700/50">
@@ -204,7 +214,7 @@ const DifferenceHeatmap = ({
           </span>
         </div>
         <div className="text-[10px] text-slate-500">
-          Positive = Primary has more {comparisonNoun} | Negative = Secondary has more {comparisonNoun}
+          <span className="text-blue-400">P+</span> = Primary has more {comparisonNoun} | <span className="text-orange-400">S+</span> = Secondary has more {comparisonNoun}
         </div>
       </div>
     </div>

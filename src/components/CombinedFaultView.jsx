@@ -21,17 +21,37 @@ const parseHours = (value) => {
   return Number.isFinite(numeric) ? numeric : null;
 };
 
-const toTimelineLabel = (fault) => (fault?.code ? `DTC ${fault.code}` : 'DTC');
+const toTimelineLabel = (fault) => {
+  if (!fault?.code) return 'DTC';
+  const desc = fault.description || '';
+  const shortDesc = desc.length > 22 ? desc.slice(0, 22) + '…' : desc;
+  return shortDesc ? `${fault.code} – ${shortDesc}` : `DTC ${fault.code}`;
+};
+
+const VerticalDTCLine = ({ cx, fill, payload }) => {
+  if (typeof cx !== 'number') return null;
+  const isSelected = payload?.isSelected;
+  return (
+    <line
+      x1={cx} y1={10} x2={cx} y2={255}
+      stroke={fill}
+      strokeWidth={isSelected ? 3 : 1.5}
+      strokeOpacity={isSelected ? 0.9 : 0.5}
+    />
+  );
+};
 
 const TimelineLabel = ({ x, y, value, payload }) => {
-  if (typeof x !== 'number' || typeof y !== 'number' || !value) return null;
+  if (typeof x !== 'number' || !value) return null;
   const rank = Number.isFinite(payload?.labelRank) ? payload.labelRank : 0;
-  const verticalOffset = ((rank % 3) - 1) * 11;
+  const isPrimary = payload?.sourceRole === 'primary';
+  const baseY = isPrimary ? 18 : 250;
+  const staggerOffset = (rank % 4) * 11 * (isPrimary ? 1 : -1);
   return (
     <text
-      x={x + 8}
-      y={y + 4 + verticalOffset}
-      fill={payload?.sourceRole === 'primary' ? '#bfdbfe' : '#fed7aa'}
+      x={x + 4}
+      y={baseY + staggerOffset}
+      fill={isPrimary ? '#93c5fd' : '#fdba74'}
       fontSize={9}
       fontWeight={600}
       style={{ pointerEvents: 'none' }}
@@ -375,6 +395,7 @@ const CombinedFaultView = ({
 
       return {
         ...point,
+        isSelected: point.filteredIndex === selectedFaultIndex,
         timelineLabel: shouldLabel ? point.timelineLabel : '',
         labelRank: shouldLabel ? currentLaneCount : undefined
       };
@@ -501,7 +522,7 @@ const CombinedFaultView = ({
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
             <div className="text-sm font-semibold text-slate-200">Fault Timeline Correlation</div>
-            <div className="text-xs text-slate-500">X-axis = engine hours, with role-specific DTC events from both ECMs.</div>
+            <div className="text-xs text-slate-500">Vertical lines show DTC events by engine hours. Click a line for details.</div>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="text-blue-300">Primary Hours: <span className="font-mono text-white">{formatNumber(primaryEngineHours, 1)}h</span></div>
@@ -514,56 +535,67 @@ const CombinedFaultView = ({
             No numeric hour data available for timeline plotting.
           </div>
         ) : (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <ScatterChart margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis
-                  type="number"
-                  dataKey="hour"
-                  domain={timelineDomain}
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(value) => `${formatNumber(value, 1)}h`}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="lane"
-                  domain={[0.5, 2.5]}
-                  ticks={[1, 2]}
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(value) => (value === 1 ? 'Primary' : 'Secondary')}
-                />
-                <Tooltip content={<FaultTimelineTooltip />} />
+          <>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <ScatterChart margin={{ top: 30, right: 20, left: 10, bottom: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis
+                    type="number"
+                    dataKey="hour"
+                    domain={timelineDomain}
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => `${formatNumber(value, 1)}h`}
+                  />
+                  <YAxis
+                    type="number"
+                    dataKey="lane"
+                    domain={[0.5, 2.5]}
+                    hide
+                  />
+                  <Tooltip content={<FaultTimelineTooltip />} />
 
-                <Scatter
-                  name="Primary ECM"
-                  data={primaryTimelinePoints}
-                  fill="#60a5fa"
-                  onClick={(point) => {
-                    if (typeof point?.payload?.filteredIndex === 'number') {
-                      setSelectedFaultIndex(point.payload.filteredIndex);
-                    }
-                  }}
-                >
-                  <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
-                </Scatter>
-                <Scatter
-                  name="Secondary ECM"
-                  data={secondaryTimelinePoints}
-                  fill="#fb923c"
-                  onClick={(point) => {
-                    if (typeof point?.payload?.filteredIndex === 'number') {
-                      setSelectedFaultIndex(point.payload.filteredIndex);
-                    }
-                  }}
-                >
-                  <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
+                  <Scatter
+                    name="Primary ECM"
+                    data={primaryTimelinePoints}
+                    fill="#60a5fa"
+                    shape={<VerticalDTCLine />}
+                    onClick={(point) => {
+                      if (typeof point?.payload?.filteredIndex === 'number') {
+                        setSelectedFaultIndex(point.payload.filteredIndex);
+                      }
+                    }}
+                  >
+                    <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
+                  </Scatter>
+                  <Scatter
+                    name="Secondary ECM"
+                    data={secondaryTimelinePoints}
+                    fill="#fb923c"
+                    shape={<VerticalDTCLine />}
+                    onClick={(point) => {
+                      if (typeof point?.payload?.filteredIndex === 'number') {
+                        setSelectedFaultIndex(point.payload.filteredIndex);
+                      }
+                    }}
+                  >
+                    <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center justify-center gap-6 mt-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-0.5 bg-blue-400 opacity-70" />
+                <span className="text-blue-300">Primary ECM</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-0.5 bg-orange-400 opacity-70" />
+                <span className="text-orange-300">Secondary ECM</span>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

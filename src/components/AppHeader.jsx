@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
-const GUI_REVISION_LABEL = 'config v3.1 app v2.7.0';
+const GUI_REVISION_LABEL = 'config v3.1 app v2.7.1';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
@@ -213,6 +213,9 @@ const AppHeader = ({
   activeProfileId = null,
   activeEcmRole = null,
   onEcmRoleChange = null,
+  overlayCorrelatedPlots = false,
+  onToggleOverlay = null,
+  dualRoleMode = false,
   userFields,
   userFieldsDraft,
   isUserFieldsEditing = false,
@@ -395,6 +398,26 @@ const AppHeader = ({
                   </span>
                 )}
               </div>
+            </>
+          )}
+
+          {/* Overlay P+S button for dual B-Plot mode */}
+          {dualRoleMode && onToggleOverlay && (
+            <>
+              <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
+              <button
+                type="button"
+                onClick={onToggleOverlay}
+                className={`h-8 px-4 rounded border font-bold text-[11px] uppercase tracking-wider transition-colors ${
+                  overlayCorrelatedPlots
+                    ? 'text-emerald-100 border-emerald-400/70 bg-emerald-500/35 shadow-[0_0_14px_rgba(16,185,129,0.35)]'
+                    : 'text-slate-300 border-slate-600 hover:text-white hover:border-slate-400'
+                }`}
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+                title="Overlay primary and secondary plots on the same chart"
+              >
+                OVERLAY P+S
+              </button>
             </>
           )}
         </div>

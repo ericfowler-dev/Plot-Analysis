@@ -6,7 +6,7 @@ import {
 import {
   Activity, AlertCircle, AlertTriangle, Clock, Zap, Info,
   ThermometerSun, Battery, Gauge, TrendingUp, Play,
-  ChevronDown, ChevronRight, Droplets, Settings, FileText, Upload
+  ChevronDown, ChevronRight, ChevronLeft, Droplets, Settings, FileText, Upload, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
 import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
@@ -270,9 +270,7 @@ const ChartValueTooltip = ({
       } else {
         displayValue = safeToFixed(numericValue, decimals);
       }
-      if (isApproximate) {
-        displayValue = `~${displayValue}`;
-      }
+      // Approximate indicator removed per user request
     }
 
     return {
@@ -436,6 +434,10 @@ const BPlotAnalysis = ({
   const [overlayCorrelatedPlots, setOverlayCorrelatedPlots] = useState(false);
   const [showColorControls, setShowColorControls] = useState(false);
   const [channelColorOverrides, setChannelColorOverrides] = useState({});
+  const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(false);
+  const [refAreaLeft, setRefAreaLeft] = useState(null);
+  const [refAreaRight, setRefAreaRight] = useState(null);
+  const [zoomedDomain, setZoomedDomain] = useState(null);
 
   const primaryBplotFile = useMemo(
     () => bplotFiles.find((file) => file.role === 'primary'),
@@ -750,6 +752,35 @@ const BPlotAnalysis = ({
     });
   };
 
+  const handleZoomMouseDown = (e) => {
+    if (e && e.activeLabel !== undefined) {
+      setRefAreaLeft(e.activeLabel);
+      setRefAreaRight(null);
+    }
+  };
+
+  const handleZoomMouseMove = (e) => {
+    if (refAreaLeft !== null && e && e.activeLabel !== undefined) {
+      setRefAreaRight(e.activeLabel);
+    }
+  };
+
+  const handleZoomMouseUp = () => {
+    if (refAreaLeft !== null && refAreaRight !== null) {
+      const left = Math.min(refAreaLeft, refAreaRight);
+      const right = Math.max(refAreaLeft, refAreaRight);
+      if (right - left > 0.01) {
+        setZoomedDomain([left, right]);
+      }
+    }
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+  };
+
+  const handleResetZoom = () => {
+    setZoomedDomain(null);
+  };
+
   const seriesValueLookup = useMemo(() => {
     const lookup = {};
     chartSeries.forEach((series) => {
@@ -854,6 +885,9 @@ const BPlotAnalysis = ({
             onUserFieldsDraftChange={onUserFieldsDraftChange}
             onSaveUserFields={onSaveUserFields}
             onCancelUserFields={onCancelUserFields}
+            dualRoleMode={dualRoleMode}
+            overlayCorrelatedPlots={overlayCorrelatedPlots}
+            onToggleOverlay={() => setOverlayCorrelatedPlots(prev => !prev)}
           />
 
           {/* Secondary Controls Bar */}
@@ -1052,11 +1086,29 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.primary?.duration || 0).toFixed(1)}s
                     </div>
-                    {bplotCorrelation?.primary?.hourWindow && (
-                      <div className="text-slate-400 mt-1">
-                        Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
-                      </div>
-                    )}
+                    {(() => {
+                      const stats = primaryBplotFile?.processed?.channelStats;
+                      const hmSec = stats?.HM_RAM_seconds;
+                      const hmRam = stats?.HM_RAM;
+                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
+                      const hourStat = hmHours || hmRam || hmSec;
+                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
+                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      if (bplotCorrelation?.primary?.hourWindow) {
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-3">
                     <div className="text-orange-300 uppercase tracking-wider mb-1">Secondary Plot</div>
@@ -1064,11 +1116,29 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.secondary?.duration || 0).toFixed(1)}s
                     </div>
-                    {bplotCorrelation?.secondary?.hourWindow && (
-                      <div className="text-slate-400 mt-1">
-                        Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
-                      </div>
-                    )}
+                    {(() => {
+                      const stats = secondaryBplotFile?.processed?.channelStats;
+                      const hmSec = stats?.HM_RAM_seconds;
+                      const hmRam = stats?.HM_RAM;
+                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
+                      const hourStat = hmHours || hmRam || hmSec;
+                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
+                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      if (bplotCorrelation?.secondary?.hourWindow) {
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
                 {bplotCorrelation?.overlapWindow && (
@@ -1310,64 +1380,88 @@ const BPlotAnalysis = ({
         {activeTab === 'charts' && (
           <>
           <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-280px)] min-h-[500px]">
-            {/* Sidebar - Channel Selection */}
-            <aside className="w-full lg:w-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0">
-              <div className="p-4 border-b border-slate-700">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-slate-300">
-                    Channels ({selectedChannels.length}/{MAX_CHART_CHANNELS})
-                  </h3>
-                  {selectedChannels.length > 0 && (
-                    <button
-                      onClick={() => setSelectedChannels([])}
-                      className="text-xs text-slate-400 hover:text-red-400 transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="py-2">
-                {Object.entries(orderedCategories).map(([category, channels]) => (
-                  <div key={category} className="border-b border-slate-800/50">
-                    <div
-                      className="px-4 py-3 text-xs text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-800/30 flex justify-between items-center"
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: CATEGORY_COLORS[category] || '#6b7280' }}
-                        />
-                        {CATEGORY_LABELS[category] || category}
-                      </span>
-                      <span>{expandedCategories[category] ? '▾' : '▸'}</span>
+            {/* Sidebar - Channel Selection (collapsible) */}
+            {channelsPanelCollapsed ? (
+              <button
+                onClick={() => setChannelsPanelCollapsed(false)}
+                className="hidden lg:flex flex-col items-center justify-center w-10 bg-slate-900/80 border border-slate-800 rounded-xl flex-shrink-0 hover:bg-slate-800/80 transition-colors group"
+                title="Expand channels panel"
+              >
+                <PanelLeftOpen className="w-4 h-4 text-slate-400 group-hover:text-white mb-2" />
+                <span className="text-[10px] text-slate-400 group-hover:text-white uppercase tracking-widest font-bold"
+                  style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                >
+                  Channels
+                </span>
+              </button>
+            ) : (
+              <aside className="w-full lg:w-64 lg:max-h-none bg-slate-900/80 border border-slate-800 rounded-xl overflow-y-auto flex-shrink-0 transition-all">
+                <div className="p-4 border-b border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-slate-300">
+                      Channels ({selectedChannels.length}/{MAX_CHART_CHANNELS})
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {selectedChannels.length > 0 && (
+                        <button
+                          onClick={() => setSelectedChannels([])}
+                          className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setChannelsPanelCollapsed(true)}
+                        className="hidden lg:flex text-slate-400 hover:text-white transition-colors"
+                        title="Collapse channels panel"
+                      >
+                        <PanelLeftClose className="w-4 h-4" />
+                      </button>
                     </div>
-                    {expandedCategories[category] && (
-                      <div className="pb-2">
-                        {channels.map(channel => (
-                          <label
-                            key={channel}
-                            className="flex items-center gap-3 px-5 py-2 text-sm text-slate-200 hover:bg-slate-800/40 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedChannels.includes(channel)}
-                              onChange={() => toggleChannel(channel)}
-                              disabled={!selectedChannels.includes(channel) && selectedChannels.length >= MAX_CHART_CHANNELS}
-                              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-green-500 focus:ring-green-500 focus:ring-offset-slate-900"
-                            />
-                            <span className={selectedChannels.includes(channel) ? 'text-white' : ''}>
-                              {BPLOT_PARAMETERS[channel]?.name || channel}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            </aside>
+                </div>
+                <div className="py-2">
+                  {Object.entries(orderedCategories).map(([category, channels]) => (
+                    <div key={category} className="border-b border-slate-800/50">
+                      <div
+                        className="px-4 py-3 text-xs text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-800/30 flex justify-between items-center"
+                        onClick={() => toggleCategory(category)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: CATEGORY_COLORS[category] || '#6b7280' }}
+                          />
+                          {CATEGORY_LABELS[category] || category}
+                        </span>
+                        <span>{expandedCategories[category] ? '▾' : '▸'}</span>
+                      </div>
+                      {expandedCategories[category] && (
+                        <div className="pb-2">
+                          {channels.map(channel => (
+                            <label
+                              key={channel}
+                              className="flex items-center gap-3 px-5 py-2 text-sm text-slate-200 hover:bg-slate-800/40 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedChannels.includes(channel)}
+                                onChange={() => toggleChannel(channel)}
+                                disabled={!selectedChannels.includes(channel) && selectedChannels.length >= MAX_CHART_CHANNELS}
+                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-green-500 focus:ring-green-500 focus:ring-offset-slate-900"
+                              />
+                              <span className={selectedChannels.includes(channel) ? 'text-white' : ''}>
+                                {BPLOT_PARAMETERS[channel]?.name || channel}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </aside>
+            )}
 
             {/* Main Chart Area */}
             <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
@@ -1388,6 +1482,15 @@ const BPlotAnalysis = ({
                     >
                       {showColorControls ? 'Hide Colors' : 'Colors'}
                     </button>
+                    {zoomedDomain && (
+                      <button
+                        onClick={handleResetZoom}
+                        className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                        style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      >
+                        Reset Zoom
+                      </button>
+                    )}
                     {Object.keys(channelColorOverrides).length > 0 && (
                       <button
                         onClick={() => {
@@ -1443,14 +1546,20 @@ const BPlotAnalysis = ({
               </div>
               <div className="flex-1 h-[300px] lg:h-auto">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <LineChart data={chartRenderData}>
+                  <LineChart
+                    data={chartRenderData}
+                    onMouseDown={handleZoomMouseDown}
+                    onMouseMove={handleZoomMouseMove}
+                    onMouseUp={handleZoomMouseUp}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
                       dataKey="Time"
                       stroke="#64748b"
                       fontSize={12}
                       type="number"
-                      domain={['dataMin', 'dataMax']}
+                      domain={zoomedDomain || ['dataMin', 'dataMax']}
+                      allowDataOverflow={!!zoomedDomain}
                       tickFormatter={(v) => {
                         if (typeof v !== 'number' || Number.isNaN(v)) return '';
                         if (v < 60) return `${safeToFixed(v, 0)}s`;
@@ -1545,12 +1654,25 @@ const BPlotAnalysis = ({
                         />
                       );
                     })()}
-                    <Brush
-                      dataKey="Time"
-                      height={20}
-                      stroke="#22c55e"
-                      travellerWidth={8}
-                    />
+                    {/* Drag-to-zoom selection area */}
+                    {refAreaLeft !== null && refAreaRight !== null && (
+                      <ReferenceArea
+                        x1={refAreaLeft}
+                        x2={refAreaRight}
+                        yAxisId={chartAxes.axes[0]?.id}
+                        strokeOpacity={0.3}
+                        fill="#22c55e"
+                        fillOpacity={0.15}
+                      />
+                    )}
+                    {!zoomedDomain && (
+                      <Brush
+                        dataKey="Time"
+                        height={20}
+                        stroke="#22c55e"
+                        travellerWidth={8}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
