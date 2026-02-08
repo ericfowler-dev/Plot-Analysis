@@ -24,7 +24,7 @@ const parseHours = (value) => {
 const toTimelineLabel = (fault) => {
   if (!fault?.code) return 'DTC';
   const desc = fault.description || '';
-  const shortDesc = desc.length > 22 ? desc.slice(0, 22) + '…' : desc;
+  const shortDesc = desc.length > 16 ? desc.slice(0, 16) + '…' : desc;
   return shortDesc ? `${fault.code} – ${shortDesc}` : `DTC ${fault.code}`;
 };
 
@@ -45,8 +45,8 @@ const TimelineLabel = ({ x, y, value, payload }) => {
   if (typeof x !== 'number' || !value) return null;
   const rank = Number.isFinite(payload?.labelRank) ? payload.labelRank : 0;
   const isPrimary = payload?.sourceRole === 'primary';
-  const baseY = isPrimary ? 18 : 250;
-  const staggerOffset = (rank % 4) * 11 * (isPrimary ? 1 : -1);
+  const baseY = isPrimary ? 15 : 258;
+  const staggerOffset = (rank % 6) * 14 * (isPrimary ? 1 : -1);
   return (
     <text
       x={x + 4}
@@ -372,8 +372,8 @@ const CombinedFaultView = ({
     const minHour = Math.min(...basePoints.map((point) => point.hour));
     const maxHour = Math.max(...basePoints.map((point) => point.hour));
     const hourRange = Math.max(0.01, maxHour - minHour);
-    const minLabelGap = Math.max(0.9, hourRange / 10);
-    const maxLabelsPerLane = 10;
+    const minLabelGap = Math.max(2, hourRange / 5);
+    const maxLabelsPerLane = 6;
     const lastLabeledHourByLane = new Map();
     const laneLabelCount = new Map();
 

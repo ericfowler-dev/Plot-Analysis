@@ -470,6 +470,25 @@ export function processBPlotData(parsedData, thresholdProfile = null, options = 
   // Add computed/derived fields (MFG fuel pressure, etc.)
   normalizedData = addComputedFields(normalizedData);
 
+  // Validate MFG equipment: if MFG upstream pressure ≈ barometric pressure
+  // (computed inWC values near zero), the engine has no MFG equipment installed
+  // and the MFG channels would show meaningless atmospheric noise.
+  // Typical valid MFG range is 20-30 inWC at full load; < 3 inWC avg = no MFG.
+  {
+    const sampleSize = Math.min(200, normalizedData.length);
+    let mfgSum = 0, mfgCount = 0;
+    for (let i = 0; i < sampleSize; i++) {
+      const v = normalizedData[i].MFG_USPress_inWC;
+      if (Number.isFinite(v)) { mfgSum += Math.abs(v); mfgCount++; }
+    }
+    if (mfgCount > 0 && (mfgSum / mfgCount) < 3) {
+      const mfgFields = ['MFG_FuelPressure_inWC', 'MFG_FuelPressure_psig', 'MFG_USPress_inWC', 'MFG_DSPress_inWC'];
+      for (const row of normalizedData) {
+        for (const field of mfgFields) delete row[field];
+      }
+    }
+  }
+
   // Register computed channels so they appear in the channel list and get stats
   const computedChannelNames = ['MFG_FuelPressure_inWC', 'MFG_FuelPressure_psig', 'MFG_USPress_inWC', 'MFG_DSPress_inWC'];
   for (const compName of computedChannelNames) {
