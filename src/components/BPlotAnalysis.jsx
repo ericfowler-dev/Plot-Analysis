@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, ReferenceArea, Brush
@@ -449,7 +449,10 @@ const BPlotAnalysis = ({
   const activeCorrelatedRole = (
     externalCorrelatedRole === 'secondary' || externalCorrelatedRole === 'primary'
   ) ? externalCorrelatedRole : internalCorrelatedRole;
-  const setCorrelatedRole = onCorrelatedRoleChange || setInternalCorrelatedRole;
+  const setCorrelatedRole = useCallback(
+    (role) => (onCorrelatedRoleChange || setInternalCorrelatedRole)(role),
+    [onCorrelatedRoleChange]
+  );
 
   useEffect(() => {
     if (!dualRoleMode) return;
