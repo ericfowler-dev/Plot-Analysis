@@ -831,6 +831,67 @@ export const PARAMETER_CATALOG = {
     applicableEngines: ['40L', '53L'] // v3.1.3: MFG fuel system only on 40L/53L
   },
 
+  // ============== ENGINE STATE / STATUS ==============
+  milStatus: {
+    id: 'milStatus',
+    name: 'MIL Status',
+    category: 'engine',
+    unit: '',
+    description: 'Malfunction Indicator Lamp status. 0 = No active DTC, 1 = Active DTC.',
+    dataColumns: ['MILout_mirror', 'mil_status', 'MIL_status'],
+    thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: false,
+    defaults: { enabled: false },
+    validation: { min: 0, max: 1, step: 1 },
+    advanced: [],
+    engineFamilies: null
+  },
+
+  fuelControlMode: {
+    id: 'fuelControlMode',
+    name: 'Fuel Control Mode',
+    category: 'engine',
+    unit: '',
+    description: 'Fuel control loop state. 0 = Open Loop, 2 = Closed Loop, 3 = CL + Adaptive.',
+    dataColumns: ['fuel_ctl_mode', 'fuel_control_mode'],
+    thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: false,
+    defaults: { enabled: false },
+    validation: { min: 0, max: 3, step: 1 },
+    advanced: [],
+    engineFamilies: null
+  },
+
+  runMode: {
+    id: 'runMode',
+    name: 'System Run Mode',
+    category: 'engine',
+    unit: '',
+    description: 'Engine operating state. 0 = Stopped, 1 = Cranking, 2 = Warmup, 3 = Running.',
+    dataColumns: ['run_mode', 'system_run_mode'],
+    thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: false,
+    defaults: { enabled: false },
+    validation: { min: 0, max: 3, step: 1 },
+    advanced: [],
+    engineFamilies: null
+  },
+
+  engineLoad: {
+    id: 'engineLoad',
+    name: 'Engine Load',
+    category: 'engine',
+    unit: '%',
+    description: 'Calculated engine load percentage.',
+    dataColumns: ['engine_load', 'load_pct', 'ENGINE_LOAD'],
+    thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: false,
+    defaults: { enabled: false },
+    validation: { min: 0, max: 100, step: 1 },
+    advanced: [],
+    engineFamilies: null
+  },
+
   // ============== SIGNAL QUALITY ==============
   signalQuality: {
     id: 'signalQuality',
