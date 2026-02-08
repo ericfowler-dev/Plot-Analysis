@@ -587,6 +587,20 @@ export const BPLOT_PARAMETERS = {
     category: 'fuel',
     computed: true
   },
+  MFG_USPress_inWC: {
+    name: 'MFG Upstream Pressure (inWC)',
+    unit: 'inWC',
+    description: 'Computed MFG upstream pressure in inches of water column. Formula: (MFG_USPress - BP) × 27.',
+    category: 'fuel',
+    computed: true
+  },
+  MFG_DSPress_inWC: {
+    name: 'MFG Downstream Pressure (inWC)',
+    unit: 'inWC',
+    description: 'Computed MFG downstream pressure in inches of water column. Formula: (MFG_DSPress - BP) × 27.',
+    category: 'fuel',
+    computed: true
+  },
   FT: {
     name: 'Fuel Temperature',
     unit: 'F',

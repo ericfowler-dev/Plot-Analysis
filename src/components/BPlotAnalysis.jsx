@@ -1053,11 +1053,29 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.primary?.duration || 0).toFixed(1)}s
                     </div>
-                    {bplotCorrelation?.primary?.hourWindow && (
-                      <div className="text-slate-400 mt-1">
-                        Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
-                      </div>
-                    )}
+                    {(() => {
+                      const stats = primaryBplotFile?.processed?.channelStats;
+                      const hmSec = stats?.HM_RAM_seconds;
+                      const hmRam = stats?.HM_RAM;
+                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
+                      const hourStat = hmHours || hmRam || hmSec;
+                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
+                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      if (bplotCorrelation?.primary?.hourWindow) {
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-3">
                     <div className="text-orange-300 uppercase tracking-wider mb-1">Secondary Plot</div>
@@ -1065,11 +1083,29 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.secondary?.duration || 0).toFixed(1)}s
                     </div>
-                    {bplotCorrelation?.secondary?.hourWindow && (
-                      <div className="text-slate-400 mt-1">
-                        Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
-                      </div>
-                    )}
+                    {(() => {
+                      const stats = secondaryBplotFile?.processed?.channelStats;
+                      const hmSec = stats?.HM_RAM_seconds;
+                      const hmRam = stats?.HM_RAM;
+                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
+                      const hourStat = hmHours || hmRam || hmSec;
+                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
+                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      if (bplotCorrelation?.secondary?.hourWindow) {
+                        return (
+                          <div className="text-slate-400 mt-1">
+                            Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
                 {bplotCorrelation?.overlapWindow && (

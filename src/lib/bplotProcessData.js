@@ -259,6 +259,17 @@ function computeMfgDerivedFields(row) {
 
     // Also compute in PSI gauge for convenience (simpler threshold checks)
     computed.MFG_FuelPressure_psig = mfgUsValue - bpValue;
+
+    // Upstream pressure converted to inWC
+    computed.MFG_USPress_inWC = (mfgUsValue - bpValue) * 27;
+  }
+
+  // Downstream pressure in inWC
+  const mfgDsPress = row.MFG_DSPress ?? row.mfg_dspress ?? row.MFG_DS;
+  const mfgDsValue = typeof mfgDsPress === 'number' ? mfgDsPress : parseFloat(mfgDsPress);
+  if (Number.isFinite(mfgDsValue) && Number.isFinite(bpValue) &&
+      mfgDsValue > 0 && bpValue > 0) {
+    computed.MFG_DSPress_inWC = (mfgDsValue - bpValue) * 27;
   }
 
   return computed;
@@ -458,6 +469,19 @@ export function processBPlotData(parsedData, thresholdProfile = null, options = 
 
   // Add computed/derived fields (MFG fuel pressure, etc.)
   normalizedData = addComputedFields(normalizedData);
+
+  // Register computed channels so they appear in the channel list and get stats
+  const computedChannelNames = ['MFG_FuelPressure_inWC', 'MFG_FuelPressure_psig', 'MFG_USPress_inWC', 'MFG_DSPress_inWC'];
+  for (const compName of computedChannelNames) {
+    if (normalizedData.length > 0 && normalizedData[0][compName] !== undefined) {
+      const alreadyExists = channels.some(ch => ch.name === compName);
+      if (!alreadyExists) {
+        const param = BPLOT_PARAMETERS[compName];
+        channels.push({ name: compName, category: param?.category || 'fuel' });
+        headers.push(compName);
+      }
+    }
+  }
 
   // Calculate stats for ALL channels (not just key channels)
   const channelStats = {};
