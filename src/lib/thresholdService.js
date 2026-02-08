@@ -226,6 +226,19 @@ export async function clearCache() {
 }
 
 /**
+ * Resolve a profile from 4 dimensions: family, size, application, fuelType + variants
+ * @param {Object} dimensions - { family, size, application, fuelType, variants }
+ * @returns {Object} { profileId, matchedDimensions, confidence, fallback, resolvedProfile }
+ */
+export async function resolveProfileFromDimensions(dimensions) {
+  const result = await apiCall('/resolve-dimensions', {
+    method: 'POST',
+    body: JSON.stringify(dimensions)
+  });
+  return result;
+}
+
+/**
  * Get selectable profiles for the upload page
  * Returns profiles grouped by engine family with fuel type variants
  */

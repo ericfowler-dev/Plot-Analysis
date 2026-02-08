@@ -80,7 +80,20 @@
           "value": 0
         }
       ],
-      "rpmThreshold": 725
+      "rpmThreshold": 725,
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "rpm",
+        "indexParamAliases": ["RPM", "engine_speed"],
+        "description": "Oil pressure minimum thresholds vary by RPM - higher RPM requires higher oil pressure",
+        "breakpoints": [
+          { "indexValue": 700,  "warning": { "min": 6 },  "critical": { "min": 4 } },
+          { "indexValue": 1000, "warning": { "min": 10 }, "critical": { "min": 7 } },
+          { "indexValue": 1400, "warning": { "min": 14 }, "critical": { "min": 10 } },
+          { "indexValue": 1800, "warning": { "min": 18 }, "critical": { "min": 13 } },
+          { "indexValue": 2200, "warning": { "min": 22 }, "critical": { "min": 16 } }
+        ]
+      }
     },
     "manifoldPressure": {
       "enabled": true,

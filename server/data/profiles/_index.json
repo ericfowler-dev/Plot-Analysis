@@ -62,6 +62,11 @@
       "id": "vehicle",
       "name": "Vehicle",
       "description": "Vehicular applications"
+    },
+    {
+      "id": "power_systems",
+      "name": "Power Systems",
+      "description": "Industrial power systems applications"
     }
   ],
   "profiles": [
@@ -72,6 +77,7 @@
     "psi-industrial-5.7l-turbo-cac",
     "psi-industrial-5.7l-turbo",
     "psi-industrial-5.7l-na",
+    "psi-hd-22l-powersystems",
     "test-profile"
   ],
   "engineVariants": [
@@ -232,6 +238,80 @@
         "ratedRpm": 1800,
         "idleRpm": 700
       }
+    }
+  ],
+  "profileMatrix": [
+    {
+      "family": "psi-industrial",
+      "size": "5.7L",
+      "application": "*",
+      "fuelType": "*",
+      "variants": ["turbo", "cac"],
+      "profileId": "psi-industrial-5.7l-turbo-cac",
+      "priority": 100,
+      "description": "5.7L Turbocharged with Charge Air Cooler"
+    },
+    {
+      "family": "psi-industrial",
+      "size": "5.7L",
+      "application": "*",
+      "fuelType": "*",
+      "variants": ["turbo"],
+      "excludeVariants": ["cac"],
+      "profileId": "psi-industrial-5.7l-turbo",
+      "priority": 95,
+      "description": "5.7L Turbocharged without CAC"
+    },
+    {
+      "family": "psi-industrial",
+      "size": "5.7L",
+      "application": "*",
+      "fuelType": "*",
+      "variants": [],
+      "excludeVariants": ["turbo"],
+      "profileId": "psi-industrial-5.7l-na",
+      "priority": 90,
+      "description": "5.7L Naturally Aspirated"
+    },
+    {
+      "family": "psi-hd",
+      "size": ["40L", "53L"],
+      "application": "*",
+      "fuelType": "*",
+      "variants": ["mfg"],
+      "profileId": "psi-hd-40l-53l-mfg",
+      "priority": 100,
+      "description": "40L/53L with MFG fuel system"
+    },
+    {
+      "family": "psi-hd",
+      "size": "22L",
+      "application": "power_systems",
+      "fuelType": "*",
+      "variants": [],
+      "profileId": "psi-hd-22l-powersystems",
+      "priority": 85,
+      "description": "22L Power Systems application"
+    },
+    {
+      "family": "psi-hd",
+      "size": "*",
+      "application": "*",
+      "fuelType": "*",
+      "variants": [],
+      "profileId": "psi-hd-base",
+      "priority": 10,
+      "description": "PSI HD family base profile"
+    },
+    {
+      "family": "psi-industrial",
+      "size": "*",
+      "application": "*",
+      "fuelType": "*",
+      "variants": [],
+      "profileId": "psi-industrial-base",
+      "priority": 10,
+      "description": "PSI Industrial family base profile"
     }
   ],
   "autoDetection": {

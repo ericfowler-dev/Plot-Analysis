@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, useReducer, Component } from 'react';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -3118,10 +3118,11 @@ const PlotAnalyzer = () => {
       reportNode.classList.add(PDF_EXPORT_LIGHT_CLASS);
       await waitForNextPaint();
 
-      const dataUrl = await toPng(reportNode, {
+      const dataUrl = await toJpeg(reportNode, {
         backgroundColor: '#ffffff',
         cacheBust: true,
-        pixelRatio: 2
+        pixelRatio: 1.5,
+        quality: 0.85
       });
 
       const img = new Image();
@@ -3144,7 +3145,7 @@ const PlotAnalyzer = () => {
       const scaledHeight = img.height * scale;
 
       if (scaledHeight <= pageHeight) {
-        pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, scaledHeight);
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, scaledHeight);
       } else {
         const pageHeightPx = Math.floor(pageHeight / scale);
         const canvas = document.createElement('canvas');
@@ -3172,9 +3173,9 @@ const PlotAnalyzer = () => {
             pageHeightPx
           );
 
-          const pageData = canvas.toDataURL('image/png');
+          const pageData = canvas.toDataURL('image/jpeg', 0.85);
           if (pageIndex > 0) pdf.addPage();
-          pdf.addImage(pageData, 'PNG', 0, 0, pageWidth, pageHeight);
+          pdf.addImage(pageData, 'JPEG', 0, 0, pageWidth, pageHeight);
 
           remainingHeight -= pageHeightPx;
           offsetY += pageHeightPx;

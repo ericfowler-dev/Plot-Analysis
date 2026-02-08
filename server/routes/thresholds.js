@@ -19,7 +19,8 @@ import {
   clearCache,
   addEngineSize,
   updateEngineSize,
-  setEngineSizeArchived
+  setEngineSizeArchived,
+  resolveProfileFromDimensions
 } from '../utils/profileLoader.js';
 import {
   resolveProfile,
@@ -649,6 +650,49 @@ router.post('/resolve-variant', async (req, res) => {
     });
   } catch (error) {
     console.error('Error resolving variant:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/thresholds/resolve-dimensions
+ * Resolve a profile from 4 dimensions: family, size, application, fuelType + variants
+ * Returns the best matching profile with fallback resolution
+ */
+router.post('/resolve-dimensions', async (req, res) => {
+  try {
+    const { family, size, application, fuelType, variants } = req.body;
+
+    if (!family) {
+      return res.status(400).json({
+        success: false,
+        error: 'family is required'
+      });
+    }
+
+    const result = await resolveProfileFromDimensions(
+      family,
+      size || '*',
+      application || '*',
+      fuelType || '*',
+      variants || []
+    );
+
+    // Optionally resolve the full profile
+    let resolvedProfile = null;
+    try {
+      resolvedProfile = await resolveProfile(result.profileId);
+    } catch (err) {
+      console.error(`Failed to resolve profile ${result.profileId}:`, err.message);
+    }
+
+    res.json({
+      success: true,
+      ...result,
+      resolvedProfile
+    });
+  } catch (error) {
+    console.error('Error resolving dimensions:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

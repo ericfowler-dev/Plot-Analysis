@@ -269,7 +269,73 @@ export function validateThresholdValues(thresholds) {
     }
   }
 
+  // Validate operatingPointAware configs on all parameters
+  for (const [paramId, config] of Object.entries(thresholds || {})) {
+    if (!config || typeof config !== 'object') continue;
+
+    // Check top-level operatingPointAware
+    const opConfig = config.operatingPointAware;
+    if (opConfig?.enabled) {
+      const opErrors = validateOperatingPointBreakpoints(paramId, opConfig);
+      errors.push(...opErrors);
+    }
+
+    // Check nested configs (e.g., fuelTrim.closedLoop, knock.maxRetard)
+    for (const [subKey, subConfig] of Object.entries(config)) {
+      if (subConfig && typeof subConfig === 'object' && subConfig.operatingPointAware?.enabled) {
+        const opErrors = validateOperatingPointBreakpoints(`${paramId}.${subKey}`, subConfig.operatingPointAware);
+        errors.push(...opErrors);
+      }
+    }
+  }
+
   return { warnings, errors, isValid: errors.length === 0 };
+}
+
+/**
+ * Validate operatingPointAware breakpoint configuration
+ */
+function validateOperatingPointBreakpoints(paramPath, opConfig) {
+  const errors = [];
+
+  if (!opConfig.indexParam) {
+    errors.push(`${paramPath}: operatingPointAware.indexParam is required when enabled`);
+  }
+
+  if (!opConfig.breakpoints || !Array.isArray(opConfig.breakpoints)) {
+    errors.push(`${paramPath}: operatingPointAware.breakpoints must be an array`);
+    return errors;
+  }
+
+  if (opConfig.breakpoints.length < 2) {
+    errors.push(`${paramPath}: operatingPointAware requires at least 2 breakpoints`);
+  }
+
+  // Check monotonically increasing index values
+  for (let i = 1; i < opConfig.breakpoints.length; i++) {
+    if (opConfig.breakpoints[i].indexValue <= opConfig.breakpoints[i - 1].indexValue) {
+      errors.push(`${paramPath}: breakpoint index values must be monotonically increasing (at index ${i})`);
+      break;
+    }
+  }
+
+  // Check that warning bounds are inside critical bounds at each breakpoint
+  for (let i = 0; i < opConfig.breakpoints.length; i++) {
+    const bp = opConfig.breakpoints[i];
+    const wMin = bp.warning?.min;
+    const wMax = bp.warning?.max;
+    const cMin = bp.critical?.min;
+    const cMax = bp.critical?.max;
+
+    if (wMin != null && cMin != null && wMin < cMin) {
+      errors.push(`${paramPath}: breakpoint ${i} (indexValue=${bp.indexValue}) warning.min (${wMin}) should be >= critical.min (${cMin})`);
+    }
+    if (wMax != null && cMax != null && wMax > cMax) {
+      errors.push(`${paramPath}: breakpoint ${i} (indexValue=${bp.indexValue}) warning.max (${wMax}) should be <= critical.max (${cMax})`);
+    }
+  }
+
+  return errors;
 }
 
 /**

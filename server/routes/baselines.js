@@ -7,7 +7,8 @@ import {
   addBaselineApplication,
   setGroupArchived,
   setSizeArchived,
-  setApplicationArchived
+  setApplicationArchived,
+  ingestBaselineFromPlotData
 } from '../utils/baselineStore.js';
 import { requireAdmin, getAdminActor } from '../utils/adminAuth.js';
 import { recordConfiguratorChange } from '../utils/configuratorStore.js';
@@ -122,6 +123,47 @@ router.patch('/applications/:group/:size/:name', requireAdmin, async (req, res) 
     res.json({ success: true, index });
   } catch (error) {
     console.error('Failed to update baseline application:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/baselines/ingest
+ * Ingest raw plot data to compute operating-point-binned baseline statistics.
+ * Body: { group, size, application, rows, options? }
+ *   - rows: array of data objects (parsed CSV rows)
+ *   - options: { channels?, indexParam?, indexAliases?, bins?, paddingConfig?, merge?, fileCount? }
+ */
+router.post('/ingest', requireAdmin, async (req, res) => {
+  try {
+    const { group, size, application, rows, options } = req.body;
+
+    if (!group || !size || !application) {
+      return res.status(400).json({ success: false, error: 'group, size, and application are required' });
+    }
+
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'rows must be a non-empty array of data objects' });
+    }
+
+    const result = await ingestBaselineFromPlotData(group, size, application, rows, options || {});
+
+    await recordConfiguratorChange({
+      actor: req.adminActor || getAdminActor(req),
+      action: 'baseline.ingest',
+      details: {
+        group,
+        size,
+        application,
+        rowCount: rows.length,
+        channelsProcessed: result.channelsProcessed,
+        indexParam: result.indexParam
+      }
+    });
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Failed to ingest baseline data:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 });
