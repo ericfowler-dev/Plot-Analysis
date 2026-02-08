@@ -908,7 +908,7 @@ const ECTBarChart = ({ histogram }) => {
       {/* Chart */}
       <div className="p-6">
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#344d65" vertical={false} />
               <XAxis
