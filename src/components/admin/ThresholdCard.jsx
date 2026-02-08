@@ -15,6 +15,7 @@ import {
   ALL_CONDITION_LOOKUP,
   isEnginePredicate
 } from '../../lib/conditionParameters';
+import BreakpointEditor from './BreakpointEditor';
 
 /**
  * Range slider component with visual zones
@@ -683,6 +684,13 @@ export default function ThresholdCard({
                   />
                 </>
               )}
+
+              {/* Operating Point Aware Thresholds */}
+              <BreakpointEditor
+                config={config}
+                onChange={onChange}
+                parameterUnit={parameter.unit}
+              />
             </div>
           )}
         </div>

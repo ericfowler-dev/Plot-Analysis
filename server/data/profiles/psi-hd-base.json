@@ -15,6 +15,21 @@
     "battery": {
       "enabled": true
     },
+    "oilPressure": {
+      "rpmThreshold": 1200,
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "rpm",
+        "indexParamAliases": ["RPM", "engine_speed"],
+        "description": "PSI HD engines idle at ~1500 RPM and have higher oil pressure requirements at all operating points",
+        "breakpoints": [
+          { "indexValue": 1200, "warning": { "min": 10 }, "critical": { "min": 7 } },
+          { "indexValue": 1500, "warning": { "min": 15 }, "critical": { "min": 10 } },
+          { "indexValue": 1700, "warning": { "min": 20 }, "critical": { "min": 14 } },
+          { "indexValue": 1900, "warning": { "min": 25 }, "critical": { "min": 18 } }
+        ]
+      }
+    },
     "knock": {
       "ignoreWhen": [],
       "requireWhen": [],

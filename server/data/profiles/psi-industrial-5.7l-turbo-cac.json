@@ -45,6 +45,9 @@
     "tipMapDelta": {
       "enabled": true,
       "unit": "psi",
+      "type": "delta",
+      "param1": "TIP",
+      "param2": "MAP",
       "description": "TIP/MAP pressure differential for turbo CAC - CAC reduces intake temp, resulting in tighter delta range",
       "warning": {
         "min": 0.5,
@@ -59,7 +62,19 @@
         "max": 4.0,
         "description": "Expected operating range for healthy CAC turbo system"
       },
-      "hysteresis": 0.5
+      "hysteresis": 0.5,
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "MAP",
+        "indexParamAliases": ["manifold_pressure", "MANIFOLD_ABS_PRESS"],
+        "description": "TIP-MAP delta varies significantly with boost pressure. At low MAP (9 PSI, light load) the delta is small and tight. At high MAP (25+ PSI, full boost) the delta grows and widens.",
+        "breakpoints": [
+          { "indexValue": 9,  "warning": { "min": 0.5, "max": 3.0 }, "critical": { "min": 0, "max": 4.0 } },
+          { "indexValue": 14, "warning": { "min": 1.0, "max": 4.5 }, "critical": { "min": 0.5, "max": 5.5 } },
+          { "indexValue": 18, "warning": { "min": 1.5, "max": 6.0 }, "critical": { "min": 1.0, "max": 7.5 } },
+          { "indexValue": 25, "warning": { "min": 2.0, "max": 7.0 }, "critical": { "min": 1.5, "max": 9.0 } }
+        ]
+      }
     },
     "intakeAirTemp": {
       "enabled": true,

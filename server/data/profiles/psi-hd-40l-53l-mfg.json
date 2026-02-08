@@ -29,7 +29,20 @@
           "value": 800
         }
       ],
-      "notes": "Ideal delta pressure is >0.5 PSI. Below 0.25 PSI indicates severe fuel starvation and throttle will saturate."
+      "notes": "Ideal delta pressure is >0.5 PSI. Below 0.25 PSI indicates severe fuel starvation and throttle will saturate.",
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "MAP",
+        "indexParamAliases": ["manifold_pressure", "MANIFOLD_ABS_PRESS"],
+        "description": "MFG delta pressure requirements increase with engine load (MAP). At low load, less fuel flow is needed so lower delta is acceptable. At high load/boost, adequate delta pressure is critical.",
+        "breakpoints": [
+          { "indexValue": 5,  "warning": { "min": 0.3 }, "critical": { "min": 0.15 } },
+          { "indexValue": 10, "warning": { "min": 0.4 }, "critical": { "min": 0.2 } },
+          { "indexValue": 15, "warning": { "min": 0.5 }, "critical": { "min": 0.25 } },
+          { "indexValue": 20, "warning": { "min": 0.6 }, "critical": { "min": 0.3 } },
+          { "indexValue": 25, "warning": { "min": 0.7 }, "critical": { "min": 0.35 } }
+        ]
+      }
     },
     "mfgThrottlePosition": {
       "enabled": true,
@@ -53,7 +66,20 @@
           "value": 1
         }
       ],
-      "notes": "Throttle hitting max (75% or 89%) indicates fuel starvation - system losing control."
+      "notes": "Throttle hitting max (75% or 89%) indicates fuel starvation - system losing control.",
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "MAP",
+        "indexParamAliases": ["manifold_pressure", "MANIFOLD_ABS_PRESS"],
+        "description": "MFG throttle position limits vary by load. At low MAP, even moderate throttle % is concerning since demand should be low. At high MAP/full load, higher throttle is expected but approaching saturation remains critical.",
+        "breakpoints": [
+          { "indexValue": 5,  "warning": { "max": 40 }, "critical": { "max": 55 } },
+          { "indexValue": 10, "warning": { "max": 50 }, "critical": { "max": 65 } },
+          { "indexValue": 15, "warning": { "max": 60 }, "critical": { "max": 72 } },
+          { "indexValue": 20, "warning": { "max": 65 }, "critical": { "max": 74 } },
+          { "indexValue": 25, "warning": { "max": 68 }, "critical": { "max": 74 } }
+        ]
+      }
     },
     "mfgFuelPressureGauge": {
       "enabled": true,

@@ -45,6 +45,9 @@
     "tipMapDelta": {
       "enabled": true,
       "unit": "psi",
+      "type": "delta",
+      "param1": "TIP",
+      "param2": "MAP",
       "description": "TIP/MAP pressure differential for turbo non-CAC - higher delta due to uncooled charge air",
       "warning": {
         "min": 1.5,
@@ -59,7 +62,19 @@
         "max": 7.0,
         "description": "Expected operating range for healthy non-CAC turbo system"
       },
-      "hysteresis": 0.8
+      "hysteresis": 0.8,
+      "operatingPointAware": {
+        "enabled": true,
+        "indexParam": "MAP",
+        "indexParamAliases": ["manifold_pressure", "MANIFOLD_ABS_PRESS"],
+        "description": "TIP-MAP delta for non-CAC turbo. Without intercooler, deltas are larger at all operating points. Heat soak at high boost increases the spread.",
+        "breakpoints": [
+          { "indexValue": 9,  "warning": { "min": 1.0, "max": 5.0 },  "critical": { "min": 0.5, "max": 6.5 } },
+          { "indexValue": 14, "warning": { "min": 2.0, "max": 7.0 },  "critical": { "min": 1.0, "max": 8.5 } },
+          { "indexValue": 18, "warning": { "min": 2.5, "max": 9.0 },  "critical": { "min": 1.5, "max": 11.0 } },
+          { "indexValue": 25, "warning": { "min": 3.0, "max": 11.0 }, "critical": { "min": 2.0, "max": 13.0 } }
+        ]
+      }
     },
     "intakeAirTemp": {
       "enabled": true,

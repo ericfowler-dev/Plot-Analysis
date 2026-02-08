@@ -567,6 +567,121 @@ export async function exportAllProfiles() {
 /**
  * Import profiles from an export object
  */
+/**
+ * Resolve a profile ID from 4 dimensions (family, size, application, fuelType) + variants.
+ * Uses the profileMatrix in the index to find the best match.
+ *
+ * Resolution strategy:
+ * 1. Filter matrix entries by family match
+ * 2. Filter by size match (or wildcard)
+ * 3. Filter by application match (or wildcard)
+ * 4. Filter by fuelType match (or wildcard)
+ * 5. Filter by variant match (required variants present, excluded variants absent)
+ * 6. Sort by priority descending, return best match
+ *
+ * Fallback chain: exact match -> relax application -> relax fuelType -> family base -> global-defaults
+ *
+ * @param {string} family - Engine family ID (e.g., 'psi-hd', 'psi-industrial')
+ * @param {string} size - Engine size ID (e.g., '5.7L', '40L')
+ * @param {string} application - Application ID (e.g., 'generator', 'power_systems') or '*'
+ * @param {string} fuelType - Fuel type ID (e.g., 'natural_gas', 'propane') or '*'
+ * @param {Array<string>} variants - Active variant IDs (e.g., ['turbo', 'cac'])
+ * @returns {Object} { profileId, matchedDimensions, confidence, fallback }
+ */
+export async function resolveProfileFromDimensions(family, size, application, fuelType, variants = []) {
+  const index = await loadIndex();
+  const matrix = index.profileMatrix || [];
+  const existingProfiles = new Set(index.profiles || []);
+
+  function matchesField(ruleValue, queryValue) {
+    if (ruleValue === '*' || ruleValue == null) return true;
+    if (queryValue === '*' || queryValue == null) return true;
+    if (Array.isArray(ruleValue)) return ruleValue.includes(queryValue);
+    return ruleValue === queryValue;
+  }
+
+  function matchesVariants(rule, queryVariants) {
+    // Check required variants
+    if (rule.variants && rule.variants.length > 0) {
+      for (const reqVariant of rule.variants) {
+        if (!queryVariants.includes(reqVariant)) return false;
+      }
+    }
+    // Check excluded variants
+    if (rule.excludeVariants && rule.excludeVariants.length > 0) {
+      for (const exVariant of rule.excludeVariants) {
+        if (queryVariants.includes(exVariant)) return false;
+      }
+    }
+    return true;
+  }
+
+  // Try progressively relaxed matching
+  const attempts = [
+    { family, size, application, fuelType, variants, label: 'exact' },
+    { family, size, application: '*', fuelType, variants, label: 'relax-application' },
+    { family, size, application, fuelType: '*', variants, label: 'relax-fuelType' },
+    { family, size, application: '*', fuelType: '*', variants, label: 'relax-app-fuel' },
+    { family, size: '*', application: '*', fuelType: '*', variants, label: 'family-only' }
+  ];
+
+  for (const attempt of attempts) {
+    const candidates = matrix
+      .filter(rule => {
+        if (!matchesField(rule.family, attempt.family)) return false;
+        if (!matchesField(rule.size, attempt.size)) return false;
+        if (!matchesField(rule.application, attempt.application)) return false;
+        if (!matchesField(rule.fuelType, attempt.fuelType)) return false;
+        if (!matchesVariants(rule, attempt.variants)) return false;
+        if (!existingProfiles.has(rule.profileId)) return false;
+        return true;
+      })
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+    if (candidates.length > 0) {
+      return {
+        profileId: candidates[0].profileId,
+        matchedDimensions: {
+          family: attempt.family,
+          size: attempt.size,
+          application: attempt.application,
+          fuelType: attempt.fuelType,
+          variants: attempt.variants
+        },
+        matchLevel: attempt.label,
+        confidence: attempt.label === 'exact' ? 1.0 : attempt.label.startsWith('relax') ? 0.7 : 0.4,
+        fallback: attempt.label !== 'exact',
+        alternatives: candidates.slice(1, 4).map(c => c.profileId)
+      };
+    }
+  }
+
+  // Final fallback: family base profile
+  if (family) {
+    const familyEntry = (index.engineFamilies || []).find(f => f.id === family);
+    if (familyEntry?.baseProfile && existingProfiles.has(familyEntry.baseProfile)) {
+      return {
+        profileId: familyEntry.baseProfile,
+        matchedDimensions: { family, size, application, fuelType, variants },
+        matchLevel: 'family-base',
+        confidence: 0.3,
+        fallback: true,
+        alternatives: []
+      };
+    }
+  }
+
+  // Ultimate fallback
+  return {
+    profileId: 'global-defaults',
+    matchedDimensions: { family, size, application, fuelType, variants },
+    matchLevel: 'global-fallback',
+    confidence: 0.1,
+    fallback: true,
+    alternatives: []
+  };
+}
+
 export async function importProfiles(exportData, overwrite = false) {
   const results = {
     imported: [],

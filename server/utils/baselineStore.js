@@ -4,6 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getPool } from '../db/pool.js';
 import { ensureBaselinesTables } from '../db/schema.js';
+import {
+  computeAllChannelBinnedStats,
+  toBinnedBaselineFormat,
+  DEFAULT_MAP_BINS
+} from './baselineBinning.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -349,4 +354,117 @@ export async function getBaselineForApplication(groupName, sizeName, appName) {
   const data = await loadBaselineData();
 
   return data?.groups?.[group]?.[size]?.[app] || null;
+}
+
+/**
+ * Ingest raw plot data to compute both flat and operating-point-binned baseline statistics.
+ * This extends the existing flat p05/p95 baseline with per-bin stats for operating-point-aware
+ * anomaly detection.
+ *
+ * @param {string} groupName - Engine category (e.g., "PSI HD")
+ * @param {string} sizeName - Engine size (e.g., "5.7L")
+ * @param {string} appName - Application (e.g., "Power Systems")
+ * @param {Array<Object>} rows - Parsed data rows from plot file
+ * @param {Object} [options={}] - Ingestion options
+ * @param {string[]} [options.channels] - Channel names to compute. If omitted, uses all numeric columns.
+ * @param {string} [options.indexParam='MAP'] - Operating-point index parameter
+ * @param {string[]} [options.indexAliases] - Alternative names for the index parameter
+ * @param {Array} [options.bins] - Custom bin definitions (defaults to DEFAULT_MAP_BINS)
+ * @param {Object} [options.paddingConfig] - Custom padding config
+ * @param {boolean} [options.merge=true] - Whether to merge with existing baseline or replace
+ * @param {number} [options.fileCount=1] - Number of files contributing
+ * @returns {Object} - Updated baseline data for this application
+ */
+export async function ingestBaselineFromPlotData(groupName, sizeName, appName, rows, options = {}) {
+  const group = normalizeName(groupName);
+  const size = normalizeName(sizeName);
+  const app = normalizeName(appName);
+
+  if (!group || !size || !app) {
+    throw new Error('Group, size, and application are required');
+  }
+
+  if (!rows || rows.length === 0) {
+    throw new Error('No data rows provided');
+  }
+
+  const {
+    channels,
+    indexParam = 'MAP',
+    indexAliases = ['manifold_pressure', 'MANIFOLD_ABS_PRESS'],
+    bins = null,
+    paddingConfig = {},
+    merge = true,
+    fileCount = 1
+  } = options;
+
+  // Determine channels to process
+  let channelNames = channels;
+  if (!channelNames) {
+    // Auto-detect numeric columns from first row
+    const firstRow = rows[0];
+    channelNames = Object.keys(firstRow).filter(key => {
+      const val = parseFloat(firstRow[key]);
+      return !isNaN(val) && key.toLowerCase() !== 'time';
+    });
+  }
+
+  // Use existing tolerance config from baseline data if no padding config provided
+  const data = await loadBaselineData();
+  const existingTolerance = data?.tolerance || {};
+  const effectivePaddingConfig = {
+    rangePaddingPct: paddingConfig.rangePaddingPct || existingTolerance.range_padding_pct || 0.1,
+    rangePaddingCapPct: paddingConfig.rangePaddingCapPct || existingTolerance.range_padding_cap_pct || 0.25,
+    defaultMinPadding: paddingConfig.defaultMinPadding || existingTolerance.default_min_padding || 0.5,
+    minPaddingByChannel: paddingConfig.minPaddingByChannel || existingTolerance.min_padding || {}
+  };
+
+  // Compute binned stats for all channels
+  const binnedStats = computeAllChannelBinnedStats(
+    rows,
+    channelNames,
+    indexParam,
+    indexAliases,
+    bins,
+    effectivePaddingConfig
+  );
+
+  // Convert to baseline store format
+  const channelData = toBinnedBaselineFormat(binnedStats, fileCount);
+
+  // Optionally merge with existing baseline data
+  if (merge) {
+    const existing = await getBaselineForApplication(group, size, app);
+    if (existing) {
+      // Merge: new data overrides existing per-channel, but preserves channels not in new data
+      for (const [ch, stats] of Object.entries(existing)) {
+        if (!(ch in channelData)) {
+          channelData[ch] = stats;
+        }
+      }
+    }
+  }
+
+  // Save the updated baseline data
+  await updateBaselineData(group, size, app, channelData);
+
+  return {
+    group,
+    size,
+    application: app,
+    channelsProcessed: Object.keys(channelData).length,
+    totalRows: rows.length,
+    indexParam,
+    binsUsed: (bins || DEFAULT_MAP_BINS).length,
+    channels: Object.fromEntries(
+      Object.entries(channelData).map(([ch, stats]) => [
+        ch,
+        {
+          n: stats.n || 0,
+          hasBinned: !!stats.byOperatingPoint,
+          validBins: stats.byOperatingPoint?.bins?.length || 0
+        }
+      ])
+    )
+  };
 }

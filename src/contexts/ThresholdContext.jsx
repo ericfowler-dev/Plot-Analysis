@@ -97,7 +97,9 @@ export function ThresholdProvider({ children }) {
   const [baselineSelection, setBaselineSelection] = useState({
     group: '',
     size: '',
-    application: ''
+    application: '',
+    fuelType: '',
+    variants: []
   });
   const [baselineAlertsEnabled, setBaselineAlertsEnabled] = useState(true);
 

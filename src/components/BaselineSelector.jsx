@@ -1,57 +1,13 @@
 /**
  * Baseline Selector Component
- * Optional tuning layer for anomaly thresholds by group/engine size/application
+ * 4-dimensional profile selection: Engine Category, Engine Size, Application, Fuel Type
+ * v3.0: Replaced hardcoded profile mapping with dimension-based resolution via profileMatrix
  * v2.0: Added engine variant selection and auto-detection support
  */
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useThresholds } from '../contexts/ThresholdContext';
-
-/**
- * Map baseline selection to a profile ID
- * Enhanced to support engine variants (turbo, CAC, fuel systems, etc.)
- */
-function mapSelectionToProfile(group, size, application, variants = []) {
-  if (!group) {
-    return 'global-defaults';
-  }
-
-  const groupLower = group.toLowerCase();
-  const sizeLower = (size || '').toLowerCase();
-  const variantSet = new Set(variants.map(v => v.toLowerCase()));
-
-  // PSI HD engines
-  if (groupLower.includes('psi hd') || groupLower.includes('psi-hd')) {
-    // 40L/53L with MFG fuel system get special profile
-    if (sizeLower.includes('40l') || sizeLower.includes('53l') || sizeLower.includes('mfg')) {
-      return 'psi-hd-40l-53l-mfg';
-    }
-    // Other PSI HD sizes use HD base profile
-    return 'psi-hd-base';
-  }
-
-  // PSI Industrial engines with variant support
-  if (groupLower.includes('industrial')) {
-    // 5.7L with variant-specific profiles
-    if (sizeLower.includes('5.7l')) {
-      if (variantSet.has('turbo') && variantSet.has('cac')) {
-        return 'psi-industrial-5.7l-turbo-cac';
-      }
-      if (variantSet.has('turbo')) {
-        return 'psi-industrial-5.7l-turbo';
-      }
-      if (variantSet.has('na')) {
-        return 'psi-industrial-5.7l-na';
-      }
-      // Default to turbo-cac for 5.7L if no variant specified
-      return 'psi-industrial-5.7l-turbo-cac';
-    }
-    return 'psi-industrial-base';
-  }
-
-  // Default fallback
-  return 'global-defaults';
-}
+import { resolveProfileFromDimensions } from '../lib/thresholdService';
 
 export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
   const {
@@ -78,16 +34,47 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
   const isAdmin = typeof window !== 'undefined' && Boolean(localStorage.getItem('adminToken'));
 
   // Trigger profile change when baseline selection changes (including variants)
+  // v3.0: Uses dimension-based resolution via profileMatrix API
   useEffect(() => {
-    const targetProfile = mapSelectionToProfile(
-      baselineSelection.group,
-      baselineSelection.size,
-      baselineSelection.application,
-      selectedVariants
-    );
-    if (targetProfile !== selectedProfileId) {
-      selectProfile(targetProfile);
+    if (!baselineSelection.group) {
+      if (selectedProfileId !== 'global-defaults') {
+        selectProfile('global-defaults');
+      }
+      return;
     }
+
+    let cancelled = false;
+    const resolveDimensions = async () => {
+      try {
+        // Map group name to family ID for the API
+        const familyId = baselineSelection.group.toLowerCase().includes('psi hd') || baselineSelection.group.toLowerCase().includes('psi-hd')
+          ? 'psi-hd'
+          : baselineSelection.group.toLowerCase().includes('industrial')
+            ? 'psi-industrial'
+            : baselineSelection.group;
+
+        const result = await resolveProfileFromDimensions({
+          family: familyId,
+          size: baselineSelection.size || '*',
+          application: baselineSelection.application || '*',
+          fuelType: baselineSelection.fuelType || '*',
+          variants: selectedVariants
+        });
+
+        if (!cancelled && result?.profileId && result.profileId !== selectedProfileId) {
+          selectProfile(result.profileId);
+        }
+      } catch (err) {
+        // Fallback to global-defaults on error
+        console.error('Dimension resolution failed, using defaults:', err);
+        if (!cancelled && selectedProfileId !== 'global-defaults') {
+          selectProfile('global-defaults');
+        }
+      }
+    };
+
+    resolveDimensions();
+    return () => { cancelled = true; };
   }, [baselineSelection, selectedVariants, selectedProfileId, selectProfile]);
 
   // Load engine config when size changes
@@ -259,10 +246,10 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
       return handleAddGroup();
     }
     if (!group) {
-      setBaselineSelection({ group: '', size: '', application: '' });
+      setBaselineSelection({ group: '', size: '', application: '', fuelType: '', variants: [] });
       return;
     }
-    setBaselineSelection({ group, size: '', application: '' });
+    setBaselineSelection({ group, size: '', application: '', fuelType: '', variants: [] });
   };
 
   const handleSizeChange = (e) => {
@@ -272,7 +259,12 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
     }
     setSelectedVariants([]); // Reset variants when size changes
     setEngineConfig(null);
-    setBaselineSelection(prev => ({ ...prev, size, application: '' }));
+    setBaselineSelection(prev => ({ ...prev, size, application: '', fuelType: '' }));
+  };
+
+  const handleFuelTypeChange = (e) => {
+    const fuelType = e.target.value;
+    setBaselineSelection(prev => ({ ...prev, fuelType }));
   };
 
   // Handle variant checkbox changes
@@ -478,9 +470,9 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
           </div>
         )}
 
-        <div className="baseline-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="baseline-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="baseline-field space-y-3">
-            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Baseline Group</label>
+            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Engine Category</label>
             <select
               value={baselineSelection.group}
               onChange={handleGroupChange}
@@ -489,7 +481,7 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
               onMouseDown={(e) => e.stopPropagation()}
               className="baseline-select w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="">Group: Global Defaults</option>
+              <option value="">All / Global Defaults</option>
               {filteredGroups.map(group => (
                 <option key={group.name} value={group.name}>
                   {group.name}{group.archived ? ' (archived)' : ''}
@@ -564,6 +556,24 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
                 Archive Application
               </button>
             )}
+          </div>
+
+          <div className="baseline-field space-y-3">
+            <label className="baseline-label block text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Fuel Type</label>
+            <select
+              value={baselineSelection.fuelType || ''}
+              onChange={handleFuelTypeChange}
+              disabled={!baselineSelection.group || loading || loadError}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="baseline-select w-full bg-[#050505] border border-[#262626] rounded-lg px-4 py-3 text-sm text-slate-300 focus:ring-1 focus:ring-[#00FF88] focus:border-[#00FF88] outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Any Fuel Type</option>
+              <option value="natural_gas">Natural Gas</option>
+              <option value="propane">Propane/LPG</option>
+              <option value="gasoline">Gasoline</option>
+              <option value="diesel">Diesel</option>
+            </select>
           </div>
         </div>
 
