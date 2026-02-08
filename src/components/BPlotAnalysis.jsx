@@ -16,15 +16,17 @@ import { useThresholds } from '../contexts/ThresholdContext';
 
 // Maximum channels that can be selected for charting
 const MAX_CHART_CHANNELS = 20;
+// Primary palette: cool tones (blues, cyans, greens, teals, purples)
 const DEFAULT_CHART_PALETTE = [
-  '#38bdf8', '#f97316', '#22c55e', '#eab308', '#a78bfa',
-  '#ef4444', '#14b8a6', '#f43f5e', '#84cc16', '#f59e0b',
-  '#60a5fa', '#2dd4bf', '#f472b6', '#fb7185', '#94a3b8'
+  '#38bdf8', '#22c55e', '#a78bfa', '#14b8a6', '#60a5fa',
+  '#2dd4bf', '#818cf8', '#84cc16', '#06b6d4', '#34d399',
+  '#7dd3fc', '#4ade80', '#67e8f9', '#86efac', '#c4b5fd'
 ];
+// Secondary palette: warm tones (oranges, reds, pinks, yellows, magentas)
 const DEFAULT_SECONDARY_CHART_PALETTE = [
-  '#fb7185', '#2dd4bf', '#f59e0b', '#60a5fa', '#f43f5e',
-  '#84cc16', '#c084fc', '#22d3ee', '#f97316', '#67e8f9',
-  '#facc15', '#34d399', '#fda4af', '#38bdf8', '#a3e635'
+  '#f97316', '#ef4444', '#f43f5e', '#eab308', '#ec4899',
+  '#f59e0b', '#fb7185', '#f472b6', '#fbbf24', '#fb923c',
+  '#fda4af', '#facc15', '#e879f9', '#fca5a1', '#d946ef'
 ];
 
 const isValidHexColor = (value) => /^#[0-9a-fA-F]{6}$/.test(value || '');
@@ -852,23 +854,23 @@ const BPlotAnalysis = ({
           />
 
           {/* Secondary Controls Bar */}
-          <div className="border-b border-green-500/20 bg-slate-900/30 px-6 py-2">
-            <div className="max-w-[1920px] mx-auto flex items-center justify-between">
+          <div className="border-b border-green-500/20 bg-slate-900/30 px-4 sm:px-6 py-2">
+            <div className="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
               {/* Status Indicators */}
               <div className="flex items-center gap-4">
                 <MILStatusIndicator isActive={milStatus.isActive} />
               </div>
 
               {/* Overlay Controls */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {dualRoleMode && (
-                  <div className="flex items-center gap-2 pr-2 border-r border-slate-700/60">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pr-2 border-r border-slate-700/60">
                     <span className="text-[10px] uppercase tracking-wider text-slate-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                       Plot Context
                     </span>
                     <button
                       onClick={() => setCorrelatedRole('primary')}
-                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                         activeCorrelatedRole === 'primary'
                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
                           : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -879,7 +881,7 @@ const BPlotAnalysis = ({
                     </button>
                     <button
                       onClick={() => setCorrelatedRole('secondary')}
-                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                         activeCorrelatedRole === 'secondary'
                           ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
                           : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -890,7 +892,7 @@ const BPlotAnalysis = ({
                     </button>
                     <button
                       onClick={() => setOverlayCorrelatedPlots((prev) => !prev)}
-                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                      className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                         overlayCorrelatedPlots
                           ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
                           : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -918,7 +920,7 @@ const BPlotAnalysis = ({
                   </button>
                 )}
                 {dualRoleMode && bplotCorrelation?.overlapRatio !== null && (
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-slate-400 truncate max-w-[200px] sm:max-w-none">
                     Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | {overlayCorrelatedPlots ? 'Mode: Overlay' : `Active: ${activePlotFileName}`}
                   </span>
                 )}
@@ -930,17 +932,17 @@ const BPlotAnalysis = ({
 
       {/* Secondary Controls Bar for embedded mode */}
       {hideHeader && (
-        <div className="border-b border-green-500/20 bg-slate-900/30 px-6 py-2">
-          <div className="max-w-[1920px] mx-auto flex items-center justify-between">
+        <div className="border-b border-green-500/20 bg-slate-900/30 px-4 sm:px-6 py-2">
+          <div className="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-4">
               <MILStatusIndicator isActive={milStatus.isActive} />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {dualRoleMode && (
                 <>
                   <button
                     onClick={() => setCorrelatedRole('primary')}
-                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                    className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                       activeCorrelatedRole === 'primary'
                         ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
                         : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -951,7 +953,7 @@ const BPlotAnalysis = ({
                   </button>
                   <button
                     onClick={() => setCorrelatedRole('secondary')}
-                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                    className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                       activeCorrelatedRole === 'secondary'
                         ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
                         : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -962,7 +964,7 @@ const BPlotAnalysis = ({
                   </button>
                   <button
                     onClick={() => setOverlayCorrelatedPlots((prev) => !prev)}
-                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                    className={`px-2 sm:px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                       overlayCorrelatedPlots
                         ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
                         : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -989,7 +991,7 @@ const BPlotAnalysis = ({
                 </button>
               )}
               {dualRoleMode && bplotCorrelation?.overlapRatio !== null && (
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-[10px] font-mono text-slate-400 truncate max-w-[200px] sm:max-w-none">
                   Overlap: {(bplotCorrelation.overlapRatio * 100).toFixed(0)}% | {overlayCorrelatedPlots ? 'Mode: Overlay' : `Active: ${activePlotFileName}`}
                 </span>
               )}
@@ -1215,7 +1217,7 @@ const BPlotAnalysis = ({
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
               <h3 className="text-lg font-semibold mb-4">RPM & MAP Over Time</h3>
               <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
@@ -1437,7 +1439,7 @@ const BPlotAnalysis = ({
                 )}
               </div>
               <div className="flex-1 h-[300px] lg:h-auto">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={chartRenderData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
@@ -1471,8 +1473,9 @@ const BPlotAnalysis = ({
                       />
                     ))}
                     <Tooltip
-                      content={(
+                      content={(props) => (
                         <ChartValueTooltip
+                          {...props}
                           chartSeries={chartSeries}
                           seriesValueLookup={seriesValueLookup}
                           shouldShowFileBoundaries={shouldShowFileBoundaries}
