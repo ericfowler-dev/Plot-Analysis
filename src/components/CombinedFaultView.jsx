@@ -27,13 +27,13 @@ const toTimelineLabel = (fault) => {
   return shortDesc ? `${fault.code} – ${shortDesc}` : `DTC ${fault.code}`;
 };
 
-const CARD_WIDTH = 220;
-const CARD_HEIGHT = 110;
+const CARD_WIDTH = 280;
+const CARD_HEIGHT = 80;
 const ROW_GAP = 8;
-const HORIZONTAL_GAP = 12;
+const HORIZONTAL_GAP = 14;
 const AXIS_HEIGHT = 28;
-const MAX_STREAM_HEIGHT = 420;
-const STREAM_PADDING_X = 48;
+const MAX_STREAM_HEIGHT = 360;
+const STREAM_PADDING_X = 40;
 
 const buildTicks = (min, max, desired = 6) => {
   if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
@@ -618,8 +618,8 @@ const CombinedFaultView = ({
                       return (
                         <div
                           key={`card-${card.filteredIndex}-${card.row}`}
-                          className={`absolute dtc-event-card bg-slate-900/85 border border-slate-700 rounded-lg shadow-lg transition-all hover:border-emerald-400/50 hover:shadow-emerald-500/10 cursor-pointer ${
-                            isSelected ? 'ring-2 ring-emerald-400/70 shadow-emerald-500/15' : ''
+                          className={`absolute dtc-event-chip bg-slate-900/90 border border-slate-700 rounded-lg shadow-lg transition-all hover:border-emerald-400/60 hover:shadow-emerald-500/15 cursor-pointer ${
+                            isSelected ? 'ring-2 ring-emerald-400/70 shadow-emerald-500/20' : ''
                           }`}
                           style={{
                             left: `${card.x}px`,
@@ -627,28 +627,25 @@ const CombinedFaultView = ({
                             width: `${CARD_WIDTH}px`,
                             minHeight: `${CARD_HEIGHT * scaleY}px`,
                             maxHeight: `${CARD_HEIGHT * scaleY}px`,
-                            padding: '10px 12px',
-                            overflow: 'hidden'
+                            padding: '8px 12px'
                           }}
                           onClick={() => setSelectedFaultIndex(card.filteredIndex)}
+                          title={card.description || 'Fault'}
                         >
-                          <div className="flex items-center justify-between text-[11px] mb-1">
+                          <div className="flex items-center justify-between text-[11px]">
                             <SourceBadge role={card.sourceRole} />
-                            <span className="text-slate-400 font-mono">{formatNumber(card.hour, 1)}h</span>
+                            <span className="text-slate-300 font-mono">{formatNumber(card.hour, 1)}h</span>
                           </div>
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="text-green-400 font-mono font-bold text-base">DTC {card.code}</div>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="text-green-400 font-mono font-bold text-lg leading-tight">DTC {card.code}</div>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor}`}>
                               {card.status === 'active' ? 'ACTIVE' : 'STORED'}
                             </span>
                           </div>
-                          <div className="text-sm text-white leading-tight line-clamp-2" title={card.description}>
-                            {card.description || 'Unknown fault'}
-                          </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3">
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
                             <span>Count: <span className="text-white font-mono">{card.occurrenceCount || 0}</span></span>
                             <span className="text-slate-500 truncate" title={card.sourceFileName}>
-                              Details →
+                              File
                             </span>
                           </div>
                         </div>
