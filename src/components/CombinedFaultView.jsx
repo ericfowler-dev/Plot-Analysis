@@ -555,6 +555,15 @@ const CombinedFaultView = ({
                     hide
                   />
                   <Tooltip content={<FaultTimelineTooltip />} />
+                  <Legend
+                    verticalAlign="top"
+                    height={60}
+                    wrapperStyle={{
+                      fontSize: 11,
+                      lineHeight: 1.2,
+                      paddingTop: '10px'
+                    }}
+                  />
 
                   <Scatter
                     name="Primary ECM"
