@@ -281,22 +281,29 @@ const ChartValueTooltip = ({
     };
   });
 
+  const MAX_TOOLTIP_ROWS = 20;
+  const visibleRows = rows.slice(0, MAX_TOOLTIP_ROWS);
+  const hiddenCount = rows.length - visibleRows.length;
+
   return (
     <div
-      className="max-w-[360px] max-h-[40vh] overflow-y-auto rounded-md border border-slate-700 bg-slate-900/95 p-3 text-xs shadow-xl"
+      className="max-w-[480px] max-h-[50vh] overflow-y-auto rounded-md border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs shadow-xl"
       style={{ pointerEvents: 'none' }}
     >
-      <div className="mb-2 text-sm font-semibold text-white">
+      <div className="mb-1.5 text-sm font-semibold text-white">
         Time: {hasNumericTime ? formatDuration(numericTime) : label}
         {sourceFile && shouldShowFileBoundaries ? ` | File: ${sourceFile}` : ''}
       </div>
-      <div className="space-y-1.5">
-        {rows.map((row) => (
-          <div key={row.key} className="flex items-start justify-between gap-3">
+      <div className="space-y-px">
+        {visibleRows.map((row) => (
+          <div key={row.key} className="flex items-center justify-between gap-4 py-0.5">
             <span className="min-w-0 flex-1 truncate" style={{ color: row.color }}>{row.label}</span>
-            <span className="font-mono text-white">{row.value}</span>
+            <span className="font-mono text-white whitespace-nowrap">{row.value}</span>
           </div>
         ))}
+        {hiddenCount > 0 && (
+          <div className="pt-1 text-slate-500 text-center">+{hiddenCount} more channels</div>
+        )}
       </div>
     </div>
   );
@@ -1617,6 +1624,7 @@ const BPlotAnalysis = ({
                         orientation={axis.orientation}
                         stroke={index === 0 ? '#64748b' : '#94a3b8'}
                         fontSize={12}
+                        domain={['auto', 'auto']}
                         tickFormatter={(v) => safeToFixed(v, axis.decimals, '')}
                         label={{
                           value: axis.label,
