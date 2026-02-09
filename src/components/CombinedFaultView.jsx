@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Filter, Search } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, LabelList } from 'recharts';
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList } from 'recharts';
 
 // =============================================================================
 // COMBINED FAULT VIEW COMPONENT
@@ -555,15 +555,6 @@ const CombinedFaultView = ({
                     hide
                   />
                   <Tooltip content={<FaultTimelineTooltip />} />
-                  <Legend
-                    verticalAlign="top"
-                    height={60}
-                    wrapperStyle={{
-                      fontSize: 11,
-                      lineHeight: 1.2,
-                      paddingTop: '10px'
-                    }}
-                  />
 
                   <Scatter
                     name="Primary ECM"
