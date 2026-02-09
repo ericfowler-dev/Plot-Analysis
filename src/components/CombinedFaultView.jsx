@@ -32,8 +32,9 @@ const CARD_HEIGHT = 92;
 const ROW_GAP = 8;
 const HORIZONTAL_GAP = 14;
 const AXIS_HEIGHT = 28;
-const MAX_STREAM_HEIGHT = 360;
 const STREAM_PADDING_X = 40;
+const VIEWPORT_BOTTOM_PADDING = 44;
+const DEFAULT_VIEWPORT_HEIGHT = 720;
 
 const buildTicks = (min, max, desired = 6) => {
   if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
@@ -134,7 +135,7 @@ const FaultRow = ({ fault, isSelected, onClick, engineHours }) => {
 };
 
 // Fault detail panel
-const FaultDetail = ({ fault, engineHours }) => {
+const FaultDetail = ({ fault }) => {
   const [showRaw, setShowRaw] = useState(false);
 
   if (!fault) {
@@ -245,6 +246,8 @@ const CombinedFaultView = ({
   const [sourceFilter, setSourceFilter] = useState('all'); // 'all', 'primary', 'secondary', 'matching'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recency'); // 'recency', 'count', 'code'
+  const layoutRootRef = useRef(null);
+  const [viewportHeight, setViewportHeight] = useState(DEFAULT_VIEWPORT_HEIGHT);
 
   // Calculate engine hours for the selected fault
   const getEngineHours = (fault) => {
@@ -337,10 +340,51 @@ const CombinedFaultView = ({
       .filter(Boolean)
       // Keep rendering cost predictable on very large data sets.
       .slice(0, 240);
-  }, [filteredFaults, selectedFaultIndex]);
+  }, [filteredFaults]);
 
   const eventStreamRef = useRef(null);
   const [streamWidth, setStreamWidth] = useState(1200);
+
+  useLayoutEffect(() => {
+    if (!layoutRootRef.current || typeof window === 'undefined') return undefined;
+
+    let frameId = null;
+
+    const updateHeight = () => {
+      if (!layoutRootRef.current) return;
+      const rect = layoutRootRef.current.getBoundingClientRect();
+      const available = window.innerHeight - rect.top - VIEWPORT_BOTTOM_PADDING;
+      const nextHeight = Number.isFinite(available) && available > 0
+        ? Math.floor(available)
+        : DEFAULT_VIEWPORT_HEIGHT;
+      setViewportHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+    };
+
+    const scheduleUpdate = () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        updateHeight();
+      });
+    };
+
+    updateHeight();
+    window.addEventListener('resize', scheduleUpdate);
+
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(scheduleUpdate);
+      observer.observe(layoutRootRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', scheduleUpdate);
+      if (observer) observer.disconnect();
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (!eventStreamRef.current) return undefined;
@@ -408,22 +452,26 @@ const CombinedFaultView = ({
     };
 
     const ordered = [...timelinePoints].sort(compareCards);
-    const rowRightEdges = [];
+    // Interval-based packing: track all [left, right] spans per row so cards
+    // on opposite sides of the timeline can share the same row.
+    const rowIntervals = []; // Array of arrays: [[left, right], ...]
     const cards = ordered.map((point) => {
       const hourX = STREAM_PADDING_X + (point.hour - domainMin) * pxPerHour;
       const rawLeft = hourX - CARD_WIDTH / 2;
       const clampedLeft = Math.max(0, Math.min(rawLeft, contentWidth - CARD_WIDTH - STREAM_PADDING_X));
+      const cardRight = clampedLeft + CARD_WIDTH;
 
       let row = 0;
-      for (; row < rowRightEdges.length; row++) {
-        if (clampedLeft >= rowRightEdges[row] + HORIZONTAL_GAP) {
-          break;
-        }
+      for (; row < rowIntervals.length; row++) {
+        const fits = rowIntervals[row].every(
+          ([l, r]) => cardRight + HORIZONTAL_GAP <= l || clampedLeft >= r + HORIZONTAL_GAP
+        );
+        if (fits) break;
       }
-      if (row === rowRightEdges.length) {
-        rowRightEdges.push(clampedLeft + CARD_WIDTH);
+      if (row === rowIntervals.length) {
+        rowIntervals.push([[clampedLeft, cardRight]]);
       } else {
-        rowRightEdges[row] = clampedLeft + CARD_WIDTH;
+        rowIntervals[row].push([clampedLeft, cardRight]);
       }
 
       return {
@@ -434,7 +482,7 @@ const CombinedFaultView = ({
       };
     });
 
-    const rowCount = Math.max(1, rowRightEdges.length);
+    const rowCount = Math.max(1, rowIntervals.length);
     const axisY = rowCount * (CARD_HEIGHT + ROW_GAP);
     const height = axisY + AXIS_HEIGHT;
     const ticks = buildTicks(domainMin, domainMax, 6);
@@ -460,9 +508,13 @@ const CombinedFaultView = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div
+      ref={layoutRootRef}
+      className="flex min-h-0 flex-col gap-2 overflow-hidden"
+      style={{ height: `${viewportHeight}px` }}
+    >
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 shrink-0">
         <button
           onClick={() => setSourceFilter('all')}
           className={`p-2 rounded-lg border transition-all ${
@@ -510,7 +562,7 @@ const CombinedFaultView = ({
       </div>
 
       {/* Search and Sort */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
@@ -537,8 +589,10 @@ const CombinedFaultView = ({
         </div>
       </div>
 
-      {/* Correlated Fault Timeline */}
-      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-3">
+      {/* Correlated Fault Timeline — content-sized, capped at 40% of viewport */}
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-3 flex min-h-0 shrink-0 flex-col"
+        style={{ maxHeight: `${Math.max(200, Math.floor(viewportHeight * 0.4))}px` }}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div>
             <div className="text-sm font-semibold text-slate-200">Fault Timeline Correlation</div>
@@ -551,15 +605,14 @@ const CombinedFaultView = ({
         </div>
 
         {timelinePoints.length === 0 ? (
-          <div className="text-sm text-slate-500 py-6 text-center">
+          <div className="text-sm text-slate-500 py-6 text-center flex-1 min-h-0">
             No numeric hour data available for timeline plotting.
           </div>
         ) : (
           <>
             <div
               ref={eventStreamRef}
-              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-auto"
-              style={{ maxHeight: `${MAX_STREAM_HEIGHT}px` }}
+              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-auto flex-1 min-h-[180px]"
             >
               {(() => {
                 // No scaleY -- cards render at full height; container scrolls if needed
@@ -681,7 +734,7 @@ const CombinedFaultView = ({
                 );
               })()}
             </div>
-            <div className="flex items-center justify-center gap-6 mt-2 text-xs">
+            <div className="flex items-center justify-center gap-6 mt-2 text-xs shrink-0">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-blue-400" />
                 <span className="text-blue-300">Primary ECM</span>
@@ -696,9 +749,9 @@ const CombinedFaultView = ({
       </div>
 
       {/* Main content - Master-Detail layout */}
-      <div className="flex gap-4 min-h-[320px] max-h-[600px]">
+      <div className="flex gap-4 min-h-0 flex-1">
         {/* Fault List */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
+        <div className="w-1/2 flex flex-col overflow-hidden min-h-0">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-1">
             {filteredFaults.length} Fault{filteredFaults.length !== 1 ? 's' : ''} Found
           </div>
@@ -721,10 +774,9 @@ const CombinedFaultView = ({
         </div>
 
         {/* Fault Detail */}
-        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4 overflow-hidden">
+        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4 overflow-hidden min-h-0">
           <FaultDetail
             fault={selectedFault}
-            engineHours={selectedFault ? getEngineHours(selectedFault) : null}
           />
         </div>
       </div>
