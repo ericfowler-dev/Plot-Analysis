@@ -28,7 +28,7 @@ const toTimelineLabel = (fault) => {
 };
 
 const CARD_WIDTH = 280;
-const CARD_HEIGHT = 80;
+const CARD_HEIGHT = 92;
 const ROW_GAP = 8;
 const HORIZONTAL_GAP = 14;
 const AXIS_HEIGHT = 28;
@@ -460,12 +460,12 @@ const CombinedFaultView = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         <button
           onClick={() => setSourceFilter('all')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'all'
               ? 'bg-green-500/20 border-green-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -476,7 +476,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('primary')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'primary'
               ? 'bg-blue-500/20 border-blue-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -487,7 +487,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('secondary')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'secondary'
               ? 'bg-orange-500/20 border-orange-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -498,7 +498,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('matching')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'matching'
               ? 'bg-yellow-500/20 border-yellow-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -538,8 +538,8 @@ const CombinedFaultView = ({
       </div>
 
       {/* Correlated Fault Timeline */}
-      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div>
             <div className="text-sm font-semibold text-slate-200">Fault Timeline Correlation</div>
             <div className="text-xs text-slate-500">Cards are packed into rows to avoid overlap. Click a card for details.</div>
@@ -558,15 +558,13 @@ const CombinedFaultView = ({
           <>
             <div
               ref={eventStreamRef}
-              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-hidden"
+              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-auto"
               style={{ maxHeight: `${MAX_STREAM_HEIGHT}px` }}
             >
               {(() => {
-                const scaleY = streamLayout.height > MAX_STREAM_HEIGHT
-                  ? MAX_STREAM_HEIGHT / streamLayout.height
-                  : 1;
-                const scaledHeight = streamLayout.height * scaleY;
-                const scaledAxisY = streamLayout.axisY * scaleY;
+                // No scaleY -- cards render at full height; container scrolls if needed
+                const scaledHeight = streamLayout.height;
+                const scaledAxisY = streamLayout.axisY;
 
                 return (
                   <div
@@ -574,13 +572,13 @@ const CombinedFaultView = ({
                     style={{
                       width: `${streamLayout.width}px`,
                       height: `${scaledHeight}px`,
-                      paddingBottom: `${AXIS_HEIGHT * scaleY}px`
+                      paddingBottom: `${AXIS_HEIGHT}px`
                     }}
                   >
                     {/* Connector lines */}
                     {streamLayout.cards.map((card) => {
-                      const top = card.row * (CARD_HEIGHT + ROW_GAP) * scaleY;
-                      const lineTop = top + CARD_HEIGHT * scaleY;
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP);
+                      const lineTop = top + CARD_HEIGHT;
                       const lineHeight = Math.max(0, scaledAxisY - lineTop);
                       const connectorColor = card.sourceRole === 'primary' ? '#38bdf8' : '#fb923c';
                       return (
@@ -610,7 +608,7 @@ const CombinedFaultView = ({
 
                     {/* Cards */}
                     {streamLayout.cards.map((card) => {
-                      const top = card.row * (CARD_HEIGHT + ROW_GAP) * scaleY;
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP);
                       const isSelected = card.filteredIndex === selectedFaultIndex;
                       const statusColor = card.status === 'active'
                         ? 'bg-red-500/20 text-red-300 border-red-500/40'
@@ -625,9 +623,10 @@ const CombinedFaultView = ({
                             left: `${card.x}px`,
                             top: `${top}px`,
                             width: `${CARD_WIDTH}px`,
-                            minHeight: `${CARD_HEIGHT * scaleY}px`,
-                            maxHeight: `${CARD_HEIGHT * scaleY}px`,
-                            padding: '8px 12px'
+                            minHeight: `${CARD_HEIGHT}px`,
+                            maxHeight: `${CARD_HEIGHT}px`,
+                            padding: '8px 12px',
+                            overflow: 'hidden'
                           }}
                           onClick={() => setSelectedFaultIndex(card.filteredIndex)}
                           title={card.description || 'Fault'}
@@ -642,7 +641,12 @@ const CombinedFaultView = ({
                               {card.status === 'active' ? 'ACTIVE' : 'STORED'}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+                          {card.description && (
+                            <div className="text-xs text-slate-400 truncate mt-0.5" title={card.description}>
+                              {card.description}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
                             <span>Count: <span className="text-white font-mono">{card.occurrenceCount || 0}</span></span>
                             <span className="text-slate-500 truncate" title={card.sourceFileName}>
                               File
@@ -657,7 +661,7 @@ const CombinedFaultView = ({
                       className="absolute left-0 right-0 border-t border-slate-700"
                       style={{
                         top: `${scaledAxisY}px`,
-                        height: `${AXIS_HEIGHT * scaleY}px`,
+                        height: `${AXIS_HEIGHT}px`,
                         background: 'linear-gradient(180deg, rgba(15,23,42,0.75), rgba(15,23,42,0.95))'
                       }}
                     >
@@ -692,9 +696,9 @@ const CombinedFaultView = ({
       </div>
 
       {/* Main content - Master-Detail layout */}
-      <div className="flex gap-4" style={{ minHeight: '500px' }}>
+      <div className="flex gap-4 min-h-[320px] max-h-[600px]">
         {/* Fault List */}
-        <div className="w-1/2 flex flex-col">
+        <div className="w-1/2 flex flex-col overflow-hidden">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-1">
             {filteredFaults.length} Fault{filteredFaults.length !== 1 ? 's' : ''} Found
           </div>
@@ -717,7 +721,7 @@ const CombinedFaultView = ({
         </div>
 
         {/* Fault Detail */}
-        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4">
+        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4 overflow-hidden">
           <FaultDetail
             fault={selectedFault}
             engineHours={selectedFault ? getEngineHours(selectedFault) : null}
