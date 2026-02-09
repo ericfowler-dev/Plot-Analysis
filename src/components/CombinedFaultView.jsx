@@ -27,11 +27,12 @@ const toTimelineLabel = (fault) => {
   return shortDesc ? `${fault.code} – ${shortDesc}` : `DTC ${fault.code}`;
 };
 
-const CARD_WIDTH = 240;
-const CARD_HEIGHT = 120;
-const ROW_GAP = 12;
-const HORIZONTAL_GAP = 16;
-const AXIS_HEIGHT = 36;
+const CARD_WIDTH = 220;
+const CARD_HEIGHT = 110;
+const ROW_GAP = 8;
+const HORIZONTAL_GAP = 12;
+const AXIS_HEIGHT = 28;
+const MAX_STREAM_HEIGHT = 420;
 const STREAM_PADDING_X = 48;
 
 const buildTicks = (min, max, desired = 6) => {
@@ -557,105 +558,127 @@ const CombinedFaultView = ({
           <>
             <div
               ref={eventStreamRef}
-              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-auto"
-              style={{ maxHeight: '520px' }}
+              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-hidden"
+              style={{ maxHeight: `${MAX_STREAM_HEIGHT}px` }}
             >
-              <div
-                className="relative"
-                style={{
-                  width: `${streamLayout.width}px`,
-                  height: `${streamLayout.height}px`,
-                  paddingBottom: `${AXIS_HEIGHT}px`
-                }}
-              >
-                {/* Connector lines */}
-                {streamLayout.cards.map((card) => {
-                  const top = card.row * (CARD_HEIGHT + ROW_GAP);
-                  const lineTop = top + CARD_HEIGHT;
-                  const lineHeight = Math.max(0, streamLayout.axisY - lineTop);
-                  return (
-                    <div
-                      key={`line-${card.filteredIndex}-${card.row}`}
-                      className="absolute bg-white/15"
-                      style={{
-                        left: `${card.connectorX}px`,
-                        top: `${lineTop}px`,
-                        width: '1px',
-                        height: `${lineHeight}px`
-                      }}
-                    />
-                  );
-                })}
+              {(() => {
+                const scaleY = streamLayout.height > MAX_STREAM_HEIGHT
+                  ? MAX_STREAM_HEIGHT / streamLayout.height
+                  : 1;
+                const scaledHeight = streamLayout.height * scaleY;
+                const scaledAxisY = streamLayout.axisY * scaleY;
 
-                {/* Cards */}
-                {streamLayout.cards.map((card) => {
-                  const top = card.row * (CARD_HEIGHT + ROW_GAP);
-                  const isSelected = card.filteredIndex === selectedFaultIndex;
-                  const statusColor = card.status === 'active'
-                    ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                    : 'bg-amber-500/10 text-amber-200 border-amber-400/30';
-                  return (
-                    <div
-                      key={`card-${card.filteredIndex}-${card.row}`}
-                      className={`absolute dtc-event-card bg-slate-900/80 border border-slate-700 rounded-lg shadow-lg transition-all hover:border-emerald-400/50 hover:shadow-emerald-500/10 cursor-pointer ${
-                        isSelected ? 'ring-2 ring-emerald-400/70 shadow-emerald-500/15' : ''
-                      }`}
-                      style={{
-                        left: `${card.x}px`,
-                        top: `${top}px`,
-                        width: `${CARD_WIDTH}px`,
-                        minHeight: `${CARD_HEIGHT}px`,
-                        maxHeight: `${CARD_HEIGHT}px`,
-                        padding: '10px 12px',
-                        overflow: 'hidden'
-                      }}
-                      onClick={() => setSelectedFaultIndex(card.filteredIndex)}
-                    >
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <SourceBadge role={card.sourceRole} />
-                        <span className="text-slate-400 font-mono">{formatNumber(card.hour, 1)}h</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-green-400 font-mono font-bold text-base">DTC {card.code}</div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor}`}>
-                          {card.status === 'active' ? 'ACTIVE' : 'STORED'}
-                        </span>
-                      </div>
-                      <div className="text-sm text-white leading-tight line-clamp-2" title={card.description}>
-                        {card.description || 'Unknown fault'}
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3">
-                        <span>Count: <span className="text-white font-mono">{card.occurrenceCount || 0}</span></span>
-                        <span className="text-slate-500 truncate" title={card.sourceFileName}>
-                          Details →
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Static axis for connector targets */}
-                <div
-                  className="absolute left-0 right-0 border-t border-slate-700"
-                  style={{
-                    top: `${streamLayout.axisY}px`,
-                    height: `${AXIS_HEIGHT}px`,
-                    background: 'linear-gradient(180deg, rgba(15,23,42,0.6), rgba(15,23,42,0.9))'
-                  }}
-                >
-                  <div className="relative h-full">
-                    {streamLayout.ticks.map((tick) => {
-                      const x = STREAM_PADDING_X + ((tick - timelineDomain[0]) / (timelineDomain[1] - timelineDomain[0])) * (streamLayout.width - STREAM_PADDING_X * 2);
+                return (
+                  <div
+                    className="relative"
+                    style={{
+                      width: `${streamLayout.width}px`,
+                      height: `${scaledHeight}px`,
+                      paddingBottom: `${AXIS_HEIGHT * scaleY}px`
+                    }}
+                  >
+                    {/* Connector lines */}
+                    {streamLayout.cards.map((card) => {
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP) * scaleY;
+                      const lineTop = top + CARD_HEIGHT * scaleY;
+                      const lineHeight = Math.max(0, scaledAxisY - lineTop);
+                      const connectorColor = card.sourceRole === 'primary' ? '#38bdf8' : '#fb923c';
                       return (
-                        <div key={tick} className="absolute text-[10px] text-slate-400 flex flex-col items-center" style={{ left: `${x}px`, bottom: 0 }}>
-                          <div className="w-px h-3 bg-slate-600" />
-                          <div className="mt-1 font-mono">{formatNumber(tick, 1)}h</div>
+                        <div
+                          key={`line-${card.filteredIndex}-${card.row}`}
+                          className="absolute"
+                          style={{
+                            left: `${card.connectorX}px`,
+                            top: `${lineTop}px`,
+                            width: '2px',
+                            height: `${lineHeight}px`,
+                            background: `linear-gradient(180deg, ${connectorColor} 0%, ${connectorColor}44 100%)`,
+                            boxShadow: `0 0 6px ${connectorColor}66`
+                          }}
+                        >
+                          <div
+                            className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                            style={{
+                              bottom: '-2px',
+                              backgroundColor: connectorColor,
+                              boxShadow: `0 0 8px ${connectorColor}99`
+                            }}
+                          />
                         </div>
                       );
                     })}
+
+                    {/* Cards */}
+                    {streamLayout.cards.map((card) => {
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP) * scaleY;
+                      const isSelected = card.filteredIndex === selectedFaultIndex;
+                      const statusColor = card.status === 'active'
+                        ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                        : 'bg-amber-500/10 text-amber-200 border-amber-400/30';
+                      return (
+                        <div
+                          key={`card-${card.filteredIndex}-${card.row}`}
+                          className={`absolute dtc-event-card bg-slate-900/85 border border-slate-700 rounded-lg shadow-lg transition-all hover:border-emerald-400/50 hover:shadow-emerald-500/10 cursor-pointer ${
+                            isSelected ? 'ring-2 ring-emerald-400/70 shadow-emerald-500/15' : ''
+                          }`}
+                          style={{
+                            left: `${card.x}px`,
+                            top: `${top}px`,
+                            width: `${CARD_WIDTH}px`,
+                            minHeight: `${CARD_HEIGHT * scaleY}px`,
+                            maxHeight: `${CARD_HEIGHT * scaleY}px`,
+                            padding: '10px 12px',
+                            overflow: 'hidden'
+                          }}
+                          onClick={() => setSelectedFaultIndex(card.filteredIndex)}
+                        >
+                          <div className="flex items-center justify-between text-[11px] mb-1">
+                            <SourceBadge role={card.sourceRole} />
+                            <span className="text-slate-400 font-mono">{formatNumber(card.hour, 1)}h</span>
+                          </div>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-green-400 font-mono font-bold text-base">DTC {card.code}</div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor}`}>
+                              {card.status === 'active' ? 'ACTIVE' : 'STORED'}
+                            </span>
+                          </div>
+                          <div className="text-sm text-white leading-tight line-clamp-2" title={card.description}>
+                            {card.description || 'Unknown fault'}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3">
+                            <span>Count: <span className="text-white font-mono">{card.occurrenceCount || 0}</span></span>
+                            <span className="text-slate-500 truncate" title={card.sourceFileName}>
+                              Details →
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Static axis for connector targets */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-slate-700"
+                      style={{
+                        top: `${scaledAxisY}px`,
+                        height: `${AXIS_HEIGHT * scaleY}px`,
+                        background: 'linear-gradient(180deg, rgba(15,23,42,0.75), rgba(15,23,42,0.95))'
+                      }}
+                    >
+                      <div className="relative h-full">
+                        {streamLayout.ticks.map((tick) => {
+                          const x = STREAM_PADDING_X + ((tick - timelineDomain[0]) / (timelineDomain[1] - timelineDomain[0])) * (streamLayout.width - STREAM_PADDING_X * 2);
+                          return (
+                            <div key={tick} className="absolute text-[10px] text-slate-300 flex flex-col items-center" style={{ left: `${x}px`, bottom: 0 }}>
+                              <div className="w-px h-3 bg-slate-500" />
+                              <div className="mt-1 font-mono">{formatNumber(tick, 1)}h</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
             <div className="flex items-center justify-center gap-6 mt-2 text-xs">
               <div className="flex items-center gap-1.5">
