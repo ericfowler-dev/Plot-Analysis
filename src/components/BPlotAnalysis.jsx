@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, ReferenceArea, Brush
@@ -438,6 +438,8 @@ const BPlotAnalysis = ({
   const [refAreaLeft, setRefAreaLeft] = useState(null);
   const [refAreaRight, setRefAreaRight] = useState(null);
   const [zoomedDomain, setZoomedDomain] = useState(null);
+  const zoomRafId = useRef(null);
+  const pendingZoomX = useRef(null);
 
   const primaryBplotFile = useMemo(
     () => bplotFiles.find((file) => file.role === 'primary'),
@@ -468,6 +470,14 @@ const BPlotAnalysis = ({
       setOverlayCorrelatedPlots(false);
     }
   }, [dualRoleMode, overlayCorrelatedPlots]);
+
+  useEffect(() => () => {
+    if (zoomRafId.current) {
+      cancelAnimationFrame(zoomRafId.current);
+      zoomRafId.current = null;
+    }
+    pendingZoomX.current = null;
+  }, []);
 
   const activeBplotFile = useMemo(() => {
     if (!dualRoleMode) return null;
@@ -623,6 +633,16 @@ const BPlotAnalysis = ({
     return chartData || [];
   }, [shouldOverlayCorrelatedPlots, correlatedOverlayChartData, chartData]);
 
+  const visibleChartData = useMemo(() => {
+    if (!zoomedDomain) return chartRenderData;
+    const [min, max] = zoomedDomain;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return chartRenderData;
+    return chartRenderData.filter((row) => {
+      const t = typeof row?.Time === 'number' ? row.Time : parseFloat(row?.Time);
+      return Number.isFinite(t) && t >= min && t <= max;
+    });
+  }, [chartRenderData, zoomedDomain]);
+
   // Calculate unique Y-axes needed based on selected channels' unit types
   const chartAxes = useMemo(() => {
     // Axis label mapping
@@ -759,11 +779,20 @@ const BPlotAnalysis = ({
     }
   };
 
-  const handleZoomMouseMove = (e) => {
-    if (refAreaLeft !== null && e && e.activeLabel !== undefined) {
-      setRefAreaRight(e.activeLabel);
+  const handleZoomMouseMove = useCallback((e) => {
+    if (refAreaLeft === null || e?.activeLabel === undefined) return;
+
+    const nextX = e.activeLabel;
+    if (pendingZoomX.current === nextX) return;
+    pendingZoomX.current = nextX;
+
+    if (!zoomRafId.current) {
+      zoomRafId.current = requestAnimationFrame(() => {
+        setRefAreaRight(pendingZoomX.current);
+        zoomRafId.current = null;
+      });
     }
-  };
+  }, [refAreaLeft]);
 
   const handleZoomMouseUp = () => {
     if (refAreaLeft !== null && refAreaRight !== null) {
@@ -773,6 +802,11 @@ const BPlotAnalysis = ({
         setZoomedDomain([left, right]);
       }
     }
+    if (zoomRafId.current) {
+      cancelAnimationFrame(zoomRafId.current);
+      zoomRafId.current = null;
+    }
+    pendingZoomX.current = null;
     setRefAreaLeft(null);
     setRefAreaRight(null);
   };
@@ -1555,7 +1589,7 @@ const BPlotAnalysis = ({
               <div className="flex-1 h-[300px] lg:h-auto">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart
-                    data={chartRenderData}
+                    data={visibleChartData}
                     onMouseDown={handleZoomMouseDown}
                     onMouseMove={handleZoomMouseMove}
                     onMouseUp={handleZoomMouseUp}
@@ -1622,6 +1656,7 @@ const BPlotAnalysis = ({
                         strokeDasharray={series.strokeDasharray}
                         strokeWidth={highlightedChannel === series.channel ? 4 : 2}
                         name={series.name}
+                        isAnimationActive={false}
                         style={highlightedChannel === series.channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
                         connectNulls
                       />
