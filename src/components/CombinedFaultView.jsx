@@ -343,7 +343,7 @@ const CombinedFaultView = ({
   }, [filteredFaults]);
 
   const eventStreamRef = useRef(null);
-  const [streamWidth, setStreamWidth] = useState(1200);
+  const [streamViewport, setStreamViewport] = useState({ width: 1200, height: 240 });
 
   useLayoutEffect(() => {
     if (!layoutRootRef.current || typeof window === 'undefined') return undefined;
@@ -390,9 +390,13 @@ const CombinedFaultView = ({
     if (!eventStreamRef.current) return undefined;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry?.contentRect?.width) {
-        setStreamWidth(entry.contentRect.width);
-      }
+      if (!entry?.contentRect) return;
+      setStreamViewport((prev) => {
+        const nextWidth = Math.max(1, Math.round(entry.contentRect.width || prev.width));
+        const nextHeight = Math.max(1, Math.round(entry.contentRect.height || prev.height));
+        if (nextWidth === prev.width && nextHeight === prev.height) return prev;
+        return { width: nextWidth, height: nextHeight };
+      });
     });
     observer.observe(eventStreamRef.current);
     return () => observer.disconnect();
@@ -400,22 +404,18 @@ const CombinedFaultView = ({
 
   const timelineDomain = useMemo(() => {
     const values = timelinePoints.map((point) => point.hour);
-    const primaryHoursValue = parseHours(primaryEngineHours);
-    const secondaryHoursValue = parseHours(secondaryEngineHours);
-    if (Number.isFinite(primaryHoursValue)) values.push(primaryHoursValue);
-    if (Number.isFinite(secondaryHoursValue)) values.push(secondaryHoursValue);
     if (values.length === 0) return [0, 1];
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const padding = Math.max(0.5, (max - min) * 0.06);
+    const padding = Math.max(0.5, Math.max(1e-3, max - min) * 0.06);
     return [Math.max(0, min - padding), max + padding];
-  }, [timelinePoints, primaryEngineHours, secondaryEngineHours]);
+  }, [timelinePoints]);
 
   const streamLayout = useMemo(() => {
     if (timelinePoints.length === 0) {
       return {
         cards: [],
-        width: streamWidth || 1200,
+        width: streamViewport.width || 1200,
         height: CARD_HEIGHT + AXIS_HEIGHT + ROW_GAP,
         axisY: CARD_HEIGHT,
         ticks: []
@@ -424,8 +424,9 @@ const CombinedFaultView = ({
 
     const [domainMin, domainMax] = timelineDomain;
     const hourRange = Math.max(0.01, domainMax - domainMin);
-    const pxPerHour = Math.max(((streamWidth || 1200) - STREAM_PADDING_X * 2) / hourRange, 6);
-    const contentWidth = Math.max(streamWidth || 1200, STREAM_PADDING_X * 2 + hourRange * pxPerHour);
+    const viewportWidth = Math.max(320, streamViewport.width || 1200);
+    const pxPerHour = (viewportWidth - STREAM_PADDING_X * 2) / hourRange;
+    const contentWidth = viewportWidth;
 
     const roleWeight = (role) => (role === 'primary' ? 0 : 1);
     const compareCards = (a, b) => {
@@ -488,7 +489,17 @@ const CombinedFaultView = ({
     const ticks = buildTicks(domainMin, domainMax, 6);
 
     return { cards, width: contentWidth, height, axisY, ticks };
-  }, [timelinePoints, timelineDomain, streamWidth, sortBy]);
+  }, [timelinePoints, timelineDomain, streamViewport.width, sortBy]);
+
+  const timelineScale = useMemo(() => {
+    const scaleX = streamLayout.width > 0 && streamViewport.width
+      ? Math.min(1, streamViewport.width / streamLayout.width)
+      : 1;
+    const scaleY = streamLayout.height > 0 && streamViewport.height
+      ? Math.min(1, streamViewport.height / streamLayout.height)
+      : 1;
+    return Math.min(scaleX, scaleY);
+  }, [streamLayout.width, streamLayout.height, streamViewport.width, streamViewport.height]);
 
   const selectedFault = selectedFaultIndex !== null ? filteredFaults[selectedFaultIndex] : null;
 
@@ -612,10 +623,10 @@ const CombinedFaultView = ({
           <>
             <div
               ref={eventStreamRef}
-              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-x-auto overflow-y-auto flex-1 min-h-[180px]"
+              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-hidden flex-1 min-h-[180px]"
             >
               {(() => {
-                // No scaleY -- cards render at full height; container scrolls if needed
+                // Cards render at natural size; container scales to keep everything visible without scrollbars
                 const scaledHeight = streamLayout.height;
                 const scaledAxisY = streamLayout.axisY;
 
@@ -625,7 +636,9 @@ const CombinedFaultView = ({
                     style={{
                       width: `${streamLayout.width}px`,
                       height: `${scaledHeight}px`,
-                      paddingBottom: `${AXIS_HEIGHT}px`
+                      paddingBottom: `${AXIS_HEIGHT}px`,
+                      transform: timelineScale < 1 ? `scale(${timelineScale})` : undefined,
+                      transformOrigin: 'top left'
                     }}
                   >
                     {/* Connector lines */}
