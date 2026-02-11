@@ -45,7 +45,8 @@ if (process.env.NODE_ENV === 'production') {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '2.0.0' });
+  // npm exposes package.json fields to scripts as env vars (e.g. npm_package_version).
+  res.json({ status: 'ok', version: process.env.npm_package_version || 'unknown' });
 });
 
 // DB health check
