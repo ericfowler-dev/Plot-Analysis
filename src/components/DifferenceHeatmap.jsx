@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
+import { formatHistogramBucketLabel } from '../lib/histogramBuckets';
 
 // =============================================================================
 // DIFFERENCE HEATMAP COMPONENT
@@ -34,6 +35,9 @@ const DifferenceHeatmap = ({
 
   const { data: rawData, xLabels, yLabels, maxAbsDiff: rawMaxAbsDiff } = differenceData;
   const isEventUnits = unitLabel === 'events' || unitLabel === 'counts' || unitLabel === 'occurrences';
+  const xBucketLabels = xLabels.map((_, idx) => formatHistogramBucketLabel(xLabels, idx, 1));
+  const yBucketLabels = yLabels.map((_, idx) => formatHistogramBucketLabel(yLabels, idx, 0));
+  const mapColumnCount = Math.max(xLabels.length, 1);
 
   // Conversion factor: if source is in seconds, convert to hours for display
   const conversionFactor = sourceInSeconds ? (secondsPerUnit / 3600) : 1;
@@ -41,6 +45,8 @@ const DifferenceHeatmap = ({
   // Apply conversion to data
   const data = rawData.map(row => row.map(val => val * conversionFactor));
   const maxAbsDiff = rawMaxAbsDiff * conversionFactor;
+  const maxDiff = differenceData.maxDiff * conversionFactor;
+  const minDiff = differenceData.minDiff * conversionFactor;
 
   const valueDecimals = isEventUnits ? 0 : 2;
   const tooltipDecimals = isEventUnits ? 0 : 4;
@@ -70,11 +76,6 @@ const DifferenceHeatmap = ({
       // Secondary higher - orange tint
       return `rgba(194, 65, 12, ${alpha})`; // orange-700
     }
-  };
-
-  const getCellTextColor = (value) => {
-    if (value === 0) return 'text-slate-200';
-    return 'text-white';
   };
 
   const getTotalTextColor = (value) => {
@@ -132,36 +133,49 @@ const DifferenceHeatmap = ({
         <table className="w-full border-separate border-spacing-1">
           <thead>
             <tr>
-              <th className="w-16 p-2 text-left text-[10px] font-bold text-slate-500 uppercase">
-                RPM \ MAP
+              <th
+                rowSpan={2}
+                className="min-w-[8.5rem] p-3 text-left text-xs font-bold text-slate-400 uppercase tracking-[0.16em] align-bottom"
+              >
+                RPM Range
               </th>
-              {xLabels.map((x, idx) => (
-                <th key={idx} className="w-16 p-2 text-center text-xs font-bold text-slate-400">
-                  {formatNumber(x, 1)}
-                </th>
-              ))}
-              <th className="w-20 p-2 text-center text-xs font-bold text-slate-400 border-l border-slate-700/50">
+              <th
+                colSpan={mapColumnCount}
+                className="p-3 text-center text-sm font-bold text-slate-200 uppercase tracking-[0.2em]"
+              >
+                MAP Range (PSIA)
+              </th>
+              <th
+                rowSpan={2}
+                className="min-w-[7rem] p-3 text-center text-xs font-bold text-slate-400 border-l border-slate-700/50 uppercase tracking-[0.16em] align-bottom"
+              >
                 Row Sum
               </th>
+            </tr>
+            <tr>
+              {xLabels.map((x, idx) => (
+                <th key={idx} className="min-w-[8.25rem] px-4 py-3 text-center text-[13px] font-bold text-slate-300 whitespace-nowrap leading-snug">
+                  {xBucketLabels[idx]}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {yLabels.map((yLabel, yIdx) => (
               <tr key={yIdx}>
-                <td className="p-2 text-right text-xs font-bold text-white border-r border-slate-700/50 pr-3">
-                  {formatNumber(yLabel, 0)}
+                <td className="p-2 text-right text-[11px] font-bold text-white border-r border-slate-700/50 pr-3 whitespace-nowrap">
+                  {yBucketLabels[yIdx]}
                 </td>
                 {xLabels.map((_, xIdx) => {
                   const value = data[yIdx]?.[xIdx] || 0;
                   const bgColor = getCellColor(value);
-                  const textColor = getCellTextColor(value);
 
                   return (
                     <td
                       key={xIdx}
                       className={`p-2 rounded border border-white/5 text-center transition-all hover:border-green-500/50`}
                       style={{ backgroundColor: bgColor }}
-                      title={`RPM: ${yLabel}, MAP: ${xLabels[xIdx]}\nDifference: ${formatNumber(value, tooltipDecimals)} ${unitLabel}\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
+                      title={`RPM: ${yBucketLabels[yIdx]}, MAP: ${xBucketLabels[xIdx]}\nDifference: ${formatNumber(value, tooltipDecimals)} ${unitLabel}\n${value > 0 ? 'Primary' : value < 0 ? 'Secondary' : 'Both'} higher`}
                     >
                       {value !== 0 ? (
                         <div className={`text-[11px] font-mono font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)] ${value > 0 ? 'text-blue-200' : 'text-orange-200'}`}>
@@ -202,10 +216,10 @@ const DifferenceHeatmap = ({
       <div className="px-4 py-3 border-t border-slate-700 bg-slate-800/30 flex justify-between items-center text-xs text-slate-400">
         <div className="flex gap-6">
           <span>
-            Max Positive: <span className="text-blue-400 font-mono">{formatNumber(differenceData.maxDiff, tooltipDecimals)} {unitLabel}</span>
+            Max Positive: <span className="text-blue-400 font-mono">{formatNumber(maxDiff, tooltipDecimals)} {unitLabel}</span>
           </span>
           <span>
-            Max Negative: <span className="text-orange-400 font-mono">{formatNumber(differenceData.minDiff, tooltipDecimals)} {unitLabel}</span>
+            Max Negative: <span className="text-orange-400 font-mono">{formatNumber(minDiff, tooltipDecimals)} {unitLabel}</span>
           </span>
           <span>
             Total Diff: <span className={`font-mono ${getTotalTextColor(rowTotals.reduce((sum, val) => sum + val, 0))}`}>
