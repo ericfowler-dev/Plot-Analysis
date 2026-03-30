@@ -28,6 +28,10 @@ import {
 import {
   VARIABLE_DEFINITIONS, VARIABLE_CATEGORIES, getVariableInfo, formatVariableValue, groupSnapshotByCategory
 } from './lib/variableDefinitions';
+import {
+  formatHistogramBucketLabel,
+  findHistogramBucketIndex
+} from './lib/histogramBuckets';
 
 // Import B-Plot modules
 import { parseBPlotData } from './lib/bplotParsers';
@@ -67,7 +71,7 @@ const PERF = false;
 const MAX_FILE_SIZE_MB = 100;
 const WARN_FILE_SIZE_MB = 20;
 const MB_BYTES = 1024 * 1024;
-const GUI_REVISION = '2.6.9';
+const GUI_REVISION = '2.7.3';
 const PDF_EXPORT_LIGHT_CLASS = 'pdf-export-light';
 
 const waitForNextPaint = () => new Promise((resolve) => {
@@ -623,6 +627,9 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
   const yLabels = histogram.yLabels || [];
   const xLabels = histogram.xLabels || [];
   const data = histogram.data || [];
+  const yBucketLabels = yLabels.map((_, idx) => formatHistogramBucketLabel(yLabels, idx, 0));
+  const xBucketLabels = xLabels.map((_, idx) => formatHistogramBucketLabel(xLabels, idx, 1));
+  const mapColumnCount = Math.max(xLabels.length, 1);
 
   // Conversion factor: if source is in seconds, convert to hours for display
   const conversionFactor = sourceInSeconds ? (secondsPerUnit / 3600) : 1;
@@ -662,19 +669,9 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
   // Check if a cell matches a fault location
   const getFaultAtCell = (rpm, map) => {
     return faultOverlays.find(fault => {
-      const faultRPM = fault.snapshot?.rpm;
-      const faultMAP = fault.snapshot?.rMAP;
-      if (!faultRPM || !faultMAP) return false;
-      // Find closest bin
-      const rpmMatch = yLabels.some((y, idx) => {
-        const nextY = yLabels[idx + 1] || y + 500;
-        return faultRPM >= y && faultRPM < nextY && y === rpm;
-      });
-      const mapMatch = xLabels.some((x, idx) => {
-        const nextX = xLabels[idx + 1] || x + 5;
-        return faultMAP >= x && faultMAP < nextX && x === map;
-      });
-      return rpmMatch && mapMatch;
+      const faultRPMIndex = findHistogramBucketIndex(yLabels, fault.snapshot?.rpm);
+      const faultMAPIndex = findHistogramBucketIndex(xLabels, fault.snapshot?.rMAP);
+      return faultRPMIndex === rpm && faultMAPIndex === map;
     });
   };
 
@@ -703,31 +700,45 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
         <table className="w-full border-separate border-spacing-1">
           <thead>
             <tr>
-              <th className="w-20 p-2 text-left text-[10px] font-bold text-[#93adc8] uppercase tracking-tighter">
-                RPM \ MAP
+              <th
+                rowSpan={2}
+                className="min-w-[8.5rem] p-3 text-left text-xs font-bold text-[#93adc8] uppercase tracking-[0.16em] align-bottom"
+              >
+                RPM Range
               </th>
-              {xLabels.map((x, idx) => (
-                <th key={idx} className="w-20 p-2 text-center text-xs font-bold text-[#93adc8]">
-                  {formatNumber(x, 1)}
-                </th>
-              ))}
-              <th className="w-20 p-2 text-center text-xs font-bold text-[#22c55e] border-l border-[#344d65]/50">
+              <th
+                colSpan={mapColumnCount}
+                className="p-3 text-center text-sm font-bold text-[#c8def5] uppercase tracking-[0.2em]"
+              >
+                MAP Range (PSIA)
+              </th>
+              <th
+                rowSpan={2}
+                className="min-w-[7rem] p-3 text-center text-xs font-bold text-[#22c55e] border-l border-[#344d65]/50 uppercase tracking-[0.16em] align-bottom"
+              >
                 Row Total
               </th>
+            </tr>
+            <tr>
+              {xLabels.map((x, idx) => (
+                <th key={idx} className="min-w-[8.25rem] px-4 py-3 text-center text-[13px] font-bold text-[#93adc8] whitespace-nowrap leading-snug">
+                  {xBucketLabels[idx]}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {yLabels.map((yLabel, yIdx) => (
               <tr key={yIdx}>
-                <td className="p-2 text-right text-xs font-bold text-white border-r border-[#344d65]/50 pr-4">
-                  {formatNumber(yLabel, 0)}
+                <td className="p-2 text-right text-[11px] font-bold text-white border-r border-[#344d65]/50 pr-4 whitespace-nowrap">
+                  {yBucketLabels[yIdx]}
                 </td>
                 {xLabels.map((xLabel, xIdx) => {
                   const rawValue = data[yIdx]?.[xIdx] || 0;
                   const value = rawValue * conversionFactor; // Apply conversion for display
                   const percent = grandTotal > 0 ? (value / grandTotal * 100) : 0;
                   const cellStyle = getCellStyle(value);
-                  const fault = getFaultAtCell(yLabel, xLabel);
+                  const fault = getFaultAtCell(yIdx, xIdx);
 
                   const faultDescription = fault?.description || fault?.faultInfo?.name;
                   return (
@@ -738,7 +749,7 @@ const HeatmapTable = ({ histogram, title, faultOverlays = [], onCellClick, unit 
                       }`}
                       style={cellStyle}
                       onClick={() => onCellClick && onCellClick(yLabel, xLabel, value)}
-                      title={`RPM: ${yLabel}, MAP: ${xLabel}\n${unit === 'events' ? 'Events' : 'Hours'}: ${unit === 'events' ? Math.round(value) : value.toFixed(4)}\n${percent.toFixed(2)}% of total${fault ? `\nFault DTC ${fault.code}${faultDescription ? `\n${faultDescription}` : ''}` : ''}`}
+                      title={`RPM: ${yBucketLabels[yIdx]}, MAP: ${xBucketLabels[xIdx]}\n${unit === 'events' ? 'Events' : 'Hours'}: ${unit === 'events' ? Math.round(value) : value.toFixed(4)}\n${percent.toFixed(2)}% of total${fault ? `\nFault DTC ${fault.code}${faultDescription ? `\n${faultDescription}` : ''}` : ''}`}
                     >
                       {value > 0 ? (
                         <>
@@ -812,6 +823,7 @@ const ECTBarChart = ({ histogram }) => {
 
   const xLabels = histogram.xLabels || [];
   const rawData = histogram.data?.[0] || [];
+  const bucketLabels = xLabels.map((_, idx) => `${formatHistogramBucketLabel(xLabels, idx, 0)}°F`);
 
   if (xLabels.length === 0 || rawData.length === 0) {
     return (
@@ -824,7 +836,7 @@ const ECTBarChart = ({ histogram }) => {
 
   // Prepare chart data with temperature zone classification
   const chartData = xLabels.map((temp, idx) => ({
-    temp: `${temp}°F`,
+    bucketLabel: bucketLabels[idx],
     tempValue: temp,
     hours: rawData[idx] || 0,
     zone: temp < THRESHOLDS.COLD_ECT ? 'cold' : temp > THRESHOLDS.HOT_ECT ? 'hot' : 'normal'
@@ -857,6 +869,8 @@ const ECTBarChart = ({ histogram }) => {
   const weightedAvg = totalHours > 0
     ? chartData.reduce((sum, d) => sum + (d.tempValue * d.hours), 0) / totalHours
     : 0;
+  const coldThresholdBucketIndex = findHistogramBucketIndex(xLabels, THRESHOLDS.COLD_ECT);
+  const hotThresholdBucketIndex = findHistogramBucketIndex(xLabels, THRESHOLDS.HOT_ECT);
 
   // Get bar color based on temperature zone
   const getBarColor = (entry) => {
@@ -872,7 +886,7 @@ const ECTBarChart = ({ histogram }) => {
       const percent = totalHours > 0 ? (data.hours / totalHours * 100) : 0;
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-xl">
-          <div className="font-bold text-white mb-1">{data.temp}</div>
+          <div className="font-bold text-white mb-1">{data.bucketLabel}</div>
           <div className="text-sm space-y-1">
             <div className="flex justify-between gap-4">
               <span className="text-slate-400">Time:</span>
@@ -914,11 +928,11 @@ const ECTBarChart = ({ histogram }) => {
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#344d65" vertical={false} />
               <XAxis
-                dataKey="temp"
-                tick={{ fill: '#93adc8', fontSize: 10 }}
+                dataKey="bucketLabel"
+                tick={{ fill: '#93adc8', fontSize: 9 }}
                 angle={-45}
                 textAnchor="end"
-                height={60}
+                height={72}
                 interval={0}
                 axisLine={{ stroke: '#344d65' }}
                 tickLine={{ stroke: '#344d65' }}
@@ -937,8 +951,12 @@ const ECTBarChart = ({ histogram }) => {
                 ))}
               </Bar>
               {/* Reference lines for temperature zones */}
-              <ReferenceLine x={`${THRESHOLDS.COLD_ECT}°F`} stroke="#3b82f6" strokeDasharray="5 5" strokeWidth={2} />
-              <ReferenceLine x={`${THRESHOLDS.HOT_ECT}°F`} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
+              {coldThresholdBucketIndex !== null && chartData[coldThresholdBucketIndex] && (
+                <ReferenceLine x={chartData[coldThresholdBucketIndex].bucketLabel} stroke="#3b82f6" strokeDasharray="5 5" strokeWidth={2} />
+              )}
+              {hotThresholdBucketIndex !== null && chartData[hotThresholdBucketIndex] && (
+                <ReferenceLine x={chartData[hotThresholdBucketIndex].bucketLabel} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>

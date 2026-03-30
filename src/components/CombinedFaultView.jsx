@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Filter, Search } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList } from 'recharts';
 
 // =============================================================================
 // COMBINED FAULT VIEW COMPONENT
@@ -28,37 +27,29 @@ const toTimelineLabel = (fault) => {
   return shortDesc ? `${fault.code} – ${shortDesc}` : `DTC ${fault.code}`;
 };
 
-const VerticalDTCLine = ({ cx, fill, payload }) => {
-  if (typeof cx !== 'number') return null;
-  const isSelected = payload?.isSelected;
-  return (
-    <line
-      x1={cx} y1={10} x2={cx} y2={255}
-      stroke={fill}
-      strokeWidth={isSelected ? 3 : 1.5}
-      strokeOpacity={isSelected ? 0.9 : 0.5}
-    />
-  );
-};
+const CARD_WIDTH = 280;
+const CARD_HEIGHT = 92;
+const ROW_GAP = 8;
+const HORIZONTAL_GAP = 14;
+const AXIS_HEIGHT = 28;
+const STREAM_PADDING_X = 40;
+const VIEWPORT_BOTTOM_PADDING = 44;
+const DEFAULT_VIEWPORT_HEIGHT = 720;
 
-const TimelineLabel = ({ x, y, value, payload }) => {
-  if (typeof x !== 'number' || !value) return null;
-  const rank = Number.isFinite(payload?.labelRank) ? payload.labelRank : 0;
-  const isPrimary = payload?.sourceRole === 'primary';
-  const baseY = isPrimary ? 15 : 258;
-  const staggerOffset = (rank % 6) * 14 * (isPrimary ? 1 : -1);
-  return (
-    <text
-      x={x + 4}
-      y={baseY + staggerOffset}
-      fill={isPrimary ? '#93c5fd' : '#fdba74'}
-      fontSize={9}
-      fontWeight={600}
-      style={{ pointerEvents: 'none' }}
-    >
-      {value}
-    </text>
-  );
+const buildTicks = (min, max, desired = 6) => {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
+    return [min || 0, (max || 1)];
+  }
+  const range = max - min;
+  const rawStep = range / Math.max(1, desired - 1);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const step = Math.max(magnitude, Math.ceil(rawStep / magnitude) * magnitude / 2);
+  const ticks = [];
+  const first = Math.floor(min / step) * step;
+  for (let v = first; v <= max + step * 0.5; v += step) {
+    ticks.push(v);
+  }
+  return ticks;
 };
 
 // Source badge component
@@ -74,28 +65,6 @@ const SourceBadge = ({ role }) => {
     `} style={{ fontFamily: 'Orbitron, sans-serif' }}>
       {isPrimary ? 'Primary' : 'Secondary'}
     </span>
-  );
-};
-
-const FaultTimelineTooltip = ({ active, payload }) => {
-  if (!active || !payload || payload.length === 0) return null;
-  const point = payload[0]?.payload;
-  if (!point) return null;
-  return (
-    <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs shadow-xl max-w-xs">
-      <div className="text-green-400 font-mono font-bold mb-1">DTC {point.code}</div>
-      <div className="text-white mb-2 line-clamp-2">{point.description || 'Unknown fault'}</div>
-      <div className="space-y-1 text-slate-300">
-        <div>
-          Side: <span className={point.sourceRole === 'primary' ? 'text-blue-300' : 'text-orange-300'}>
-            {point.sourceRole === 'primary' ? 'Primary ECM' : 'Secondary ECM'}
-          </span>
-        </div>
-        <div>Last occurrence: <span className="text-white font-mono">{formatNumber(point.hour, 2)}h</span></div>
-        <div>Count: <span className="text-white font-mono">{point.occurrenceCount || 0}</span></div>
-        <div className="text-slate-400 truncate" title={point.sourceFileName}>File: {point.sourceFileName}</div>
-      </div>
-    </div>
   );
 };
 
@@ -166,7 +135,7 @@ const FaultRow = ({ fault, isSelected, onClick, engineHours }) => {
 };
 
 // Fault detail panel
-const FaultDetail = ({ fault, engineHours }) => {
+const FaultDetail = ({ fault }) => {
   const [showRaw, setShowRaw] = useState(false);
 
   if (!fault) {
@@ -277,6 +246,8 @@ const CombinedFaultView = ({
   const [sourceFilter, setSourceFilter] = useState('all'); // 'all', 'primary', 'secondary', 'matching'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recency'); // 'recency', 'count', 'code'
+  const layoutRootRef = useRef(null);
+  const [viewportHeight, setViewportHeight] = useState(DEFAULT_VIEWPORT_HEIGHT);
 
   // Calculate engine hours for the selected fault
   const getEngineHours = (fault) => {
@@ -347,10 +318,11 @@ const CombinedFaultView = ({
   }, [filteredFaults.length, selectedFaultIndex]);
 
   const timelinePoints = useMemo(() => {
-    const basePoints = filteredFaults
+    return filteredFaults
       .map((fault, filteredIndex) => {
         const hour = parseHours(fault.lastOccurrence);
         if (!Number.isFinite(hour)) return null;
+        const status = fault.occurredThisCycle ? 'active' : 'stored';
         return {
           filteredIndex,
           hour,
@@ -360,69 +332,174 @@ const CombinedFaultView = ({
           timelineLabel: toTimelineLabel(fault),
           sourceRole: fault.sourceRole,
           occurrenceCount: fault.occurrenceCount,
-          sourceFileName: fault.sourceFileName
+          sourceFileName: fault.sourceFileName,
+          status,
+          fault
         };
       })
       .filter(Boolean)
       // Keep rendering cost predictable on very large data sets.
       .slice(0, 240);
+  }, [filteredFaults]);
 
-    if (basePoints.length === 0) return basePoints;
+  const eventStreamRef = useRef(null);
+  const [streamViewport, setStreamViewport] = useState({ width: 1200, height: 240 });
 
-    const minHour = Math.min(...basePoints.map((point) => point.hour));
-    const maxHour = Math.max(...basePoints.map((point) => point.hour));
-    const hourRange = Math.max(0.01, maxHour - minHour);
-    const minLabelGap = Math.max(2, hourRange / 5);
-    const maxLabelsPerLane = 6;
-    const lastLabeledHourByLane = new Map();
-    const laneLabelCount = new Map();
+  useLayoutEffect(() => {
+    if (!layoutRootRef.current || typeof window === 'undefined') return undefined;
 
-    return basePoints.map((point) => {
-      const lastLabeledHour = lastLabeledHourByLane.get(point.lane);
-      const currentLaneCount = laneLabelCount.get(point.lane) || 0;
-      const laneHasCapacity = currentLaneCount < maxLabelsPerLane;
-      const forceLabel = point.filteredIndex === selectedFaultIndex;
-      const shouldLabel = forceLabel || (
-        laneHasCapacity && (
-          lastLabeledHour === undefined || Math.abs(point.hour - lastLabeledHour) >= minLabelGap
-        )
-      );
+    let frameId = null;
 
-      if (shouldLabel) {
-        lastLabeledHourByLane.set(point.lane, point.hour);
-        laneLabelCount.set(point.lane, currentLaneCount + 1);
+    const updateHeight = () => {
+      if (!layoutRootRef.current) return;
+      const rect = layoutRootRef.current.getBoundingClientRect();
+      const available = window.innerHeight - rect.top - VIEWPORT_BOTTOM_PADDING;
+      const nextHeight = Number.isFinite(available) && available > 0
+        ? Math.floor(available)
+        : DEFAULT_VIEWPORT_HEIGHT;
+      setViewportHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+    };
+
+    const scheduleUpdate = () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        updateHeight();
+      });
+    };
+
+    updateHeight();
+    window.addEventListener('resize', scheduleUpdate);
+
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(scheduleUpdate);
+      observer.observe(layoutRootRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', scheduleUpdate);
+      if (observer) observer.disconnect();
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!eventStreamRef.current) return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry?.contentRect) return;
+      setStreamViewport((prev) => {
+        const nextWidth = Math.max(1, Math.round(entry.contentRect.width || prev.width));
+        const nextHeight = Math.max(1, Math.round(entry.contentRect.height || prev.height));
+        if (nextWidth === prev.width && nextHeight === prev.height) return prev;
+        return { width: nextWidth, height: nextHeight };
+      });
+    });
+    observer.observe(eventStreamRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const timelineDomain = useMemo(() => {
+    const values = timelinePoints.map((point) => point.hour);
+    if (values.length === 0) return [0, 1];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const padding = Math.max(0.5, Math.max(1e-3, max - min) * 0.06);
+    return [Math.max(0, min - padding), max + padding];
+  }, [timelinePoints]);
+
+  const streamLayout = useMemo(() => {
+    if (timelinePoints.length === 0) {
+      return {
+        cards: [],
+        width: streamViewport.width || 1200,
+        height: CARD_HEIGHT + AXIS_HEIGHT + ROW_GAP,
+        axisY: CARD_HEIGHT,
+        ticks: []
+      };
+    }
+
+    const [domainMin, domainMax] = timelineDomain;
+    const hourRange = Math.max(0.01, domainMax - domainMin);
+    const viewportWidth = Math.max(320, streamViewport.width || 1200);
+    const pxPerHour = (viewportWidth - STREAM_PADDING_X * 2) / hourRange;
+    const contentWidth = viewportWidth;
+
+    const roleWeight = (role) => (role === 'primary' ? 0 : 1);
+    const compareCards = (a, b) => {
+      if (sortBy === 'recency') {
+        return (b.hour ?? 0) - (a.hour ?? 0);
+      }
+      if (sortBy === 'code') {
+        return (a.code || '').localeCompare(b.code || '');
+      }
+      if (sortBy === 'status') {
+        const diff = (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1);
+        if (diff !== 0) return diff;
+        return (b.hour ?? 0) - (a.hour ?? 0);
+      }
+      if (sortBy === 'ecm') {
+        const diff = roleWeight(a.sourceRole) - roleWeight(b.sourceRole);
+        if (diff !== 0) return diff;
+        return (b.hour ?? 0) - (a.hour ?? 0);
+      }
+      if (sortBy === 'count') {
+        return (b.occurrenceCount || 0) - (a.occurrenceCount || 0);
+      }
+      return (a.hour ?? 0) - (b.hour ?? 0);
+    };
+
+    const ordered = [...timelinePoints].sort(compareCards);
+    // Interval-based packing: track all [left, right] spans per row so cards
+    // on opposite sides of the timeline can share the same row.
+    const rowIntervals = []; // Array of arrays: [[left, right], ...]
+    const cards = ordered.map((point) => {
+      const hourX = STREAM_PADDING_X + (point.hour - domainMin) * pxPerHour;
+      const rawLeft = hourX - CARD_WIDTH / 2;
+      const clampedLeft = Math.max(0, Math.min(rawLeft, contentWidth - CARD_WIDTH - STREAM_PADDING_X));
+      const cardRight = clampedLeft + CARD_WIDTH;
+
+      let row = 0;
+      for (; row < rowIntervals.length; row++) {
+        const fits = rowIntervals[row].every(
+          ([l, r]) => cardRight + HORIZONTAL_GAP <= l || clampedLeft >= r + HORIZONTAL_GAP
+        );
+        if (fits) break;
+      }
+      if (row === rowIntervals.length) {
+        rowIntervals.push([[clampedLeft, cardRight]]);
+      } else {
+        rowIntervals[row].push([clampedLeft, cardRight]);
       }
 
       return {
         ...point,
-        isSelected: point.filteredIndex === selectedFaultIndex,
-        timelineLabel: shouldLabel ? point.timelineLabel : '',
-        labelRank: shouldLabel ? currentLaneCount : undefined
+        x: clampedLeft,
+        connectorX: hourX,
+        row
       };
     });
-  }, [filteredFaults, selectedFaultIndex]);
 
-  const primaryTimelinePoints = useMemo(
-    () => timelinePoints.filter((point) => point.sourceRole === 'primary'),
-    [timelinePoints]
-  );
-  const secondaryTimelinePoints = useMemo(
-    () => timelinePoints.filter((point) => point.sourceRole === 'secondary'),
-    [timelinePoints]
-  );
+    const rowCount = Math.max(1, rowIntervals.length);
+    const axisY = rowCount * (CARD_HEIGHT + ROW_GAP);
+    const height = axisY + AXIS_HEIGHT;
+    const ticks = buildTicks(domainMin, domainMax, 6);
 
-  const timelineDomain = useMemo(() => {
-    const values = timelinePoints.map((point) => point.hour);
-    const primaryHoursValue = parseHours(primaryEngineHours);
-    const secondaryHoursValue = parseHours(secondaryEngineHours);
-    if (Number.isFinite(primaryHoursValue)) values.push(primaryHoursValue);
-    if (Number.isFinite(secondaryHoursValue)) values.push(secondaryHoursValue);
-    if (values.length === 0) return [0, 1];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const padding = Math.max(0.5, (max - min) * 0.06);
-    return [Math.max(0, min - padding), max + padding];
-  }, [timelinePoints, primaryEngineHours, secondaryEngineHours]);
+    return { cards, width: contentWidth, height, axisY, ticks };
+  }, [timelinePoints, timelineDomain, streamViewport.width, sortBy]);
+
+  const timelineScale = useMemo(() => {
+    const scaleX = streamLayout.width > 0 && streamViewport.width
+      ? Math.min(1, streamViewport.width / streamLayout.width)
+      : 1;
+    const scaleY = streamLayout.height > 0 && streamViewport.height
+      ? Math.min(1, streamViewport.height / streamLayout.height)
+      : 1;
+    return Math.min(scaleX, scaleY);
+  }, [streamLayout.width, streamLayout.height, streamViewport.width, streamViewport.height]);
 
   const selectedFault = selectedFaultIndex !== null ? filteredFaults[selectedFaultIndex] : null;
 
@@ -442,12 +519,16 @@ const CombinedFaultView = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      ref={layoutRootRef}
+      className="flex min-h-0 flex-col gap-2 overflow-hidden"
+      style={{ height: `${viewportHeight}px` }}
+    >
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2 shrink-0">
         <button
           onClick={() => setSourceFilter('all')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'all'
               ? 'bg-green-500/20 border-green-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -458,7 +539,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('primary')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'primary'
               ? 'bg-blue-500/20 border-blue-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -469,7 +550,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('secondary')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'secondary'
               ? 'bg-orange-500/20 border-orange-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -480,7 +561,7 @@ const CombinedFaultView = ({
         </button>
         <button
           onClick={() => setSourceFilter('matching')}
-          className={`p-3 rounded-lg border transition-all ${
+          className={`p-2 rounded-lg border transition-all ${
             sourceFilter === 'matching'
               ? 'bg-yellow-500/20 border-yellow-500/50'
               : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
@@ -492,7 +573,7 @@ const CombinedFaultView = ({
       </div>
 
       {/* Search and Sort */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
@@ -513,16 +594,20 @@ const CombinedFaultView = ({
             <option value="recency">Sort by Recency</option>
             <option value="count">Sort by Count</option>
             <option value="code">Sort by Code</option>
+            <option value="status">Sort by Status</option>
+            <option value="ecm">Sort by ECM</option>
           </select>
         </div>
       </div>
 
-      {/* Correlated Fault Timeline */}
-      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+      {/* Correlated Fault Timeline — content-sized, capped at 40% of viewport */}
+      <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-3 flex min-h-0 shrink-0 flex-col"
+        style={{ maxHeight: `${Math.max(200, Math.floor(viewportHeight * 0.4))}px` }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div>
             <div className="text-sm font-semibold text-slate-200">Fault Timeline Correlation</div>
-            <div className="text-xs text-slate-500">Vertical lines show DTC events by engine hours. Click a line for details.</div>
+            <div className="text-xs text-slate-500">Cards are packed into rows to avoid overlap. Click a card for details.</div>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="text-blue-300">Primary Hours: <span className="font-mono text-white">{formatNumber(primaryEngineHours, 1)}h</span></div>
@@ -531,67 +616,144 @@ const CombinedFaultView = ({
         </div>
 
         {timelinePoints.length === 0 ? (
-          <div className="text-sm text-slate-500 py-6 text-center">
+          <div className="text-sm text-slate-500 py-6 text-center flex-1 min-h-0">
             No numeric hour data available for timeline plotting.
           </div>
         ) : (
           <>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <ScatterChart margin={{ top: 30, right: 20, left: 10, bottom: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis
-                    type="number"
-                    dataKey="hour"
-                    domain={timelineDomain}
-                    stroke="#94a3b8"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(value) => `${formatNumber(value, 1)}h`}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="lane"
-                    domain={[0.5, 2.5]}
-                    hide
-                  />
-                  <Tooltip content={<FaultTimelineTooltip />} />
+            <div
+              ref={eventStreamRef}
+              className="relative border border-slate-800 rounded-lg bg-slate-950/40 overflow-hidden flex-1 min-h-[180px]"
+            >
+              {(() => {
+                // Cards render at natural size; container scales to keep everything visible without scrollbars
+                const scaledHeight = streamLayout.height;
+                const scaledAxisY = streamLayout.axisY;
 
-                  <Scatter
-                    name="Primary ECM"
-                    data={primaryTimelinePoints}
-                    fill="#60a5fa"
-                    shape={<VerticalDTCLine />}
-                    onClick={(point) => {
-                      if (typeof point?.payload?.filteredIndex === 'number') {
-                        setSelectedFaultIndex(point.payload.filteredIndex);
-                      }
+                return (
+                  <div
+                    className="relative"
+                    style={{
+                      width: `${streamLayout.width}px`,
+                      height: `${scaledHeight}px`,
+                      paddingBottom: `${AXIS_HEIGHT}px`,
+                      transform: timelineScale < 1 ? `scale(${timelineScale})` : undefined,
+                      transformOrigin: 'top left'
                     }}
                   >
-                    <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
-                  </Scatter>
-                  <Scatter
-                    name="Secondary ECM"
-                    data={secondaryTimelinePoints}
-                    fill="#fb923c"
-                    shape={<VerticalDTCLine />}
-                    onClick={(point) => {
-                      if (typeof point?.payload?.filteredIndex === 'number') {
-                        setSelectedFaultIndex(point.payload.filteredIndex);
-                      }
-                    }}
-                  >
-                    <LabelList dataKey="timelineLabel" content={(props) => <TimelineLabel {...props} />} />
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
+                    {/* Connector lines */}
+                    {streamLayout.cards.map((card) => {
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP);
+                      const lineTop = top + CARD_HEIGHT;
+                      const lineHeight = Math.max(0, scaledAxisY - lineTop);
+                      const connectorColor = card.sourceRole === 'primary' ? '#38bdf8' : '#fb923c';
+                      return (
+                        <div
+                          key={`line-${card.filteredIndex}-${card.row}`}
+                          className="absolute"
+                          style={{
+                            left: `${card.connectorX}px`,
+                            top: `${lineTop}px`,
+                            width: '2px',
+                            height: `${lineHeight}px`,
+                            background: `linear-gradient(180deg, ${connectorColor} 0%, ${connectorColor}44 100%)`,
+                            boxShadow: `0 0 6px ${connectorColor}66`
+                          }}
+                        >
+                          <div
+                            className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                            style={{
+                              bottom: '-2px',
+                              backgroundColor: connectorColor,
+                              boxShadow: `0 0 8px ${connectorColor}99`
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+
+                    {/* Cards */}
+                    {streamLayout.cards.map((card) => {
+                      const top = card.row * (CARD_HEIGHT + ROW_GAP);
+                      const isSelected = card.filteredIndex === selectedFaultIndex;
+                      const statusColor = card.status === 'active'
+                        ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                        : 'bg-amber-500/10 text-amber-200 border-amber-400/30';
+                      return (
+                        <div
+                          key={`card-${card.filteredIndex}-${card.row}`}
+                          className={`absolute dtc-event-chip bg-slate-900/90 border border-slate-700 rounded-lg shadow-lg transition-all hover:border-emerald-400/60 hover:shadow-emerald-500/15 cursor-pointer ${
+                            isSelected ? 'ring-2 ring-emerald-400/70 shadow-emerald-500/20' : ''
+                          }`}
+                          style={{
+                            left: `${card.x}px`,
+                            top: `${top}px`,
+                            width: `${CARD_WIDTH}px`,
+                            minHeight: `${CARD_HEIGHT}px`,
+                            maxHeight: `${CARD_HEIGHT}px`,
+                            padding: '8px 12px',
+                            overflow: 'hidden'
+                          }}
+                          onClick={() => setSelectedFaultIndex(card.filteredIndex)}
+                          title={card.description || 'Fault'}
+                        >
+                          <div className="flex items-center justify-between text-[11px]">
+                            <SourceBadge role={card.sourceRole} />
+                            <span className="text-slate-300 font-mono">{formatNumber(card.hour, 1)}h</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="text-green-400 font-mono font-bold text-lg leading-tight">DTC {card.code}</div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor}`}>
+                              {card.status === 'active' ? 'ACTIVE' : 'STORED'}
+                            </span>
+                          </div>
+                          {card.description && (
+                            <div className="text-xs text-slate-400 truncate mt-0.5" title={card.description}>
+                              {card.description}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                            <span>Count: <span className="text-white font-mono">{card.occurrenceCount || 0}</span></span>
+                            <span className="text-slate-500 truncate" title={card.sourceFileName}>
+                              File
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Static axis for connector targets */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-slate-700"
+                      style={{
+                        top: `${scaledAxisY}px`,
+                        height: `${AXIS_HEIGHT}px`,
+                        background: 'linear-gradient(180deg, rgba(15,23,42,0.75), rgba(15,23,42,0.95))'
+                      }}
+                    >
+                      <div className="relative h-full">
+                        {streamLayout.ticks.map((tick) => {
+                          const x = STREAM_PADDING_X + ((tick - timelineDomain[0]) / (timelineDomain[1] - timelineDomain[0])) * (streamLayout.width - STREAM_PADDING_X * 2);
+                          return (
+                            <div key={tick} className="absolute text-[10px] text-slate-300 flex flex-col items-center" style={{ left: `${x}px`, bottom: 0 }}>
+                              <div className="w-px h-3 bg-slate-500" />
+                              <div className="mt-1 font-mono">{formatNumber(tick, 1)}h</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="flex items-center justify-center gap-6 mt-2 text-xs">
+            <div className="flex items-center justify-center gap-6 mt-2 text-xs shrink-0">
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-0.5 bg-blue-400 opacity-70" />
+                <div className="w-2 h-2 rounded-full bg-blue-400" />
                 <span className="text-blue-300">Primary ECM</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-0.5 bg-orange-400 opacity-70" />
+                <div className="w-2 h-2 rounded-full bg-orange-400" />
                 <span className="text-orange-300">Secondary ECM</span>
               </div>
             </div>
@@ -600,9 +762,9 @@ const CombinedFaultView = ({
       </div>
 
       {/* Main content - Master-Detail layout */}
-      <div className="flex gap-4" style={{ minHeight: '500px' }}>
+      <div className="flex gap-4 min-h-0 flex-1">
         {/* Fault List */}
-        <div className="w-1/2 flex flex-col">
+        <div className="w-1/2 flex flex-col overflow-hidden min-h-0">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-1">
             {filteredFaults.length} Fault{filteredFaults.length !== 1 ? 's' : ''} Found
           </div>
@@ -625,10 +787,9 @@ const CombinedFaultView = ({
         </div>
 
         {/* Fault Detail */}
-        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4">
+        <div className="w-1/2 bg-slate-900/30 rounded-xl border border-slate-800 p-4 overflow-hidden min-h-0">
           <FaultDetail
             fault={selectedFault}
-            engineHours={selectedFault ? getEngineHours(selectedFault) : null}
           />
         </div>
       </div>

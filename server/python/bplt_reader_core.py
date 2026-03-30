@@ -4,6 +4,9 @@ Based on BPLTExporter by Tyler Onkst (tonkst@psiengines.com)
 
 Version-aware parser with support for legacy BPLT v1.1.0 headers and
 optional debug logging for troubleshooting conversions.
+
+Local modifications:
+- 2026-02-11: Disable out-of-range extrapolation during upsampling (fill with NaN).
 """
 import os
 import struct
@@ -331,7 +334,10 @@ def upsample_and_combine_channels(channel_dfs: dict, debug: bool = False) -> 'pd
                 df[name],
                 kind='linear',
                 bounds_error=False,
-                fill_value='extrapolate'
+                # Do not extrapolate outside the channel's time span.
+                # Some channels start logging later than the reference; extrapolation
+                # can create extreme, nonsensical values in those gaps.
+                fill_value=np.nan
             )
             channel_data[name] = interpolator(time_col)
         else:

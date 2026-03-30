@@ -651,7 +651,8 @@ export function processBPlotData(parsedData, thresholdProfile = null, options = 
 
   // Use higher sample count for charts to avoid truncation
   // For files with many points, use adaptive downsampling
-  const maxChartPoints = Math.min(data.length, 5000);
+  // Limit render density to keep interactions (zoom/hover) responsive
+  const maxChartPoints = Math.min(data.length, 2000);
 
   return {
     timeInfo,

@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
-const GUI_REVISION_LABEL = 'config v3.1 app v2.7.1';
+const GUI_REVISION_LABEL = 'config v3.1 app v2.7.3';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
