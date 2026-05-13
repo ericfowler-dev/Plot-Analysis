@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, Download, Bug, Settings } from 'lucide-react';
 // Handles file-type-aware navigation tabs based on loaded files
 // =============================================================================
 
-const GUI_REVISION_LABEL = 'config v3.1 app v2.7.3';
+const GUI_REVISION_LABEL = 'config v3.1 app v2.7.4';
 
 // Tab configurations based on file types loaded
 const TAB_CONFIGS = {
@@ -72,7 +72,7 @@ const SourceBadge = ({ source }) => {
 };
 
 // Active profile indicator
-const ProfileIndicator = ({ profileName, profileId }) => {
+const ProfileIndicator = ({ profileName }) => {
   if (!profileName) return null;
 
   // Shorten common prefixes for cleaner display
@@ -210,7 +210,6 @@ const AppHeader = ({
   eventCount = 0,
   faultCount = 0,       // Combined fault count for multi-ECM
   activeProfileName = null,
-  activeProfileId = null,
   activeEcmRole = null,
   onEcmRoleChange = null,
   overlayCorrelatedPlots = false,
@@ -345,7 +344,7 @@ const AppHeader = ({
           {(hasEcm || hasBplt) && activeProfileName && (
             <>
               <div className="hidden lg:block w-px h-6 bg-gradient-to-b from-transparent via-slate-600/40 to-transparent" />
-              <ProfileIndicator profileName={activeProfileName} profileId={activeProfileId} />
+              <ProfileIndicator profileName={activeProfileName} />
             </>
           )}
 

@@ -71,7 +71,7 @@ const PERF = false;
 const MAX_FILE_SIZE_MB = 100;
 const WARN_FILE_SIZE_MB = 20;
 const MB_BYTES = 1024 * 1024;
-const GUI_REVISION = '2.7.3';
+const GUI_REVISION = '2.7.4';
 const PDF_EXPORT_LIGHT_CLASS = 'pdf-export-light';
 
 const waitForNextPaint = () => new Promise((resolve) => {

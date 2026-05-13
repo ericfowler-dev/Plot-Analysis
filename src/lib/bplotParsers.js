@@ -67,10 +67,11 @@ export function isSampleValid(row, policy, engineState = null, config = DEFAULT_
       // Valid when fuel shutoff is not active (0 = fuel enabled)
       return fuelShutoff === 0 && rpm >= config.rpmRunningThreshold;
 
-    case VALIDITY_POLICY.VALID_WHEN_RPM_ABOVE:
+    case VALIDITY_POLICY.VALID_WHEN_RPM_ABOVE: {
       // Custom RPM threshold - requires config.customRpmThreshold
       const threshold = config.customRpmThreshold || config.rpmRunningThreshold;
       return rpm >= threshold;
+    }
 
     default:
       return true;
@@ -115,21 +116,69 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
   return generateEngineStatesShared(data, engineConfig);
 }
 
+function parseCsvRows(content) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        field += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(field);
+      field = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      row.push(field);
+      if (row.some(value => value.trim() !== '')) {
+        rows.push(row);
+      }
+      row = [];
+      field = '';
+      continue;
+    }
+
+    field += char;
+  }
+
+  row.push(field);
+  if (row.some(value => value.trim() !== '')) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
 /**
  * Parse B-Plot CSV content into structured data
  * @param {string} content - Raw CSV content
  * @returns {Object} Parsed B-Plot data with headers and time series
  */
 export function parseBPlotData(content) {
-  const lines = content.split('\n').filter(line => line.trim());
+  const rows = parseCsvRows(content);
   const parseErrors = [];
 
-  if (lines.length < 2) {
+  if (rows.length < 2) {
     throw new Error('Invalid B-Plot CSV: insufficient data');
   }
 
   // Parse header row
-  const rawHeaders = lines[0].split(',').map(h => h.trim());
+  const rawHeaders = rows[0].map(h => h.trim());
   const headers = [];
   const seenHeaders = new Set();
 
@@ -147,8 +196,8 @@ export function parseBPlotData(content) {
 
   // Parse data rows
   const data = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',');
+  for (let i = 1; i < rows.length; i++) {
+    const values = rows[i];
     if (values.length !== headers.length) {
       parseErrors.push({ line: i + 1, reason: 'column count mismatch' });
       continue;
@@ -156,7 +205,13 @@ export function parseBPlotData(content) {
 
     const row = {};
     for (let j = 0; j < headers.length; j++) {
-      const num = parseFloat(values[j]);
+      const rawValue = values[j].trim();
+      if (rawValue === '') {
+        row[headers[j]] = null;
+        continue;
+      }
+
+      const num = parseFloat(rawValue);
       if (Number.isNaN(num)) {
         parseErrors.push({ line: i + 1, column: headers[j], value: values[j], reason: 'NaN' });
         row[headers[j]] = null;
