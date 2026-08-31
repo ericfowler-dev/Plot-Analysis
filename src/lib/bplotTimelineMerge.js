@@ -1,4 +1,7 @@
 // =============================================================================
+
+import { extractEngineHourWindow } from './bplotEngineHours.js';
+import { estimateTimelineAlignment } from './bplotAlignment.js';
 // B-PLOT TIMELINE MERGE UTILITY
 // Combines multiple B-Plot files into a unified timeline view
 // =============================================================================
@@ -11,71 +14,14 @@ export function generateFileId() {
   return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-const HOUR_COLUMN_CANDIDATES = [
-  'Hour meter',
-  'Hour Meter',
-  'HourMeter',
-  'Engine Hours',
-  'HM_RAM_seconds',
-  'hm_ram_seconds',
-  'HM_RAM',
-  'hm_ram',
-  'hm_hours',
-  'HM_Hours'
-];
-
-const toFiniteNumber = (value) => {
-  const numeric = typeof value === 'number' ? value : parseFloat(value);
-  return Number.isFinite(numeric) ? numeric : null;
-};
-
 const getFileDuration = (file) => {
   const duration = file?.processed?.timeInfo?.duration;
   return Number.isFinite(duration) ? duration : 0;
 };
 
-const findHourColumn = (rows) => {
-  if (!rows || rows.length === 0) return null;
-  const firstRowKeys = Object.keys(rows[0] || {});
-  for (const candidate of HOUR_COLUMN_CANDIDATES) {
-    const matchedKey = firstRowKeys.find((key) => key.toLowerCase() === candidate.toLowerCase());
-    if (matchedKey) return matchedKey;
-  }
-  return null;
-};
-
-const normalizeHourValue = (column, value) => {
-  const numeric = toFiniteNumber(value);
-  if (numeric === null) return null;
-  if (column?.toLowerCase().includes('seconds')) {
-    return numeric / 3600;
-  }
-  return numeric;
-};
-
 const extractHourWindow = (file) => {
   const rows = file?.data?.data;
-  if (!rows || rows.length === 0) return null;
-
-  const hourColumn = findHourColumn(rows);
-  if (!hourColumn) return null;
-
-  let start = Infinity;
-  let end = -Infinity;
-  for (const row of rows) {
-    const normalized = normalizeHourValue(hourColumn, row?.[hourColumn]);
-    if (normalized === null) continue;
-    if (normalized < start) start = normalized;
-    if (normalized > end) end = normalized;
-  }
-
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
-  return {
-    column: hourColumn,
-    start,
-    end,
-    duration: Math.max(0, end - start)
-  };
+  return extractEngineHourWindow(rows);
 };
 
 const summarizeDualCorrelation = (files) => {
@@ -99,6 +45,10 @@ const summarizeDualCorrelation = (files) => {
 
   const primaryHours = extractHourWindow(primary);
   const secondaryHours = extractHourWindow(secondary);
+  const alignment = estimateTimelineAlignment(
+    primary?.processed?.chartData || [],
+    secondary?.processed?.chartData || []
+  );
 
   let hourOverlapWindow = null;
   let hourOverlapRatio = null;
@@ -122,6 +72,10 @@ const summarizeDualCorrelation = (files) => {
     mode: correlated ? 'correlated' : 'sequential',
     overlapRatio,
     durationSimilarity,
+    alignmentOffsetSec: alignment.offsetSec,
+    alignmentConfidence: alignment.confidence,
+    alignmentMethod: alignment.method,
+    alignmentChannels: alignment.channels,
     reason: correlated ? 'aligned_dual_capture' : 'insufficient_overlap',
     primary: {
       fileId: primary.id,

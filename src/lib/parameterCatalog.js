@@ -559,6 +559,21 @@ export const PARAMETER_CATALOG = {
     engineFamilies: null
   },
 
+  throttleLoadLimitMax: {
+    id: 'throttleLoadLimitMax',
+    name: 'Load Limit Max TPS',
+    category: 'engine',
+    unit: '%',
+    description: 'Maximum allowable throttle position from the ECM load-limit calculation.',
+    dataColumns: ['LoadLim_max_TPS'],
+    thresholdType: THRESHOLD_TYPES.CUSTOM,
+    evaluated: true,
+    defaults: { enabled: false },
+    validation: { min: 0, max: 100, step: 1 },
+    advanced: [],
+    engineFamilies: null
+  },
+
   sparkAdvance: {
     id: 'sparkAdvance',
     name: 'Spark Advance',
@@ -873,21 +888,6 @@ export const PARAMETER_CATALOG = {
     evaluated: false,
     defaults: { enabled: false },
     validation: { min: 0, max: 3, step: 1 },
-    advanced: [],
-    engineFamilies: null
-  },
-
-  engineLoad: {
-    id: 'engineLoad',
-    name: 'Engine Load',
-    category: 'engine',
-    unit: '%',
-    description: 'Calculated engine load percentage.',
-    dataColumns: ['engine_load', 'load_pct', 'ENGINE_LOAD'],
-    thresholdType: THRESHOLD_TYPES.CUSTOM,
-    evaluated: false,
-    defaults: { enabled: false },
-    validation: { min: 0, max: 100, step: 1 },
     advanced: [],
     engineFamilies: null
   },

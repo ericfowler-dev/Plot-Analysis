@@ -1023,6 +1023,7 @@ export const CHANNEL_UNIT_TYPES = {
   // Percentage channels - 1 decimal
   TPS_pct: 'percentage',
   TPS_cmd_pct: 'percentage',
+  LoadLim_max_TPS: 'percentage',
   eng_load: 'percentage',
   A_BM1: 'percentage',
   CL_BM1: 'percentage',

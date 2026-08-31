@@ -16,6 +16,8 @@ const DEFAULT_ENGINE_STATE_CONFIG = {
   rpmStableThreshold: 800,
   startHoldoffSeconds: 3,
   stableHoldoffSeconds: 2,
+  stableExitHoldoffSeconds: 1,
+  rpmStableHysteresis: 50,
   stopHoldoffSeconds: 2,
   shutdownRpmRate: -300,
   historyWindowSize: 10
@@ -39,6 +41,8 @@ export function buildEngineStateConfig(config = {}) {
     rpmStableThreshold: config.rpmStableThreshold ?? rpmRunningFallback ?? DEFAULT_ENGINE_STATE_CONFIG.rpmStableThreshold,
     startHoldoffSeconds: config.startHoldoffSeconds ?? config.startupGraceSeconds ?? DEFAULT_ENGINE_STATE_CONFIG.startHoldoffSeconds,
     stableHoldoffSeconds: config.stableHoldoffSeconds ?? DEFAULT_ENGINE_STATE_CONFIG.stableHoldoffSeconds,
+    stableExitHoldoffSeconds: config.stableExitHoldoffSeconds ?? DEFAULT_ENGINE_STATE_CONFIG.stableExitHoldoffSeconds,
+    rpmStableHysteresis: config.rpmStableHysteresis ?? DEFAULT_ENGINE_STATE_CONFIG.rpmStableHysteresis,
     stopHoldoffSeconds: config.stopHoldoffSeconds ?? DEFAULT_ENGINE_STATE_CONFIG.stopHoldoffSeconds,
     shutdownRpmRate: config.shutdownRpmRate ?? DEFAULT_ENGINE_STATE_CONFIG.shutdownRpmRate,
     historyWindowSize: config.historyWindowSize ?? config.rpmHistorySize ?? DEFAULT_ENGINE_STATE_CONFIG.historyWindowSize
@@ -57,6 +61,8 @@ export class EngineStateTracker {
     this.rpmStableThreshold = resolved.rpmStableThreshold;
     this.startHoldoffSeconds = resolved.startHoldoffSeconds;
     this.stableHoldoffSeconds = resolved.stableHoldoffSeconds;
+    this.stableExitHoldoffSeconds = resolved.stableExitHoldoffSeconds;
+    this.rpmStableHysteresis = resolved.rpmStableHysteresis;
     this.stopHoldoffSeconds = resolved.stopHoldoffSeconds;
     this.shutdownRpmRate = resolved.shutdownRpmRate;
     this.historyWindowSize = resolved.historyWindowSize;
@@ -70,6 +76,7 @@ export class EngineStateTracker {
     this.timeAboveStable = 0;
     this.lastAboveRunningTime = null;
     this.lastAboveStableTime = null;
+    this.lastBelowStableTime = null;
   }
 
   update(rpm, time) {
@@ -101,6 +108,13 @@ export class EngineStateTracker {
     } else {
       this.lastAboveStableTime = null;
       this.timeAboveStable = 0;
+    }
+
+    const stableExitThreshold = this.rpmStableThreshold - this.rpmStableHysteresis;
+    if (smoothedRpm < stableExitThreshold) {
+      if (this.lastBelowStableTime === null) this.lastBelowStableTime = time;
+    } else {
+      this.lastBelowStableTime = null;
     }
 
     switch (this.state) {
@@ -146,6 +160,12 @@ export class EngineStateTracker {
           this.stateStartTime = time;
         } else if (rpmRate < this.shutdownRpmRate) {
           this.state = ENGINE_STATE.STOPPING;
+          this.stateStartTime = time;
+        } else if (
+          this.lastBelowStableTime !== null &&
+          time - this.lastBelowStableTime >= this.stableExitHoldoffSeconds
+        ) {
+          this.state = ENGINE_STATE.RUNNING_UNSTABLE;
           this.stateStartTime = time;
         }
         break;
@@ -228,6 +248,7 @@ export class EngineStateTracker {
     this.timeAboveStable = 0;
     this.lastAboveRunningTime = null;
     this.lastAboveStableTime = null;
+    this.lastBelowStableTime = null;
   }
 }
 

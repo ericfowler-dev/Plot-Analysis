@@ -27,6 +27,34 @@ import { PARAMETER_CATALOG, PARAMETER_CATEGORIES } from '../../lib/parameterCata
 import { getIndex, addEngineSize, updateEngineSize, setEngineSizeArchived } from '../../lib/thresholdService';
 
 const EXCLUDED_THRESHOLD_CATEGORY_IDS = ['signals'];
+const RULE_OPERATORS = new Set(['<', '<=', '>', '>=', '==', '!=']);
+const ENGINE_PREDICATES = new Set([
+  'EngineRunning', 'EngineStable', 'EngineStarting',
+  'EngineStopping', 'KeyOn', 'FuelEnabled'
+]);
+
+const validateRuleCondition = (condition, label) => {
+  const errors = [];
+  if (!condition || typeof condition !== 'object') return [`${label}: Condition must be an object`];
+  if (!RULE_OPERATORS.has(condition.operator)) errors.push(`${label}: Select a supported operator`);
+  if (condition.type === 'delta') {
+    if (!(condition.param1 || condition.param)?.trim?.()) errors.push(`${label}: Delta parameter 1 is required`);
+    if (!condition.param2?.trim?.()) errors.push(`${label}: Delta parameter 2 is required`);
+  } else if (!condition.param?.trim?.()) {
+    errors.push(`${label}: Parameter is required`);
+  }
+
+  if (ENGINE_PREDICATES.has(condition.param)) {
+    if (!['==', '!='].includes(condition.operator)) errors.push(`${label}: Engine predicates must use == or !=`);
+    if (![0, 1, false, true, 'false', 'true'].includes(condition.value)) {
+      errors.push(`${label}: Engine predicate value must be 0, 1, true, or false`);
+    }
+  } else if (condition.value === '' || condition.value === null ||
+             condition.value === undefined || !Number.isFinite(Number(condition.value))) {
+    errors.push(`${label}: A numeric comparison value is required`);
+  }
+  return errors;
+};
 
 const isNumber = (value) => typeof value === 'number' && !Number.isNaN(value);
 
@@ -1329,16 +1357,37 @@ export default function Config3Editor({
     }
 
     // Check rules
+    const ruleIds = new Set();
     for (const rule of anomalyRules) {
       if (!rule.id?.trim()) {
         errors.push(`Rule "${rule.name || 'Unnamed'}": ID is required`);
+      } else if (ruleIds.has(rule.id)) {
+        errors.push(`Rule "${rule.name || rule.id}": ID must be unique`);
+      } else {
+        ruleIds.add(rule.id);
       }
       if (!rule.name?.trim()) {
         errors.push(`Rule with ID "${rule.id}": Name is required`);
       }
-      if (!rule.conditions || rule.conditions.length === 0) {
+      if ((!rule.conditions || rule.conditions.length === 0) && !rule.type) {
         errors.push(`Rule "${rule.name}": At least one condition is required`);
       }
+      ['conditions', 'requireWhen', 'ignoreWhen'].forEach((field) => {
+        if (rule[field] === undefined) return;
+        if (!Array.isArray(rule[field])) {
+          errors.push(`Rule "${rule.name || rule.id}": ${field} must be a list`);
+          return;
+        }
+        rule[field].forEach((condition, index) => {
+          errors.push(...validateRuleCondition(condition, `Rule "${rule.name || rule.id}" ${field} #${index + 1}`));
+        });
+      });
+      ['duration', 'triggerPersistenceSec', 'clearPersistenceSec', 'windowSec', 'startDelaySec', 'stopDelaySec']
+        .forEach((field) => {
+          if (rule[field] !== undefined && (!Number.isFinite(Number(rule[field])) || Number(rule[field]) < 0)) {
+            errors.push(`Rule "${rule.name || rule.id}": ${field} must be a non-negative number`);
+          }
+        });
     }
 
     setValidationErrors(errors);

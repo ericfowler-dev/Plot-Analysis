@@ -26,6 +26,7 @@ const CATEGORY_OPTIONS = [
   { value: 'fuel', label: 'Fuel' },
   { value: 'knock', label: 'Knock' },
   { value: 'fault', label: 'Fault' },
+  { value: 'performance', label: 'Performance' },
   { value: 'custom', label: 'Custom' }
 ];
 

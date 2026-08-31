@@ -6,10 +6,19 @@
   "engineFamily": "PSI HD 22L",
   "fuelType": "natural_gas",
   "application": "Power Systems",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "status": "active",
   "createdAt": "2026-01-17T00:00:00Z",
-  "lastModified": "2026-01-17T15:00:00Z",
-  "modifiedBy": "cline",
-  "thresholds": {
-    "oilPressure
+  "lastModified": "2026-08-31T00:00:00.000Z",
+  "modifiedBy": "system",
+  "classification": {
+    "productGroup": "PSI HD",
+    "engineSize": "22L",
+    "application": "Power Systems"
+  },
+  "thresholds": {},
+  "anomalyRules": [],
+  "metadata": {
+    "notes": "Restored from a truncated profile. This child currently inherits PSI HD base thresholds without local overrides."
+  }
+}

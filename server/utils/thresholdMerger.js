@@ -6,7 +6,7 @@
  * - Added min < max validation within each tier (warning/critical)
  */
 
-import { loadProfile, getProfileHierarchy } from './profileLoader.js';
+import { getProfileHierarchy } from './profileLoader.js';
 
 /**
  * Deep merge two objects, with source overriding target
@@ -77,6 +77,23 @@ export function mergeAnomalyRules(hierarchy) {
 }
 
 /**
+ * Merge an object-valued profile field through the inheritance hierarchy.
+ * Later (more specific) profiles override earlier values.
+ */
+export function mergeProfileObjectField(hierarchy, fieldName) {
+  let merged = {};
+
+  for (const profile of hierarchy) {
+    const value = profile?.[fieldName];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      merged = deepMerge(merged, value);
+    }
+  }
+
+  return merged;
+}
+
+/**
  * Resolve a profile with all inherited values merged
  * Returns a complete profile with all thresholds filled in
  */
@@ -110,8 +127,13 @@ export async function resolveProfile(profileId) {
     // Merge anomaly rules from all ancestors
     anomalyRules: mergeAnomalyRules(hierarchy),
 
-    // Include metadata from global defaults
-    metadata: hierarchy[0].metadata || {}
+    // Merge inherited runtime configuration and guidance as well as thresholds.
+    // These fields were previously dropped during resolution, so profile-specific
+    // engine-state and validity settings never reached analysis.
+    metadata: mergeProfileObjectField(hierarchy, 'metadata'),
+    engineStateConfig: mergeProfileObjectField(hierarchy, 'engineStateConfig'),
+    validityConfig: mergeProfileObjectField(hierarchy, 'validityConfig'),
+    diagnosticGuidance: mergeProfileObjectField(hierarchy, 'diagnosticGuidance')
   };
 
   return resolved;
@@ -288,6 +310,104 @@ export function validateThresholdValues(thresholds) {
       }
     }
   }
+
+  return { warnings, errors, isValid: errors.length === 0 };
+}
+
+const RULE_OPERATORS = new Set(['<', '<=', '>', '>=', '==', '!=']);
+const ENGINE_STATE_PREDICATES = new Set([
+  'EngineRunning',
+  'EngineStable',
+  'EngineStarting',
+  'EngineStopping',
+  'KeyOn',
+  'FuelEnabled'
+]);
+
+function validateRuleCondition(condition, path, errors) {
+  if (!condition || typeof condition !== 'object') {
+    errors.push(`${path}: condition must be an object`);
+    return;
+  }
+
+  if (!RULE_OPERATORS.has(condition.operator)) {
+    errors.push(`${path}: unsupported operator "${condition.operator ?? ''}"`);
+  }
+
+  if (condition.type === 'delta') {
+    if (!condition.param1 && !condition.param) errors.push(`${path}: delta param1 is required`);
+    if (!condition.param2) errors.push(`${path}: delta param2 is required`);
+  } else if (!condition.param) {
+    errors.push(`${path}: param is required`);
+  }
+
+  if (ENGINE_STATE_PREDICATES.has(condition.param)) {
+    if (condition.operator !== '==' && condition.operator !== '!=') {
+      errors.push(`${path}: ${condition.param} must use == or !=`);
+    }
+    const allowed = [0, 1, false, true, 'false', 'true'];
+    if (!allowed.includes(condition.value)) {
+      errors.push(`${path}: ${condition.param} value must be 0, 1, true, or false`);
+    }
+  } else if (!Number.isFinite(Number(condition.value))) {
+    errors.push(`${path}: value must be numeric`);
+  }
+}
+
+/**
+ * Validate custom anomaly-rule structure and condition semantics.
+ */
+export function validateAnomalyRules(rules) {
+  const warnings = [];
+  const errors = [];
+  const ids = new Set();
+
+  if (!Array.isArray(rules)) {
+    return { warnings, errors: ['anomalyRules must be an array'], isValid: false };
+  }
+
+  rules.forEach((rule, index) => {
+    const path = `anomalyRules[${index}]`;
+    if (!rule || typeof rule !== 'object') {
+      errors.push(`${path}: rule must be an object`);
+      return;
+    }
+
+    if (!rule.id) {
+      errors.push(`${path}: id is required`);
+    } else if (ids.has(rule.id)) {
+      errors.push(`${path}: duplicate id "${rule.id}"`);
+    } else {
+      ids.add(rule.id);
+    }
+
+    if (!rule.name) errors.push(`${path}: name is required`);
+    if ((!Array.isArray(rule.conditions) || rule.conditions.length === 0) && !rule.type) {
+      errors.push(`${path}: at least one condition is required`);
+    }
+
+    ['conditions', 'requireWhen', 'ignoreWhen'].forEach(field => {
+      if (rule[field] === undefined) return;
+      if (!Array.isArray(rule[field])) {
+        errors.push(`${path}.${field}: must be an array`);
+        return;
+      }
+      rule[field].forEach((condition, conditionIndex) => {
+        validateRuleCondition(condition, `${path}.${field}[${conditionIndex}]`, errors);
+      });
+    });
+
+    ['duration', 'triggerPersistenceSec', 'clearPersistenceSec', 'windowSec', 'startDelaySec', 'stopDelaySec']
+      .forEach(field => {
+        if (rule[field] !== undefined && (!Number.isFinite(Number(rule[field])) || Number(rule[field]) < 0)) {
+          errors.push(`${path}.${field}: must be a non-negative number`);
+        }
+      });
+
+    if (rule.duration !== undefined && rule.triggerPersistenceSec !== undefined) {
+      warnings.push(`${path}: duration is ignored when triggerPersistenceSec is provided`);
+    }
+  });
 
   return { warnings, errors, isValid: errors.length === 0 };
 }

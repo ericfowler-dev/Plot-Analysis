@@ -6,10 +6,10 @@
   "engineFamily": "PSI HD",
   "fuelType": "natural_gas",
   "application": null,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "status": "active",
   "createdAt": "2026-01-17T00:00:00Z",
-  "lastModified": "2026-01-20T12:50:06.960Z",
+  "lastModified": "2026-08-31T00:00:00.000Z",
   "modifiedBy": "system",
   "thresholds": {
     "mfgDeltaPressure": {
@@ -17,10 +17,10 @@
       "description": "MFG differential pressure between upstream and downstream. Indicates fuel flow adequacy.",
       "unit": "psi",
       "warning": {
-        "min": 0.5
+        "min": 0.6
       },
       "critical": {
-        "min": 0.25
+        "min": 0.4
       },
       "requireWhen": [
         {
@@ -29,9 +29,9 @@
           "value": 800
         }
       ],
-      "notes": "Ideal delta pressure is >0.5 PSI. Below 0.25 PSI indicates severe fuel starvation and throttle will saturate.",
+      "notes": "Warning below 0.6 PSI and critical below 0.4 PSI during stable engine operation.",
       "operatingPointAware": {
-        "enabled": true,
+        "enabled": false,
         "indexParam": "MAP",
         "indexParamAliases": ["manifold_pressure", "MANIFOLD_ABS_PRESS"],
         "description": "MFG delta pressure requirements increase with engine load (MAP). At low load, less fuel flow is needed so lower delta is acceptable. At high load/boost, adequate delta pressure is critical.",
@@ -129,20 +129,27 @@
         {
           "param": "MFG_DPPress",
           "operator": "<",
-          "value": 0.5
+          "value": 0.6
+        },
+        {
+          "param": "MFG_DPPress",
+          "operator": ">=",
+          "value": 0.4
         }
       ],
       "requireWhen": [
         {
-          "param": "rpm",
-          "operator": ">=",
-          "value": 800
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
         }
       ],
       "logic": "AND",
       "duration": 5,
       "severity": "warning",
-      "category": "fuel"
+      "category": "fuel",
+      "channel": "MFG_DPPress",
+      "alertGroup": "mfg-delta-pressure"
     },
     {
       "id": "mfg-critical-delta-pressure",
@@ -153,20 +160,22 @@
         {
           "param": "MFG_DPPress",
           "operator": "<",
-          "value": 0.25
+          "value": 0.4
         }
       ],
       "requireWhen": [
         {
-          "param": "rpm",
-          "operator": ">=",
-          "value": 500
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
         }
       ],
       "logic": "AND",
       "duration": 2,
       "severity": "critical",
-      "category": "fuel"
+      "category": "fuel",
+      "channel": "MFG_DPPress",
+      "alertGroup": "mfg-delta-pressure"
     },
     {
       "id": "mfg-throttle-saturation-warning",
@@ -248,8 +257,8 @@
     {
       "id": "mfg-upstream-pressure-dropping",
       "name": "MFG Upstream Pressure Dropping Under Load",
-      "description": "Upstream pressure decreasing as load increases - indicates insufficient regulator capacity or supply line restriction.",
-      "enabled": true,
+      "description": "Disabled pending true upstream-pressure trend evaluation; the previous rule only duplicated the delta-pressure threshold.",
+      "enabled": false,
       "conditions": [
         {
           "param": "MFG_DPPress",

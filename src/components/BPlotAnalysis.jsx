@@ -11,6 +11,7 @@ import {
 import { BPLOT_PARAMETERS, CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_LABELS, VALUE_MAPPINGS, getDisplayValue, TIME_IN_STATE_CHANNELS, CHANNEL_UNIT_TYPES, getDecimalPlaces, getYAxisId, getSyncStateDisplay } from '../lib/bplotThresholds';
 import parameterDefinitions4g from '../lib/parameterDefinitions4g.json';
 import { getChartData, getParameterInfo, formatDuration, calculateTimeInState } from '../lib/bplotProcessData';
+import { extractEngineHourWindow, formatEngineHourValue } from '../lib/bplotEngineHours';
 import AppHeader from './AppHeader';
 import { useThresholds } from '../contexts/ThresholdContext';
 
@@ -316,6 +317,13 @@ const getSeverityLabel = (severity, category) => {
   return 'Warning';
 };
 
+const getAlertDisplayName = (alert) => {
+  const fallback = alert?.channel || 'Anomaly';
+  if (!alert?.name) return fallback;
+  const cleaned = alert.name.replace(/^\s*(critical|warning|info)\s*[:-]?\s*/i, '').trim();
+  return cleaned || fallback;
+};
+
 const AlertCard = ({ alert, onClick, isHighlighted, onToggleShow }) => {
   const handleCardClick = () => {
     if (onClick) onClick();
@@ -349,10 +357,7 @@ const AlertCard = ({ alert, onClick, isHighlighted, onToggleShow }) => {
     : alert.severity === 'info' ? Info
     : AlertTriangle;
 
-  // For signal quality alerts, use the descriptive name; for others use severity: channel format
-  const alertTitle = alert.category === 'signal_quality' && alert.name
-    ? alert.name
-    : `${getSeverityLabel(alert.severity, alert.category)}: ${alert.channel}`;
+  const alertTitle = `${getSeverityLabel(alert.severity, alert.category)}: ${getAlertDisplayName(alert)}`;
 
   // For signal quality alerts, show description; for others show message
   const alertBody = alert.category === 'signal_quality' && alert.description
@@ -439,8 +444,12 @@ const BPlotAnalysis = ({
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [internalCorrelatedRole, setInternalCorrelatedRole] = useState('primary');
   const [overlayCorrelatedPlots, setOverlayCorrelatedPlots] = useState(false);
+  const [manualAlignment, setManualAlignment] = useState({ pairKey: '', value: '0' });
   const [showColorControls, setShowColorControls] = useState(false);
+  const [showAxisControls, setShowAxisControls] = useState(false);
   const [channelColorOverrides, setChannelColorOverrides] = useState({});
+  const [axisAssignments, setAxisAssignments] = useState({});
+  const [axisBounds, setAxisBounds] = useState({});
   const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(false);
   const [refAreaLeft, setRefAreaLeft] = useState(null);
   const [refAreaRight, setRefAreaRight] = useState(null);
@@ -562,21 +571,7 @@ const BPlotAnalysis = ({
     };
   }, [rawData]);
 
-  const engineHours = useMemo(() => {
-    const hourColumns = ['HM_RAM_seconds', 'Engine Hours', 'Hour Meter'];
-    for (const col of hourColumns) {
-      const hourData = rawData.filter(r => r[col] !== undefined && !isNaN(r[col]));
-      if (hourData.length > 0) {
-        const sorted = [...hourData].sort((a, b) => (a.Time || 0) - (b.Time || 0));
-        return {
-          column: col,
-          start: Math.floor(sorted[0][col]),
-          end: Math.floor(sorted[sorted.length - 1][col])
-        };
-      }
-    }
-    return null;
-  }, [rawData]);
+  const engineHours = useMemo(() => extractEngineHourWindow(rawData), [rawData]);
 
   // Get ordered categories for display
   const orderedCategories = useMemo(() => {
@@ -595,10 +590,33 @@ const BPlotAnalysis = ({
     return result;
   }, [channelsByCategory]);
 
-  const primaryChartData = primaryBplotFile?.processed?.chartData || [];
-  const secondaryChartData = secondaryBplotFile?.processed?.chartData || [];
+  const primaryChartData = useMemo(
+    () => primaryBplotFile?.processed?.chartData || [],
+    [primaryBplotFile]
+  );
+  const secondaryChartData = useMemo(
+    () => secondaryBplotFile?.processed?.chartData || [],
+    [secondaryBplotFile]
+  );
+  const alignmentPairKey = `${primaryBplotFile?.id || ''}::${secondaryBplotFile?.id || ''}`;
+  const manualAlignmentOffset = manualAlignment.pairKey === alignmentPairKey
+    ? manualAlignment.value
+    : '0';
+  const setManualAlignmentOffset = useCallback((value) => {
+    setManualAlignment({ pairKey: alignmentPairKey, value });
+  }, [alignmentPairKey]);
+  const automaticAlignmentOffset = Number.isFinite(bplotCorrelation?.alignmentOffsetSec)
+    ? bplotCorrelation.alignmentOffsetSec
+    : 0;
+  const parsedManualAlignmentOffset = parseFloat(manualAlignmentOffset);
+  const effectiveAlignmentOffset = automaticAlignmentOffset + (
+    Number.isFinite(parsedManualAlignmentOffset) ? parsedManualAlignmentOffset : 0
+  );
 
   const shouldOverlayCorrelatedPlots = dualRoleMode && overlayCorrelatedPlots;
+  const selectedAlertTimeOffset = shouldOverlayCorrelatedPlots && activeCorrelatedRole === 'secondary'
+    ? effectiveAlignmentOffset
+    : 0;
 
   const correlatedOverlayChartData = useMemo(() => {
     if (!shouldOverlayCorrelatedPlots) return [];
@@ -609,9 +627,10 @@ const BPlotAnalysis = ({
         const rawTime = row?.Time;
         const numericTime = typeof rawTime === 'number' ? rawTime : parseFloat(rawTime);
         if (!Number.isFinite(numericTime)) return;
-        const timeKey = numericTime.toFixed(3);
+        const displayTime = numericTime + (role === 'secondary' ? effectiveAlignmentOffset : 0);
+        const timeKey = displayTime.toFixed(3);
         if (!merged.has(timeKey)) {
-          merged.set(timeKey, { Time: numericTime });
+          merged.set(timeKey, { Time: displayTime });
         }
         const point = merged.get(timeKey);
         selectedChannels.forEach((channel) => {
@@ -633,7 +652,7 @@ const BPlotAnalysis = ({
     addRows(secondaryChartData, 'secondary');
 
     return Array.from(merged.values()).sort((a, b) => (a.Time || 0) - (b.Time || 0));
-  }, [shouldOverlayCorrelatedPlots, primaryChartData, secondaryChartData, selectedChannels]);
+  }, [shouldOverlayCorrelatedPlots, primaryChartData, secondaryChartData, selectedChannels, effectiveAlignmentOffset]);
 
   const chartRenderData = useMemo(() => {
     if (shouldOverlayCorrelatedPlots) return correlatedOverlayChartData;
@@ -652,20 +671,22 @@ const BPlotAnalysis = ({
 
   // Calculate unique Y-axes needed based on selected channels' unit types
   const chartAxes = useMemo(() => {
-    // Axis label mapping
     const AXIS_LABELS = {
       yRPM: 'RPM',
       yVolt: 'Voltage (V)',
       yPress: 'Pressure',
       yTemp: 'Temp (°F)',
       yPct: 'Percent (%)',
-      yDefault: ''
+      yDefault: '',
+      yAxisA: 'Axis A',
+      yAxisB: 'Axis B',
+      yAxisC: 'Axis C'
     };
 
     // Group channels by axis ID
     const unitGroups = {};
     selectedChannels.forEach(channel => {
-      const axisId = getYAxisId(channel);
+      const axisId = axisAssignments[channel] || getYAxisId(channel);
       if (!unitGroups[axisId]) {
         unitGroups[axisId] = [];
       }
@@ -674,19 +695,28 @@ const BPlotAnalysis = ({
 
     // Create axis config for each unit type
     const uniqueTypes = Object.keys(unitGroups);
-    const axes = uniqueTypes.map((axisId, index) => ({
-      id: axisId,
-      label: AXIS_LABELS[axisId] || '',
-      orientation: index % 2 === 0 ? 'left' : 'right',
-      channels: unitGroups[axisId],
-      decimals: getDecimalPlaces(unitGroups[axisId][0])
-    }));
+    const axes = uniqueTypes.map((axisId, index) => {
+      const min = parseFloat(axisBounds[axisId]?.min);
+      const max = parseFloat(axisBounds[axisId]?.max);
+      const hasValidRange = !Number.isFinite(min) || !Number.isFinite(max) || min < max;
+      return {
+        id: axisId,
+        label: AXIS_LABELS[axisId] || '',
+        orientation: index % 2 === 0 ? 'left' : 'right',
+        channels: unitGroups[axisId],
+        decimals: getDecimalPlaces(unitGroups[axisId][0]),
+        domain: [
+          hasValidRange && Number.isFinite(min) ? min : 'auto',
+          hasValidRange && Number.isFinite(max) ? max : 'auto'
+        ]
+      };
+    });
 
     return { axes, channelToAxis: selectedChannels.reduce((acc, ch) => {
-      acc[ch] = getYAxisId(ch);
+      acc[ch] = axisAssignments[ch] || getYAxisId(ch);
       return acc;
     }, {}) };
-  }, [selectedChannels]);
+  }, [selectedChannels, axisAssignments, axisBounds]);
 
   const getDefaultSeriesColor = (channelIndex, role = null) => {
     if (role === 'secondary') {
@@ -1127,29 +1157,11 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.primary?.duration || 0).toFixed(1)}s
                     </div>
-                    {(() => {
-                      const stats = primaryBplotFile?.processed?.channelStats;
-                      const hmSec = stats?.HM_RAM_seconds;
-                      const hmRam = stats?.HM_RAM;
-                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
-                      const hourStat = hmHours || hmRam || hmSec;
-                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
-                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
-                        return (
-                          <div className="text-slate-400 mt-1">
-                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
-                          </div>
-                        );
-                      }
-                      if (bplotCorrelation?.primary?.hourWindow) {
-                        return (
-                          <div className="text-slate-400 mt-1">
-                            Hours: {bplotCorrelation.primary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.primary.hourWindow.end.toFixed(2)}h
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {bplotCorrelation?.primary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Engine Hours: {formatEngineHourValue(bplotCorrelation.primary.hourWindow.start)}h → {formatEngineHourValue(bplotCorrelation.primary.hourWindow.end)}h
+                      </div>
+                    )}
                   </div>
                   <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-3">
                     <div className="text-orange-300 uppercase tracking-wider mb-1">Secondary Plot</div>
@@ -1157,34 +1169,22 @@ const BPlotAnalysis = ({
                     <div className="text-slate-400 mt-1">
                       Duration: {(bplotCorrelation?.secondary?.duration || 0).toFixed(1)}s
                     </div>
-                    {(() => {
-                      const stats = secondaryBplotFile?.processed?.channelStats;
-                      const hmSec = stats?.HM_RAM_seconds;
-                      const hmRam = stats?.HM_RAM;
-                      const hmHours = stats?.hm_hours || stats?.HM_hours || stats?.HM_Hours;
-                      const hourStat = hmHours || hmRam || hmSec;
-                      if (hourStat && Number.isFinite(hourStat.min) && Number.isFinite(hourStat.max)) {
-                        const factor = hmSec && !hmHours && !hmRam ? 1/3600 : 1;
-                        return (
-                          <div className="text-slate-400 mt-1">
-                            Engine Hours: {(hourStat.min * factor).toFixed(2)}h → {(hourStat.max * factor).toFixed(2)}h
-                          </div>
-                        );
-                      }
-                      if (bplotCorrelation?.secondary?.hourWindow) {
-                        return (
-                          <div className="text-slate-400 mt-1">
-                            Hours: {bplotCorrelation.secondary.hourWindow.start.toFixed(2)}h → {bplotCorrelation.secondary.hourWindow.end.toFixed(2)}h
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {bplotCorrelation?.secondary?.hourWindow && (
+                      <div className="text-slate-400 mt-1">
+                        Engine Hours: {formatEngineHourValue(bplotCorrelation.secondary.hourWindow.start)}h → {formatEngineHourValue(bplotCorrelation.secondary.hourWindow.end)}h
+                      </div>
+                    )}
                   </div>
                 </div>
                 {bplotCorrelation?.overlapWindow && (
                   <div className="mt-3 text-xs text-emerald-300">
                     Correlated operating window: {bplotCorrelation.overlapWindow.start.toFixed(2)}h -&gt; {bplotCorrelation.overlapWindow.end.toFixed(2)}h
+                  </div>
+                )}
+                {Number.isFinite(bplotCorrelation?.alignmentOffsetSec) && (
+                  <div className="mt-2 text-xs text-cyan-300">
+                    Automatic overlay alignment: shift Secondary by {bplotCorrelation.alignmentOffsetSec >= 0 ? '+' : ''}{bplotCorrelation.alignmentOffsetSec.toFixed(1)}s
+                    {Number.isFinite(bplotCorrelation.alignmentConfidence) && ` (${(bplotCorrelation.alignmentConfidence * 100).toFixed(0)}% confidence)`}
                   </div>
                 )}
               </div>
@@ -1195,13 +1195,13 @@ const BPlotAnalysis = ({
                 <MetricCard
                   icon={<Clock className="w-5 h-5 text-orange-400" />}
                   label="Engine Hours Plot Start"
-                  value={engineHours.start}
+                  value={formatEngineHourValue(engineHours.start)}
                   unit="hrs"
                 />
                 <MetricCard
                   icon={<Clock className="w-5 h-5 text-orange-400" />}
                   label="Engine Hours Plot End"
-                  value={engineHours.end}
+                  value={formatEngineHourValue(engineHours.end)}
                   unit="hrs"
                 />
               </div>
@@ -1531,6 +1531,17 @@ const BPlotAnalysis = ({
                     >
                       {showColorControls ? 'Hide Colors' : 'Colors'}
                     </button>
+                    <button
+                      onClick={() => setShowAxisControls((prev) => !prev)}
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                        showAxisControls
+                          ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                    >
+                      {showAxisControls ? 'Hide Axes' : 'Axes'}
+                    </button>
                     {zoomedDomain && (
                       <button
                         onClick={handleResetZoom}
@@ -1551,8 +1562,49 @@ const BPlotAnalysis = ({
                         Reset Colors
                       </button>
                     )}
+                    {(Object.keys(axisAssignments).length > 0 || Object.keys(axisBounds).length > 0) && (
+                      <button
+                        onClick={() => {
+                          setAxisAssignments({});
+                          setAxisBounds({});
+                        }}
+                        className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white"
+                        style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      >
+                        Reset Axes
+                      </button>
+                    )}
                   </div>
                 </div>
+                {shouldOverlayCorrelatedPlots && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+                    <span className="text-[11px] text-cyan-200">
+                      Secondary shift: {effectiveAlignmentOffset >= 0 ? '+' : ''}{effectiveAlignmentOffset.toFixed(1)}s
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Auto {automaticAlignmentOffset >= 0 ? '+' : ''}{automaticAlignmentOffset.toFixed(1)}s
+                    </span>
+                    <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-400">
+                      Manual adjustment
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={manualAlignmentOffset}
+                        onChange={(event) => setManualAlignmentOffset(event.target.value)}
+                        className="w-20 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-right font-mono text-slate-100"
+                        aria-label="Manual secondary timeline adjustment in seconds"
+                      />
+                      sec
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setManualAlignmentOffset('0')}
+                      className="text-[10px] uppercase tracking-wide text-slate-400 hover:text-white"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
                 {showColorControls && colorControlEntries.length > 0 && (
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                     {colorControlEntries.map((entry) => {
@@ -1592,6 +1644,74 @@ const BPlotAnalysis = ({
                     })}
                   </div>
                 )}
+                {showAxisControls && selectedChannels.length > 0 && (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                      {selectedChannels.map((channel) => {
+                        const automaticAxis = getYAxisId(channel);
+                        const selectedAxis = axisAssignments[channel] || automaticAxis;
+                        return (
+                          <label key={`axis-${channel}`} className="flex items-center justify-between gap-2 rounded border border-slate-700/60 bg-slate-800/30 px-2.5 py-1.5">
+                            <span className="text-[11px] text-slate-200 truncate" title={BPLOT_PARAMETERS[channel]?.name || channel}>
+                              {BPLOT_PARAMETERS[channel]?.name || channel}
+                            </span>
+                            <select
+                              value={selectedAxis}
+                              onChange={(event) => {
+                                const nextAxis = event.target.value;
+                                setAxisAssignments((previous) => {
+                                  const next = { ...previous };
+                                  if (nextAxis === automaticAxis) delete next[channel];
+                                  else next[channel] = nextAxis;
+                                  return next;
+                                });
+                              }}
+                              className="max-w-[130px] rounded border border-slate-600 bg-slate-950 px-1.5 py-1 text-[10px] text-slate-200"
+                            >
+                              <option value={automaticAxis}>Auto ({automaticAxis.replace(/^y/, '')})</option>
+                              <option value="yRPM">RPM</option>
+                              <option value="yVolt">Voltage</option>
+                              <option value="yPress">Pressure</option>
+                              <option value="yTemp">Temperature</option>
+                              <option value="yPct">Percent</option>
+                              <option value="yDefault">Generic</option>
+                              <option value="yAxisA">Manual A</option>
+                              <option value="yAxisB">Manual B</option>
+                              <option value="yAxisC">Manual C</option>
+                            </select>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                      {chartAxes.axes.map((axis) => (
+                        <div key={`bounds-${axis.id}`} className="flex items-center gap-2 rounded border border-slate-700/60 bg-slate-950/40 px-2.5 py-1.5">
+                          <span className="min-w-[64px] text-[10px] uppercase tracking-wide text-slate-400">{axis.label || axis.id}</span>
+                          <input
+                            type="number"
+                            placeholder="Auto min"
+                            value={axisBounds[axis.id]?.min || ''}
+                            onChange={(event) => setAxisBounds((previous) => ({
+                              ...previous,
+                              [axis.id]: { ...previous[axis.id], min: event.target.value }
+                            }))}
+                            className="min-w-0 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[10px] font-mono text-slate-100"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Auto max"
+                            value={axisBounds[axis.id]?.max || ''}
+                            onChange={(event) => setAxisBounds((previous) => ({
+                              ...previous,
+                              [axis.id]: { ...previous[axis.id], max: event.target.value }
+                            }))}
+                            className="min-w-0 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[10px] font-mono text-slate-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex-1 h-[300px] lg:h-auto">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -1624,7 +1744,7 @@ const BPlotAnalysis = ({
                         orientation={axis.orientation}
                         stroke={index === 0 ? '#64748b' : '#94a3b8'}
                         fontSize={12}
-                        domain={['auto', 'auto']}
+                        domain={axis.domain}
                         tickFormatter={(v) => safeToFixed(v, axis.decimals, '')}
                         label={{
                           value: axis.label,
@@ -1691,14 +1811,15 @@ const BPlotAnalysis = ({
                     {selectedAlert && selectedAlert.startTime !== undefined && selectedAlert.endTime !== undefined && (() => {
                       const persistence = selectedAlert.minDuration || 0;
                       // Place the band starting at estimated onset (start minus persistence)
-                      const bandStart = Math.max(0, selectedAlert.startTime - persistence);
-                      const labelText = `${selectedAlert.severity === 'critical' ? 'Critical' : 'Warning'}: ${selectedAlert.channel}` +
+                      const bandStart = selectedAlert.startTime - persistence + selectedAlertTimeOffset;
+                      const bandEnd = selectedAlert.endTime + selectedAlertTimeOffset;
+                      const labelText = `${getSeverityLabel(selectedAlert.severity, selectedAlert.category)}: ${getAlertDisplayName(selectedAlert)}` +
                         (persistence > 0 ? ` (delay ${formatDuration(persistence)})` : '');
 
                       return (
                         <ReferenceArea
                           x1={bandStart}
-                          x2={selectedAlert.endTime}
+                          x2={bandEnd}
                           yAxisId={chartAxes.channelToAxis[selectedAlert.channel] || chartAxes.axes[0]?.id}
                           stroke={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
                           fill={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}

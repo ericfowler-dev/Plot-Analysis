@@ -510,17 +510,27 @@ export function processBPlotData(parsedData, thresholdProfile = null, options = 
   // Generate engine states for validity masking
   // This tracks engine state (off, cranking, running_unstable, running_stable, stopping)
   // for each sample, used to filter channel statistics appropriately
-  const engineStates = generateEngineStates(normalizedData);
+  const profileValidityDefaults = thresholdProfile?.validityConfig?.defaults || {};
+  const profileEngineStateConfig = thresholdProfile?.engineStateConfig || {};
+  const runtimeEngineStateConfig = {
+    ...profileValidityDefaults,
+    ...profileEngineStateConfig
+  };
+  const engineStates = generateEngineStates(normalizedData, runtimeEngineStateConfig);
 
   for (const channel of channels) {
     if (headers.includes(channel.name)) {
       // Get validity policy for this channel
-      const validityPolicy = getChannelValidityPolicy(channel.name);
+      const validityPolicy = {
+        ...getChannelValidityPolicy(channel.name),
+        ...(thresholdProfile?.validityConfig?.channelPolicies?.[channel.name] || {})
+      };
 
       // Calculate stats with validity mask applied
       channelStats[channel.name] = calculateChannelStats(normalizedData, channel.name, {
         engineStates,
-        policyConfig: validityPolicy
+        policyConfig: validityPolicy,
+        validityConfig: profileValidityDefaults
       });
 
       // Calculate time-in-state for categorical channels
@@ -532,7 +542,7 @@ export function processBPlotData(parsedData, thresholdProfile = null, options = 
   }
 
   // Extract engine events
-  const engineEvents = extractEngineEvents(normalizedData);
+  const engineEvents = extractEngineEvents(normalizedData, runtimeEngineStateConfig);
 
   // Group channels by category
   const channelsByCategory = getChannelsByCategory(channels, (name, fallbackCategory) => {

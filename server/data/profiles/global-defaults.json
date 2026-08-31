@@ -6,10 +6,10 @@
   "engineFamily": null,
   "fuelType": null,
   "application": null,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "status": "active",
   "createdAt": "2026-01-13T00:00:00Z",
-  "lastModified": "2026-01-17T15:25:37.577Z",
+  "lastModified": "2026-08-31T00:00:00.000Z",
   "modifiedBy": "system",
   "thresholds": {
     "battery": {
@@ -294,7 +294,8 @@
       "logic": "AND",
       "duration": 30,
       "severity": "warning",
-      "category": "fuel"
+      "category": "fuel",
+      "channel": "CL_BM1"
     },
     {
       "id": "rich-running",
@@ -316,7 +317,71 @@
       "logic": "AND",
       "duration": 30,
       "severity": "warning",
-      "category": "fuel"
+      "category": "fuel",
+      "channel": "CL_BM1"
+    },
+    {
+      "id": "tps-near-load-limit-warning",
+      "name": "TPS actual % is within 5% of TPS Load Limit Max Value",
+      "description": "Actual throttle position is within five percentage points of the configured TPS load limit.",
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "LoadLim_max_TPS",
+          "param2": "TPS_pct",
+          "operator": "<=",
+          "value": 5
+        },
+        {
+          "type": "delta",
+          "param1": "LoadLim_max_TPS",
+          "param2": "TPS_pct",
+          "operator": ">",
+          "value": 1
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "logic": "AND",
+      "duration": 5,
+      "severity": "warning",
+      "category": "performance",
+      "channel": "TPS_pct",
+      "alertGroup": "tps-load-limit"
+    },
+    {
+      "id": "tps-at-load-limit-critical",
+      "name": "TPS actual % is at or near the TPS Load Limit Max Value",
+      "description": "Actual throttle position is within one percentage point of, or exceeds, the configured TPS load limit.",
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "delta",
+          "param1": "LoadLim_max_TPS",
+          "param2": "TPS_pct",
+          "operator": "<=",
+          "value": 1
+        }
+      ],
+      "requireWhen": [
+        {
+          "param": "EngineStable",
+          "operator": "==",
+          "value": 1
+        }
+      ],
+      "logic": "AND",
+      "duration": 2,
+      "severity": "critical",
+      "category": "performance",
+      "channel": "TPS_pct",
+      "alertGroup": "tps-load-limit"
     },
     {
       "id": "tip-map-delta",

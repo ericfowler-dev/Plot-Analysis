@@ -26,7 +26,8 @@ import {
   resolveProfile,
   getEffectiveThreshold,
   compareProfiles,
-  validateThresholdValues
+  validateThresholdValues,
+  validateAnomalyRules
 } from '../utils/thresholdMerger.js';
 import { requireAdmin, getAdminActor } from '../utils/adminAuth.js';
 import { recordConfiguratorChange } from '../utils/configuratorStore.js';
@@ -208,6 +209,18 @@ router.post('/profile', requireAdmin, async (req, res) => {
       }
     }
 
+    if (profile.anomalyRules) {
+      const validation = validateAnomalyRules(profile.anomalyRules);
+      if (!validation.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid anomaly rules',
+          validationErrors: validation.errors,
+          validationWarnings: validation.warnings
+        });
+      }
+    }
+
     let action = 'profile.create';
     try {
       await loadProfile(profile.profileId);
@@ -254,6 +267,18 @@ router.put('/profile/:profileId', requireAdmin, async (req, res) => {
         return res.status(400).json({
           success: false,
           error: 'Invalid threshold values',
+          validationErrors: validation.errors,
+          validationWarnings: validation.warnings
+        });
+      }
+    }
+
+    if (updated.anomalyRules) {
+      const validation = validateAnomalyRules(updated.anomalyRules);
+      if (!validation.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid anomaly rules',
           validationErrors: validation.errors,
           validationWarnings: validation.warnings
         });
@@ -414,14 +439,28 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
  */
 router.post('/validate', async (req, res) => {
   try {
-    const { thresholds } = req.body;
+    const { thresholds, anomalyRules } = req.body;
 
-    if (!thresholds) {
-      return res.status(400).json({ success: false, error: 'thresholds object is required' });
+    if (!thresholds && !anomalyRules) {
+      return res.status(400).json({ success: false, error: 'thresholds or anomalyRules is required' });
     }
 
-    const validation = validateThresholdValues(thresholds);
-    res.json({ success: true, validation });
+    const thresholdValidation = thresholds ? validateThresholdValues(thresholds) : null;
+    const ruleValidation = anomalyRules ? validateAnomalyRules(anomalyRules) : null;
+    const errors = [
+      ...(thresholdValidation?.errors || []),
+      ...(ruleValidation?.errors || [])
+    ];
+    const warnings = [
+      ...(thresholdValidation?.warnings || []),
+      ...(ruleValidation?.warnings || [])
+    ];
+    res.json({
+      success: true,
+      validation: { errors, warnings, isValid: errors.length === 0 },
+      thresholdValidation,
+      ruleValidation
+    });
   } catch (error) {
     console.error('Error validating thresholds:', error);
     res.status(400).json({ success: false, error: error.message });

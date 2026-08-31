@@ -511,8 +511,8 @@ class RuleTimingTracker {
    * Returns { shouldTrigger: boolean, shouldClear: boolean, isActive: boolean }
    */
   checkPersistence(ruleId, conditionMet, time, rule) {
-    const triggerPersistenceSec = rule.triggerPersistenceSec || 0;
-    const clearPersistenceSec = rule.clearPersistenceSec || 0;
+    const triggerPersistenceSec = rule.triggerPersistenceSec ?? rule.duration ?? 0;
+    const clearPersistenceSec = rule.clearPersistenceSec ?? 0;
 
     // Get or create state for this rule
     let state = this.ruleStates.get(ruleId);
@@ -547,7 +547,7 @@ class RuleTimingTracker {
       }, 0);
 
       // Check if condition met for required time within window
-      conditionMet = totalTimeMet >= (rule.triggerPersistenceSec || 0);
+      conditionMet = totalTimeMet >= triggerPersistenceSec;
     }
 
     if (conditionMet) {
@@ -896,14 +896,17 @@ export function detectAnomalies(data, thresholds, options = {}) {
   const oilPressureConfig = thresholds.thresholds?.oilPressure || {};
 
   // Initialize engine state tracker for oil pressure monitoring
+  const profileEngineStateConfig = thresholds.engineStateConfig || {};
   const engineStateTracker = new EngineStateTracker({
-    rpmCrankingThreshold: oilPressureConfig.rpmCrankingThreshold || 100,
-    rpmRunningThreshold: oilPressureConfig.rpmThreshold || 500,
-    rpmStableThreshold: oilPressureConfig.rpmStableThreshold || 800,
-    startHoldoffSeconds: oilPressureConfig.startHoldoffSeconds || 3,
-    stableHoldoffSeconds: oilPressureConfig.stableHoldoffSeconds || 2,
-    stopHoldoffSeconds: oilPressureConfig.stopHoldoffSeconds || 2,
-    shutdownRpmRate: oilPressureConfig.shutdownRpmRate || -300
+    rpmCrankingThreshold: profileEngineStateConfig.rpmCrankingThreshold ?? oilPressureConfig.rpmCrankingThreshold ?? 100,
+    rpmRunningThreshold: profileEngineStateConfig.rpmRunningThreshold ?? oilPressureConfig.rpmThreshold ?? 500,
+    rpmStableThreshold: profileEngineStateConfig.rpmStableThreshold ?? oilPressureConfig.rpmStableThreshold ?? 800,
+    startHoldoffSeconds: profileEngineStateConfig.startHoldoffSeconds ?? oilPressureConfig.startHoldoffSeconds ?? 3,
+    stableHoldoffSeconds: profileEngineStateConfig.stableHoldoffSeconds ?? oilPressureConfig.stableHoldoffSeconds ?? 2,
+    stableExitHoldoffSeconds: profileEngineStateConfig.stableExitHoldoffSeconds,
+    rpmStableHysteresis: profileEngineStateConfig.rpmStableHysteresis,
+    stopHoldoffSeconds: profileEngineStateConfig.stopHoldoffSeconds ?? oilPressureConfig.stopHoldoffSeconds ?? 2,
+    shutdownRpmRate: profileEngineStateConfig.shutdownRpmRate ?? oilPressureConfig.shutdownRpmRate ?? -300
   });
 
   // Estimate sample rate from time column if available
@@ -1394,6 +1397,7 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values,
         name: 'Critical Lean Fuel Trim',
         severity: SEVERITY.CRITICAL,
         category: CATEGORIES.FUEL,
+        channel: 'CL_BM1',
         threshold: critMax,
         unit: '%'
       });
@@ -1402,11 +1406,12 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values,
     }
 
     // Warning lean
-    if (warnMax != null && clTrim > warnMax) {
+    if (warnMax != null && clTrim > warnMax && (critMax == null || clTrim <= critMax)) {
       handleAlertState('fuel_cl_warning_lean', true, time, clTrim, alerts, startTimes, values, {
         name: 'Lean Fuel Trim',
         severity: SEVERITY.WARNING,
         category: CATEGORIES.FUEL,
+        channel: 'CL_BM1',
         threshold: warnMax,
         unit: '%'
       });
@@ -1420,6 +1425,7 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values,
         name: 'Critical Rich Fuel Trim',
         severity: SEVERITY.CRITICAL,
         category: CATEGORIES.FUEL,
+        channel: 'CL_BM1',
         threshold: critMin,
         unit: '%'
       });
@@ -1428,11 +1434,12 @@ function checkFuelTrim(row, time, config, columnMap, alerts, startTimes, values,
     }
 
     // Warning rich
-    if (warnMin != null && clTrim < warnMin) {
+    if (warnMin != null && clTrim < warnMin && (critMin == null || clTrim >= critMin)) {
       handleAlertState('fuel_cl_warning_rich', true, time, clTrim, alerts, startTimes, values, {
         name: 'Rich Fuel Trim',
         severity: SEVERITY.WARNING,
         category: CATEGORIES.FUEL,
+        channel: 'CL_BM1',
         threshold: warnMin,
         unit: '%'
       });
@@ -1876,7 +1883,7 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
       : conditionResults.every(r => r);
 
     // Apply timing (persistence, windowing) if tracker available and timing fields are set
-    const hasTiming = rule.triggerPersistenceSec || rule.clearPersistenceSec ||
+    const hasTiming = rule.duration || rule.triggerPersistenceSec || rule.clearPersistenceSec ||
                       rule.windowSec || rule.startDelaySec || rule.stopDelaySec;
 
     // v3.1.1: Build debug info when rule triggers (only on first trigger)
@@ -1894,6 +1901,7 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
           description: rule.description,
           severity: rule.severity || SEVERITY.WARNING,
           category: rule.category || CATEGORIES.CUSTOM,
+          channel: rule.channel,
           ruleId: rule.id,
           minDuration: 0, // Persistence already applied
           debugInfo
@@ -1912,6 +1920,7 @@ function checkAnomalyRules(row, time, rules, columnMap, alerts, startTimes, valu
           description: rule.description,
           severity: rule.severity || SEVERITY.WARNING,
           category: rule.category || CATEGORIES.CUSTOM,
+          channel: rule.channel,
           ruleId: rule.id,
           minDuration: rule.duration || 0,
           debugInfo

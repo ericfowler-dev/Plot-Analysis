@@ -108,6 +108,8 @@ export function generateEngineStates(data, config = DEFAULT_VALIDITY_CONFIG) {
     rpmStableThreshold: config.rpmStableThreshold ?? config.rpmRunningThreshold ?? ENGINE_DEFAULTS.ENGINE_START_THRESHOLD,
     startupGraceSeconds: config.startupGraceSeconds ?? ENGINE_DEFAULTS.STARTUP_GRACE_SECONDS,
     stableHoldoffSeconds: config.stableHoldoffSeconds,
+    stableExitHoldoffSeconds: config.stableExitHoldoffSeconds,
+    rpmStableHysteresis: config.rpmStableHysteresis,
     stopHoldoffSeconds: config.stopHoldoffSeconds,
     shutdownRpmRate: config.shutdownRpmRate,
     rpmHistorySize: config.rpmHistorySize ?? ENGINE_DEFAULTS.RPM_HISTORY_SIZE
@@ -421,10 +423,11 @@ export function extractTimeInfo(data) {
  * @param {Array} options.engineStates - Array of engine states for each row (optional)
  * @param {string} options.policy - Validity policy to apply (optional)
  * @param {Object} options.policyConfig - Policy-specific configuration (optional)
+ * @param {Object} options.validityConfig - Profile validity defaults (optional)
  * @returns {Object|null} Channel statistics or null if no valid data
  */
 export function calculateChannelStats(data, channelName, options = {}) {
-  const { engineStates, policy, policyConfig } = options;
+  const { engineStates, policy, policyConfig, validityConfig } = options;
 
   // Get channel's validity policy if not explicitly provided
   const channelPolicy = policy || getChannelValidityPolicy(channelName);
@@ -445,7 +448,10 @@ export function calculateChannelStats(data, channelName, options = {}) {
 
     // Check sample validity based on policy
     const engineState = engineStates ? engineStates[i] : null;
-    const sampleIsValid = isSampleValid(row, statsPolicy, engineState);
+    const sampleIsValid = isSampleValid(row, statsPolicy, engineState, {
+      ...DEFAULT_VALIDITY_CONFIG,
+      ...(validityConfig || {})
+    });
 
     // Check value validity (negative/zero exclusions)
     const valueIsValid = isValueValid(numericValue, policyConfig || channelPolicy);

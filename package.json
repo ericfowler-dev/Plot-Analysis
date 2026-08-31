@@ -13,10 +13,11 @@
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
     "lint": "eslint .",
+    "test": "node --test tests/*.test.mjs",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-    ,"baseline:stats": "node scripts/generateBaselineParameterStats.mjs"
+    "deploy": "gh-pages -d dist",
+    "baseline:stats": "node scripts/generateBaselineParameterStats.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
