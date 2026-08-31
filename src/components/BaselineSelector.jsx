@@ -24,8 +24,12 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
   const [loadError, setLoadError] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  // v2.0: Engine variant support
-  const [selectedVariants, setSelectedVariants] = useState([]);
+  // Engine variants are part of the shared import selection so the chosen
+  // threshold profile survives after this selector unmounts.
+  const selectedVariants = useMemo(
+    () => baselineSelection.variants || [],
+    [baselineSelection.variants]
+  );
   const [engineConfig, setEngineConfig] = useState(null);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [autoDetectionResult, setAutoDetectionResult] = useState(null);
@@ -40,6 +44,12 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
       if (selectedProfileId !== 'global-defaults') {
         selectProfile('global-defaults');
       }
+      return;
+    }
+
+    // A size-specific profile cannot be resolved accurately until its default
+    // variants have loaded (40L/53L default to the MFG fuel system).
+    if (baselineSelection.size && engineConfig?.engineSize?.id !== baselineSelection.size) {
       return;
     }
 
@@ -62,11 +72,13 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
         });
 
         if (!cancelled && result?.profileId && result.profileId !== selectedProfileId) {
-          selectProfile(result.profileId);
+          await selectProfile(result.profileId);
         }
+        if (!cancelled) setActionError(null);
       } catch (err) {
         // Fallback to global-defaults on error
         console.error('Dimension resolution failed, using defaults:', err);
+        if (!cancelled) setActionError(`Profile selection failed: ${err.message}`);
         if (!cancelled && selectedProfileId !== 'global-defaults') {
           selectProfile('global-defaults');
         }
@@ -75,39 +87,43 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
 
     resolveDimensions();
     return () => { cancelled = true; };
-  }, [baselineSelection, selectedVariants, selectedProfileId, selectProfile]);
+  }, [baselineSelection, engineConfig, selectedProfileId, selectedVariants, selectProfile]);
 
   // Load engine config when size changes
   useEffect(() => {
     if (!baselineSelection.size) {
       setEngineConfig(null);
-      setSelectedVariants([]);
       return;
     }
 
+    let cancelled = false;
     const loadEngineConfig = async () => {
       setVariantsLoading(true);
       try {
         const response = await fetch(`/api/thresholds/engine-config/${encodeURIComponent(baselineSelection.size)}`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success) {
+          if (data.success && !cancelled) {
             setEngineConfig(data);
             // Set default variants if available
             if (data.engineSize?.defaultVariants) {
-              setSelectedVariants(data.engineSize.defaultVariants);
+              setBaselineSelection(prev => ({
+                ...prev,
+                variants: data.engineSize.defaultVariants
+              }));
             }
           }
         }
       } catch (err) {
         console.error('Failed to load engine config:', err);
       } finally {
-        setVariantsLoading(false);
+        if (!cancelled) setVariantsLoading(false);
       }
     };
 
     loadEngineConfig();
-  }, [baselineSelection.size]);
+    return () => { cancelled = true; };
+  }, [baselineSelection.size, setBaselineSelection]);
 
   // Auto-detection function
   const handleAutoDetect = useCallback(async () => {
@@ -136,9 +152,9 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
         if (result.detection.confidence >= 0.6) {
           // Set detected variants
           const detectedVariants = Object.entries(result.detection.detectedVariants || {})
-            .filter(([_, v]) => v.detected)
+            .filter(([, variant]) => variant.detected)
             .map(([id]) => id);
-          setSelectedVariants(detectedVariants);
+          setBaselineSelection(prev => ({ ...prev, variants: detectedVariants }));
 
           // Notify parent if callback provided
           if (onAutoDetect) {
@@ -154,7 +170,7 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
     } finally {
       setIsAutoDetecting(false);
     }
-  }, [dataForDetection, onAutoDetect]);
+  }, [dataForDetection, onAutoDetect, setBaselineSelection]);
 
   const getAdminHeaders = () => {
     if (typeof window === 'undefined') return {};
@@ -257,9 +273,8 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
     if (size === '__add__') {
       return handleAddSize();
     }
-    setSelectedVariants([]); // Reset variants when size changes
     setEngineConfig(null);
-    setBaselineSelection(prev => ({ ...prev, size, application: '', fuelType: '' }));
+    setBaselineSelection(prev => ({ ...prev, size, application: '', fuelType: '', variants: [] }));
   };
 
   const handleFuelTypeChange = (e) => {
@@ -269,13 +284,12 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
 
   // Handle variant checkbox changes
   const handleVariantChange = (variantId, checked) => {
-    setSelectedVariants(prev => {
-      if (checked) {
-        return [...prev, variantId];
-      } else {
-        return prev.filter(v => v !== variantId);
-      }
-    });
+    setBaselineSelection(prev => ({
+      ...prev,
+      variants: checked
+        ? [...(prev.variants || []), variantId]
+        : (prev.variants || []).filter(value => value !== variantId)
+    }));
   };
 
   const handleAppChange = (e) => {
@@ -630,7 +644,7 @@ export default function BaselineSelector({ onAutoDetect, dataForDetection }) {
             {engineConfig.engineSize.variantConfigs && selectedVariants.length > 0 && (
               <div className="mt-3 text-[10px] text-slate-500">
                 {(() => {
-                  const variantKey = selectedVariants.sort().join('-');
+                  const variantKey = [...selectedVariants].sort().join('-');
                   const config = engineConfig.variantConfigs[variantKey];
                   if (config) {
                     return (

@@ -4,11 +4,11 @@
  */
 
 import fs from 'fs/promises';
-import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getPool } from '../db/pool.js';
 import { ensureProfilesTables } from '../db/schema.js';
+import { mergeVersionedIndex, mergeVersionedProfile } from './versionedConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +22,7 @@ let cacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minute cache TTL
 const pool = getPool();
 
-async function useDatabase() {
+async function isDatabaseAvailable() {
   if (!pool) return false;
   await ensureProfilesTables();
   return true;
@@ -51,7 +51,7 @@ function toNumber(value) {
 }
 
 async function saveIndex(index) {
-  const dbReady = await useDatabase();
+  const dbReady = await isDatabaseAvailable();
   if (dbReady) {
     await pool.query(
       `INSERT INTO profile_index (id, payload, updated_at)
@@ -75,20 +75,29 @@ export async function loadIndex(forceReload = false) {
     return indexCache;
   }
 
-  const dbReady = await useDatabase();
+  let storedIndex = null;
+  const dbReady = await isDatabaseAvailable();
   if (dbReady) {
     const result = await pool.query('SELECT payload FROM profile_index WHERE id=1');
     if (result.rows.length > 0) {
-      indexCache = result.rows[0].payload;
-      cacheTimestamp = Date.now();
-      return indexCache;
+      storedIndex = result.rows[0].payload;
+    }
+  }
+
+  let bundledIndex = null;
+  try {
+    const indexPath = path.join(PROFILES_DIR, '_index.json');
+    const content = await fs.readFile(indexPath, 'utf8');
+    bundledIndex = JSON.parse(content);
+  } catch (error) {
+    if (!storedIndex) {
+      console.error('Error loading profiles index:', error);
+      throw new Error('Failed to load profiles index');
     }
   }
 
   try {
-    const indexPath = path.join(PROFILES_DIR, '_index.json');
-    const content = await fs.readFile(indexPath, 'utf8');
-    const parsed = JSON.parse(content);
+    const parsed = mergeVersionedIndex(storedIndex, bundledIndex);
     indexCache = {
       ...parsed,
       engineFamilies: Array.isArray(parsed.engineFamilies) ? parsed.engineFamilies : [],
@@ -278,47 +287,58 @@ export async function loadProfile(profileId, forceReload = false) {
     return profileCache.get(profileId);
   }
 
-  const dbReady = await useDatabase();
+  let storedProfile = null;
+  const dbReady = await isDatabaseAvailable();
   if (dbReady) {
     const result = await pool.query('SELECT profile FROM profiles WHERE profile_id = $1', [profileId]);
     if (result.rows.length > 0) {
-      const profile = result.rows[0].profile;
-      profileCache.set(profileId, profile);
-      cacheTimestamp = Date.now();
-      return profile;
+      storedProfile = result.rows[0].profile;
     }
   }
 
+  let bundledProfile = null;
   try {
     const profilePath = path.join(PROFILES_DIR, `${profileId}.json`);
     const content = await fs.readFile(profilePath, 'utf8');
-    const profile = JSON.parse(content);
-    profileCache.set(profileId, profile);
-    cacheTimestamp = Date.now();
-    return profile;
+    bundledProfile = JSON.parse(content);
   } catch (error) {
-    if (error.code === 'ENOENT') {
-      throw new Error(`Profile not found: ${profileId}`);
+    if (error.code !== 'ENOENT') {
+      console.error(`Error loading profile ${profileId}:`, error);
+      throw new Error(`Failed to load profile: ${profileId}`);
     }
-    console.error(`Error loading profile ${profileId}:`, error);
-    throw new Error(`Failed to load profile: ${profileId}`);
   }
+
+  if (!storedProfile && !bundledProfile) {
+    throw new Error(`Profile not found: ${profileId}`);
+  }
+
+  const profile = mergeVersionedProfile(storedProfile, bundledProfile);
+  profileCache.set(profileId, profile);
+  cacheTimestamp = Date.now();
+  return profile;
 }
 
 /**
  * Load all profiles
  */
 export async function loadAllProfiles(forceReload = false) {
-  const dbReady = await useDatabase();
-  if (dbReady) {
-    const result = await pool.query('SELECT profile FROM profiles');
-    return result.rows.map(r => r.profile);
+  const profileIds = new Set();
+  const index = await loadIndex(forceReload);
+  for (const profileId of index.profiles || []) {
+    profileIds.add(profileId);
   }
 
-  const index = await loadIndex(forceReload);
+  const dbReady = await isDatabaseAvailable();
+  if (dbReady) {
+    const result = await pool.query('SELECT profile_id FROM profiles');
+    for (const row of result.rows) {
+      profileIds.add(row.profile_id);
+    }
+  }
+
   const profiles = [];
 
-  for (const profileId of index.profiles) {
+  for (const profileId of profileIds) {
     try {
       const profile = await loadProfile(profileId, forceReload);
       profiles.push(profile);
@@ -373,7 +393,7 @@ export async function saveProfile(profile) {
   profile.lastModified = new Date().toISOString();
 
   // Save to DB if available
-  const dbReady = await useDatabase();
+  const dbReady = await isDatabaseAvailable();
   if (dbReady) {
     await pool.query(
       `INSERT INTO profiles (profile_id, profile, updated_at)
@@ -449,7 +469,7 @@ async function removeFromIndex(profileId) {
     index.profiles.splice(idx, 1);
     index.lastUpdated = new Date().toISOString();
 
-    const dbReady = await useDatabase();
+    const dbReady = await isDatabaseAvailable();
     if (dbReady) {
       await pool.query(
         `INSERT INTO profile_index (id, payload, updated_at)
