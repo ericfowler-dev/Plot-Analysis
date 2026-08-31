@@ -34,15 +34,6 @@ app.use('/api/baselines', baselinesRouter);
 app.use('/api/configurator', configuratorRouter);
 app.use('/api', issuesRouter);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist')));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
-}
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   // npm exposes package.json fields to scripts as env vars (e.g. npm_package_version).
@@ -74,6 +65,16 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
+
+// Serve the client only after every API route and API error handler so the
+// SPA fallback cannot turn API/health requests into index.html responses.
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
