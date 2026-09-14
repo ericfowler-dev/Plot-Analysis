@@ -1077,6 +1077,7 @@ export function getThresholdForParameter(paramName) {
   const thresholdMap = {
     Vbat: BPLOT_THRESHOLDS.battery,
     rpm: BPLOT_THRESHOLDS.rpm,
+    RPM: BPLOT_THRESHOLDS.rpm,
     ECT: BPLOT_THRESHOLDS.coolantTemp,
     OILP_press: BPLOT_THRESHOLDS.oilPressure,
     MAP: BPLOT_THRESHOLDS.manifoldPressure,
@@ -1084,6 +1085,29 @@ export function getThresholdForParameter(paramName) {
   };
 
   return thresholdMap[paramName] || null;
+}
+
+/**
+ * Horizontal guide lines for the BPLT chart (static profile floors/ceilings).
+ * Operating-point-aware oil pressure is intentionally shown as its low-RPM floor.
+ */
+export function getChartThresholdLines(channelName) {
+  const threshold = getThresholdForParameter(channelName);
+  if (!threshold) return [];
+
+  const lines = [];
+  const add = (value, level, label) => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return;
+    lines.push({ y: value, level, label });
+  };
+
+  add(threshold.critical_low, 'critical', 'Critical min');
+  add(threshold.warning_low, 'warning', 'Warning min');
+  add(threshold.warning_high, 'warning', 'Warning max');
+  add(threshold.critical_high, 'critical', 'Critical max');
+  add(threshold.warning_threshold, 'warning', 'Warning');
+  add(threshold.critical_threshold, 'critical', 'Critical');
+  return lines;
 }
 
 /**
