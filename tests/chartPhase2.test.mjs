@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { decorateRowsWithDerived, availableDerivedChannels } from '../src/lib/chartDerived.js';
 import { groupChannelsIntoPanes } from '../src/lib/chartPanes.js';
+import { isLayoutActive, CHART_LAYOUTS } from '../src/lib/chartResample.js';
 import {
   isClickNotDrag,
   computeWindowStats,
@@ -44,4 +45,11 @@ test('window stats and snap/nudge follow the nearest samples', () => {
   assert.equal(stats.min, 4);
   assert.equal(stats.max, 8);
   assert.equal(stats.mean, 6);
+});
+
+test('a layout is active only when the selected channels match it', () => {
+  const layout = CHART_LAYOUTS.find((item) => item.id === 'mapTip');
+  const available = layout.channels;
+  assert.equal(isLayoutActive(layout.channels, layout.channels, available), true);
+  assert.equal(isLayoutActive(layout.channels, layout.channels.slice(0, -1), available), false);
 });

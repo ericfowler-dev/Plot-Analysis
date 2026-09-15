@@ -113,11 +113,14 @@ test('layout presets only keep channels that exist on the plot', () => {
   assert.deepEqual(resolved, ['OILP_press', 'ECT']);
 });
 
-test('EDIS quick-filter layouts cover MAP/TIP, TPS/Load, Fuel Trim, Temp, Electrical, MFG', () => {
+test('EDIS quick-filter layouts cover MAP/TIP, TPS Load Limit, Fuel Trim, Temp, Electrical, MFG', () => {
   const byId = Object.fromEntries(CHART_LAYOUTS.map((layout) => [layout.id, layout]));
   assert.deepEqual(Object.keys(byId).sort(), ['electrical', 'fuel', 'mapTip', 'mfg', 'temp', 'tpsLoad']);
   assert.equal(byId.fuel.label, 'Fuel Trim');
-  assert.deepEqual(byId.mapTip.channels, ['rpm', 'MAP', 'TIP', 'TIP_MAP_delta', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']);
+  assert.equal(byId.tpsLoad.label, 'TPS Load Limit');
+  assert.deepEqual(byId.mapTip.channels, ['rpm', 'MAP', 'TIP', 'TIP_MAP_delta', 'TPS_pct', 'MILout_mirror', 'IAT']);
+  assert.ok(!byId.mapTip.channels.includes('LoadLim_max_TPS'));
+  assert.ok(!byId.mapTip.channels.includes('spk_adv'));
   assert.deepEqual(byId.tpsLoad.channels, ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'LoadLim_TPS_delta', 'A_BM1', 'CL_BM1', 'MILout_mirror']);
   assert.deepEqual(byId.fuel.channels, ['rpm', 'MAP', 'A_BM1', 'CL_BM1', 'fuel_ctl_mode', 'MILout_mirror', 'EGO1_volts', 'EGO2_volts', 'Phi_UEGO']);
   assert.deepEqual(byId.temp.channels, ['rpm', 'ECT', 'IAT', 'MAT', 'MAP', 'MILout_mirror', 'OILT']);

@@ -8,11 +8,11 @@ export const CHART_LAYOUTS = [
   {
     id: 'mapTip',
     label: 'MAP / TIP',
-    channels: ['rpm', 'MAP', 'TIP', 'TIP_MAP_delta', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']
+    channels: ['rpm', 'MAP', 'TIP', 'TIP_MAP_delta', 'TPS_pct', 'MILout_mirror', 'IAT']
   },
   {
     id: 'tpsLoad',
-    label: 'TPS / Load',
+    label: 'TPS Load Limit',
     channels: ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'LoadLim_TPS_delta', 'A_BM1', 'CL_BM1', 'MILout_mirror']
   },
   {
@@ -412,4 +412,13 @@ export function resolveLayoutChannels(layoutChannels, availableChannels, limit =
     if (resolved.length >= limit) break;
   }
   return resolved;
+}
+
+export function isLayoutActive(layoutChannels, selectedChannels, availableChannels) {
+  const resolved = resolveLayoutChannels(layoutChannels, availableChannels);
+  if (!resolved.length || !Array.isArray(selectedChannels) || selectedChannels.length !== resolved.length) {
+    return false;
+  }
+  const selected = new Set(selectedChannels);
+  return resolved.every((channel) => selected.has(channel));
 }
