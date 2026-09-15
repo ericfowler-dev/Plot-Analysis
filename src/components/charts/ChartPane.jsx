@@ -32,9 +32,11 @@ export default function ChartPane({
   data,
   series,
   axis,
+  axes = null,
+  channelToAxis = null,
   xDomain,
   zoomedDomain,
-  showXAxis,
+  showXAxis = true,
   cursorTime,
   cursorA,
   cursorB,
@@ -51,18 +53,29 @@ export default function ChartPane({
   onMouseMove,
   onMouseUp
 }) {
-  const yAxisId = axis?.id || 'yDefault';
-  const paneThresholds = thresholdLines.filter((line) => pane.channels.includes(line.channel));
-  const paneAlert = selectedAlert && pane.channels.includes(selectedAlert.channel) ? selectedAlert : null;
+  const axisList = Array.isArray(axes) && axes.length
+    ? axes
+    : [{
+      id: axis?.id || 'yDefault',
+      label: pane?.label || axis?.label || '',
+      orientation: 'left',
+      domain: axis?.domain || ['auto', 'auto'],
+      decimals: axis?.decimals ?? getDecimalPlaces(pane?.channels?.[0])
+    }];
+  const fallbackAxisId = axisList[0]?.id || 'yDefault';
+  const axisForChannel = (channel) => channelToAxis?.[channel] || fallbackAxisId;
+  const paneChannels = pane?.channels || series.map((item) => item.channel);
+  const paneThresholds = thresholdLines.filter((line) => paneChannels.includes(line.channel));
+  const paneAlert = selectedAlert && paneChannels.includes(selectedAlert.channel) ? selectedAlert : selectedAlert;
 
   return (
-    <div className="min-h-0" style={{ flex: pane.flex || 1 }}>
-      <div className="h-full min-h-[96px]">
+    <div className="min-h-0 h-full" style={{ flex: pane?.flex || 1 }}>
+      <div className="h-full min-h-[240px]">
         <ChartErrorBoundary fallbackHeight="100%">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart
               data={data}
-              margin={{ top: 8, right: 12, left: 4, bottom: showXAxis ? 4 : -8 }}
+              margin={{ top: 10, right: 16, left: 8, bottom: 4 }}
               onMouseDown={onMouseDown}
               onMouseMove={onMouseMove}
               onMouseUp={onMouseUp}
@@ -71,28 +84,31 @@ export default function ChartPane({
               <XAxis
                 dataKey="Time"
                 stroke="#64748b"
-                fontSize={11}
+                fontSize={12}
                 type="number"
                 domain={xDomain}
                 allowDataOverflow={!!zoomedDomain}
                 tickFormatter={formatChartTick}
                 hide={!showXAxis}
               />
-              <YAxis
-                yAxisId={yAxisId}
-                orientation="left"
-                stroke="#64748b"
-                fontSize={11}
-                width={52}
-                domain={axis?.domain || ['auto', 'auto']}
-                tickFormatter={(value) => safeToFixed(value, axis?.decimals ?? getDecimalPlaces(pane.channels[0]), '')}
-                label={{
-                  value: pane.label,
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle', fill: '#64748b', fontSize: 10 }
-                }}
-              />
+              {axisList.map((item, index) => (
+                <YAxis
+                  key={item.id}
+                  yAxisId={item.id}
+                  orientation={item.orientation || (index % 2 === 0 ? 'left' : 'right')}
+                  stroke={index === 0 ? '#64748b' : '#94a3b8'}
+                  fontSize={12}
+                  width={52}
+                  domain={item.domain || ['auto', 'auto']}
+                  tickFormatter={(value) => safeToFixed(value, item.decimals ?? 1, '')}
+                  label={item.label ? {
+                    value: item.label,
+                    angle: (item.orientation || (index % 2 === 0 ? 'left' : 'right')) === 'left' ? -90 : 90,
+                    position: (item.orientation || (index % 2 === 0 ? 'left' : 'right')) === 'left' ? 'insideLeft' : 'insideRight',
+                    style: { textAnchor: 'middle', fill: '#64748b', fontSize: 10 }
+                  } : undefined}
+                />
+              ))}
               <Tooltip
                 cursor={false}
                 content={(props) => (
@@ -105,11 +121,11 @@ export default function ChartPane({
                   />
                 )}
               />
-              <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 10, paddingTop: 0 }} />
+              <Legend verticalAlign="top" height={44} wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
               {series.map((item) => (
                 <Line
                   key={item.key}
-                  yAxisId={yAxisId}
+                  yAxisId={axisForChannel(item.channel)}
                   type={isDiscreteChannel(item.channel) ? 'stepAfter' : 'linear'}
                   dataKey={item.key}
                   stroke={item.color}
@@ -122,19 +138,19 @@ export default function ChartPane({
                 />
               ))}
               {Number.isFinite(cursorTime) && (
-                <ReferenceLine x={cursorTime} yAxisId={yAxisId} stroke="#e2e8f0" strokeOpacity={0.35} strokeDasharray="3 3" />
+                <ReferenceLine x={cursorTime} yAxisId={fallbackAxisId} stroke="#e2e8f0" strokeOpacity={0.35} strokeDasharray="3 3" />
               )}
               {Number.isFinite(cursorA) && (
-                <ReferenceLine x={cursorA} yAxisId={yAxisId} stroke={CURSOR_A_COLOR} strokeWidth={1.5} />
+                <ReferenceLine x={cursorA} yAxisId={fallbackAxisId} stroke={CURSOR_A_COLOR} strokeWidth={1.5} />
               )}
               {Number.isFinite(cursorB) && (
-                <ReferenceLine x={cursorB} yAxisId={yAxisId} stroke={CURSOR_B_COLOR} strokeWidth={1.5} />
+                <ReferenceLine x={cursorB} yAxisId={fallbackAxisId} stroke={CURSOR_B_COLOR} strokeWidth={1.5} />
               )}
               {Number.isFinite(cursorA) && Number.isFinite(cursorB) && (
                 <ReferenceArea
                   x1={Math.min(cursorA, cursorB)}
                   x2={Math.max(cursorA, cursorB)}
-                  yAxisId={yAxisId}
+                  yAxisId={fallbackAxisId}
                   fill="#64748b"
                   fillOpacity={0.08}
                   ifOverflow="hidden"
@@ -144,7 +160,7 @@ export default function ChartPane({
                 <ReferenceLine
                   key={line.id}
                   y={line.y}
-                  yAxisId={yAxisId}
+                  yAxisId={line.yAxisId || axisForChannel(line.channel)}
                   stroke={line.level === 'critical' ? '#ef4444' : '#f59e0b'}
                   strokeDasharray={line.level === 'critical' ? '4 2' : '6 4'}
                   strokeOpacity={0.7}
@@ -162,7 +178,7 @@ export default function ChartPane({
                   <ReferenceLine
                     key={`file-boundary-${boundary.fileId}`}
                     x={boundary.startTime}
-                    yAxisId={yAxisId}
+                    yAxisId={fallbackAxisId}
                     stroke="#22c55e"
                     strokeDasharray="5 5"
                     strokeWidth={2}
@@ -173,7 +189,7 @@ export default function ChartPane({
                 <ReferenceArea
                   x1={paneAlert.startTime - (paneAlert.minDuration || 0) + selectedAlertTimeOffset}
                   x2={paneAlert.endTime + selectedAlertTimeOffset}
-                  yAxisId={yAxisId}
+                  yAxisId={axisForChannel(paneAlert.channel) || fallbackAxisId}
                   stroke={paneAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
                   fill={paneAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
                   fillOpacity={0.08}
@@ -190,7 +206,7 @@ export default function ChartPane({
                 <ReferenceArea
                   x1={refAreaLeft}
                   x2={refAreaRight}
-                  yAxisId={yAxisId}
+                  yAxisId={fallbackAxisId}
                   strokeOpacity={0.3}
                   fill="#22c55e"
                   fillOpacity={0.15}
