@@ -34,8 +34,8 @@ export const CHANNEL_COLOR_MAP = {
   MFG_TPS_cmd_pct: '#d946ef',
   eng_load: '#c084fc',
 
-  A_BM1: '#a855f7',
-  CL_BM1: '#c084fc',
+  A_BM1: '#7c3aed',
+  CL_BM1: '#c026d3',
   A_BM2: '#7c3aed',
   CL_BM2: '#ddd6fe',
 
@@ -61,9 +61,9 @@ export const CHANNEL_COLOR_MAP = {
   knk_retard: '#facc15',
   spark_shutoff_chk: '#fef08a',
 
-  MFG_USPress: '#38bdf8',
-  MFG_DSPress: '#0ea5e9',
-  MFG_DPPress: '#7c3aed',
+  MFG_USPress: '#f97316',
+  MFG_DSPress: '#eab308',
+  MFG_DPPress: '#a855f7',
   MFG_DPPress_final: '#6d28d9',
   TIP_MAP_delta: '#818cf8',
   LoadLim_TPS_delta: '#f472b6',
@@ -92,7 +92,7 @@ export const FAMILY_PALETTES = {
   spark: ['#fde047', '#facc15', '#fef08a', '#eab308'],
   status: ['#94a3b8', '#fb7185', '#cbd5e1', '#f43f5e', '#64748b'],
   aux: ['#22d3ee', '#a78bfa', '#f472b6', '#818cf8', '#2dd4bf', '#67e8f9'],
-  mfg: ['#38bdf8', '#0ea5e9', '#7c3aed', '#f0abfc'],
+  mfg: ['#f97316', '#eab308', '#a855f7', '#38bdf8'],
   default: ['#eab308', '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#22d3ee', '#f97316', '#fde047']
 };
 
@@ -150,10 +150,53 @@ export function mixHex(hexA, hexB, amount) {
 }
 
 export function shiftColorForSecondary(hex) {
-  const hsl = hexToHsl(hex);
-  if (!hsl) return hex;
-  if (hsl.l > 0.72) return mixHex(hex, '#fb923c', 0.45);
-  return mixHex(hex, '#ffffff', 0.32);
+  // Overlay secondary keeps the exact family color; dash pattern tells files apart.
+  // Lightening toward white made 18 overlay traces look like one pastel smear.
+  return hex;
+}
+
+export const SHORT_CHANNEL_NAMES = {
+  rpm: 'RPM',
+  RPM: 'RPM',
+  MAP: 'MAP',
+  TIP: 'TIP',
+  BP: 'Baro',
+  ECT: 'ECT',
+  IAT: 'IAT',
+  MAT: 'MAT',
+  OILT: 'Oil T',
+  TPS_pct: 'TPS',
+  TPS_cmd_pct: 'TPS cmd',
+  LoadLim_max_TPS: 'LoadLim TPS',
+  A_BM1: 'Adapt trim',
+  CL_BM1: 'CL trim',
+  Phi_UEGO: 'Phi',
+  EGO1_volts: 'EGO1',
+  EGO2_volts: 'EGO2',
+  Vbat: 'Vbat',
+  Vsw: 'Vsw',
+  MILout_mirror: 'MIL',
+  fuel_ctl_mode: 'Fuel mode',
+  spk_adv: 'Spark',
+  MFG_TPS_act_pct: 'MFG TPS',
+  MFG_USPress: 'MFG US',
+  MFG_DSPress: 'MFG DS',
+  MFG_DPPress: 'MFG ΔP',
+  TIP_MAP_delta: 'TIP−MAP',
+  LoadLim_TPS_delta: 'Lim−TPS',
+  MFG_US_BP_delta: 'US−Baro',
+  AUX_DIG1_volt: 'AUX DIG1',
+  AUX_PU1_raw: 'AUX PU1',
+  AUX_PU2_raw: 'AUX PU2',
+  AUX_PU3_raw: 'AUX PU3'
+};
+
+export function shortChannelName(channel, role = null) {
+  const base = SHORT_CHANNEL_NAMES[channel]
+    || channel.replace(/_/g, ' ');
+  if (role === 'primary') return `${base} · P`;
+  if (role === 'secondary') return `${base} · S`;
+  return base;
 }
 
 export function getColorFamily(channel) {

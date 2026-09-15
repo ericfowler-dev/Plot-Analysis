@@ -24,7 +24,7 @@ import {
   isLayoutActive,
   formatChartTick
 } from '../../lib/chartResample';
-import { assignChartColors, getDefaultChannelColor } from '../../lib/chartColors';
+import { assignChartColors, getDefaultChannelColor, shortChannelName } from '../../lib/chartColors';
 import {
   availableDerivedChannels,
   decorateRowsWithDerived,
@@ -79,6 +79,7 @@ export default function BpltChartWorkspace({
 }) {
   const [channelSearch, setChannelSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({ engine: true, speed_control: true, derived: true });
+  const [showCursorInfo, setShowCursorInfo] = useState(false);
   const [showColorControls, setShowColorControls] = useState(false);
   const [showAxisControls, setShowAxisControls] = useState(false);
   const [channelColorOverrides, setChannelColorOverrides] = useState({});
@@ -257,13 +258,13 @@ export default function BpltChartWorkspace({
   const chartSeries = useMemo(() => {
     if (overlayEnabled) {
       return selectedChannels.flatMap((channel) => {
-        const channelLabel = channelDisplayName(channel);
+        const channelLabel = shortChannelName(channel);
         return [
           {
             key: `${channel}__primary`,
             channel,
             role: 'primary',
-            name: `${channelLabel} (Primary)`,
+            name: shortChannelName(channel, 'primary'),
             color: resolveSeriesColor(channel, 'primary'),
             strokeDasharray: undefined
           },
@@ -271,9 +272,9 @@ export default function BpltChartWorkspace({
             key: `${channel}__secondary`,
             channel,
             role: 'secondary',
-            name: `${channelLabel} (Secondary)`,
+            name: shortChannelName(channel, 'secondary'),
             color: resolveSeriesColor(channel, 'secondary'),
-            strokeDasharray: '7 3'
+            strokeDasharray: '8 4'
           }
         ];
       });
@@ -283,7 +284,7 @@ export default function BpltChartWorkspace({
       key: channel,
       channel,
       role: null,
-      name: channelDisplayName(channel),
+      name: shortChannelName(channel),
       color: resolveSeriesColor(channel),
       strokeDasharray: undefined
     }));
@@ -751,6 +752,17 @@ export default function BpltChartWorkspace({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={() => setShowCursorInfo((prev) => !prev)}
+                className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                  showCursorInfo
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                }`}
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                {showCursorInfo ? 'Hide Cursor Info' : 'Cursor Info'}
+              </button>
+              <button
                 onClick={() => setShowColorControls((prev) => !prev)}
                 className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                   showColorControls
@@ -996,6 +1008,8 @@ export default function BpltChartWorkspace({
               activeCursor={activeCursor}
               onActiveCursorChange={setActiveCursor}
               onClear={clearCursors}
+              expanded={showCursorInfo}
+              onExpandedChange={setShowCursorInfo}
             />
           )}
         </div>

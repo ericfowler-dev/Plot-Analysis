@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   BPLOT_PARAMETERS,
   VALUE_MAPPINGS,
@@ -47,9 +46,10 @@ export default function ChartCursorTable({
   cursorB = null,
   activeCursor = 'a',
   onActiveCursorChange,
-  onClear
+  onClear,
+  expanded = false,
+  onExpandedChange
 }) {
-  const [expanded, setExpanded] = useState(false);
   const hasA = Number.isFinite(cursorA);
   const hasB = Number.isFinite(cursorB);
   const spanStart = hasA && hasB ? Math.min(cursorA, cursorB) : null;
@@ -70,7 +70,7 @@ export default function ChartCursorTable({
             </div>
             <button
               type="button"
-              onClick={() => setExpanded(false)}
+              onClick={() => onExpandedChange?.(false)}
               className="text-[10px] uppercase tracking-wide text-slate-400 hover:text-white"
             >
               Close
@@ -173,7 +173,7 @@ export default function ChartCursorTable({
             )}
             <button
               type="button"
-              onClick={() => setExpanded((prev) => !prev)}
+              onClick={() => onExpandedChange?.(!expanded)}
               className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
                 expanded
                   ? 'bg-emerald-500/20 border-emerald-400/70 text-emerald-200'

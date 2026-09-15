@@ -1,8 +1,8 @@
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, ReferenceLine, ReferenceArea
 } from 'recharts';
-import { BPLOT_PARAMETERS, getDecimalPlaces } from '../../lib/bplotThresholds';
+import { getDecimalPlaces } from '../../lib/bplotThresholds';
 import { formatChartTick, isDiscreteChannel } from '../../lib/chartResample';
 import { CURSOR_A_COLOR, CURSOR_B_COLOR } from '../../lib/chartCursors';
 import ChartErrorBoundary from './ChartErrorBoundary';
@@ -11,20 +11,6 @@ import ChartValueTooltip from './ChartValueTooltip';
 const safeToFixed = (value, decimals, fallback = '') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
   return value.toFixed(decimals);
-};
-
-const getSeverityLabel = (severity, category) => {
-  if (category === 'signal_quality') return 'Sensor';
-  if (severity === 'critical') return 'Critical';
-  if (severity === 'info') return 'Info';
-  return 'Warning';
-};
-
-const getAlertDisplayName = (alert) => {
-  const fallback = alert?.channel || 'Anomaly';
-  if (!alert?.name) return fallback;
-  const cleaned = alert.name.replace(/^\s*(critical|warning|info)\s*[:-]?\s*/i, '').trim();
-  return cleaned || fallback;
 };
 
 export default function ChartPane({
@@ -69,8 +55,24 @@ export default function ChartPane({
   const paneAlert = selectedAlert && paneChannels.includes(selectedAlert.channel) ? selectedAlert : selectedAlert;
 
   return (
-    <div className="min-h-0 h-full" style={{ flex: pane?.flex || 1 }}>
-      <div className="h-full min-h-[240px]">
+    <div className="min-h-0 h-full flex flex-col" style={{ flex: pane?.flex || 1 }}>
+      {series.length > 0 && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 pb-1 max-h-14 overflow-y-auto">
+          {series.map((item) => (
+            <span key={item.key} className="inline-flex items-center gap-1 text-[10px] whitespace-nowrap" style={{ color: item.color }}>
+              <span
+                className="inline-block w-3 h-0 border-t-2"
+                style={{
+                  borderColor: item.color,
+                  borderStyle: item.strokeDasharray ? 'dashed' : 'solid'
+                }}
+              />
+              {item.name}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex-1 min-h-[240px]">
         <ChartErrorBoundary fallbackHeight="100%">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart
@@ -121,7 +123,6 @@ export default function ChartPane({
                   />
                 )}
               />
-              <Legend verticalAlign="top" height={44} wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
               {series.map((item) => (
                 <Line
                   key={item.key}
@@ -166,10 +167,10 @@ export default function ChartPane({
                   strokeOpacity={0.7}
                   ifOverflow="hidden"
                   label={{
-                    value: `${BPLOT_PARAMETERS[line.channel]?.name || line.channel} ${line.label}`,
+                    value: line.label,
                     fill: line.level === 'critical' ? '#fca5a5' : '#fcd34d',
-                    fontSize: 10,
-                    position: 'insideTopRight'
+                    fontSize: 9,
+                    position: 'insideBottomRight'
                   }}
                 />
               ))}
@@ -192,14 +193,8 @@ export default function ChartPane({
                   yAxisId={axisForChannel(paneAlert.channel) || fallbackAxisId}
                   stroke={paneAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
                   fill={paneAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
-                  fillOpacity={0.08}
-                  ifOverflow="extendDomain"
-                  label={{
-                    value: `${getSeverityLabel(paneAlert.severity, paneAlert.category)}: ${getAlertDisplayName(paneAlert)}`,
-                    position: 'insideTopLeft',
-                    fill: '#ffffff',
-                    fontSize: 11
-                  }}
+                  fillOpacity={0.12}
+                  ifOverflow="hidden"
                 />
               )}
               {refAreaLeft !== null && refAreaRight !== null && (
