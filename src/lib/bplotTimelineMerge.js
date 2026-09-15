@@ -46,8 +46,8 @@ const summarizeDualCorrelation = (files) => {
   const primaryHours = extractHourWindow(primary);
   const secondaryHours = extractHourWindow(secondary);
   const alignment = estimateTimelineAlignment(
-    primary?.processed?.chartData || [],
-    secondary?.processed?.chartData || []
+    primary?.processed?.normalizedData || primary?.processed?.chartData || [],
+    secondary?.processed?.normalizedData || secondary?.processed?.chartData || []
   );
 
   let hourOverlapWindow = null;

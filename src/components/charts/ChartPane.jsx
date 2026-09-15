@@ -139,7 +139,7 @@ export default function ChartPane({
                   stroke={item.color}
                   dot={false}
                   strokeDasharray={item.strokeDasharray}
-                  strokeWidth={highlightedChannel === item.channel ? 3.5 : 2}
+                  strokeWidth={highlightedChannel === item.channel ? 3.5 : (item.role === 'secondary' ? 2.4 : 2)}
                   name={item.name}
                   isAnimationActive={false}
                   connectNulls={false}

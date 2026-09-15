@@ -23,7 +23,8 @@ import {
   panDomain,
   resolveLayoutChannels,
   isLayoutActive,
-  formatChartTick
+  formatChartTick,
+  summarizeOverlayCoverage
 } from '../../lib/chartResample';
 import { assignChartColors, getDefaultChannelColor, shortChannelName } from '../../lib/chartColors';
 import {
@@ -91,6 +92,7 @@ export default function BpltChartWorkspace({
   const [refAreaRight, setRefAreaRight] = useState(null);
   const [zoomedDomain, setZoomedDomain] = useState(null);
   const [manualAlignmentOffset, setManualAlignmentOffset] = useState('0');
+  const [useAutoAlign, setUseAutoAlign] = useState(true);
   const [cursorTime, setCursorTime] = useState(null);
   const [cursorA, setCursorA] = useState(null);
   const [cursorB, setCursorB] = useState(null);
@@ -110,7 +112,7 @@ export default function BpltChartWorkspace({
   const activeCursorRef = useRef('a');
 
   const parsedManualOffset = parseFloat(manualAlignmentOffset);
-  const effectiveAlignmentOffset = automaticAlignmentOffset + (
+  const effectiveAlignmentOffset = (useAutoAlign ? automaticAlignmentOffset : 0) + (
     Number.isFinite(parsedManualOffset) ? parsedManualOffset : 0
   );
   const selectedAlertTimeOffset = overlayEnabled && activeCorrelatedRole === 'secondary'
@@ -164,6 +166,26 @@ export default function BpltChartWorkspace({
   const windowDomain = zoomedDomain || fullDomain;
   const windowStart = windowDomain?.[0];
   const windowEnd = windowDomain?.[1];
+
+  const overlayCoverage = useMemo(() => {
+    if (!overlayEnabled) return null;
+    return summarizeOverlayCoverage({
+      primaryRows: decoratedPrimary,
+      secondaryRows: decoratedSecondary,
+      offsetSec: effectiveAlignmentOffset,
+      channels: selectedChannels,
+      startTime: windowStart,
+      endTime: windowEnd
+    });
+  }, [
+    overlayEnabled,
+    decoratedPrimary,
+    decoratedSecondary,
+    effectiveAlignmentOffset,
+    selectedChannels,
+    windowStart,
+    windowEnd
+  ]);
 
   const chartRenderData = useMemo(() => {
     if (overlayEnabled) {
@@ -822,32 +844,67 @@ export default function BpltChartWorkspace({
             Drag to zoom · Click C1, then click C2 · Or press C1/C2 then click · Shift-drag pan · Scroll zoom
           </div>
           {overlayEnabled && (
-            <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
-              <span className="text-[11px] text-cyan-200">
-                Secondary shift: {effectiveAlignmentOffset >= 0 ? '+' : ''}{effectiveAlignmentOffset.toFixed(1)}s
-              </span>
-              <span className="text-[10px] text-slate-400">
-                Auto {automaticAlignmentOffset >= 0 ? '+' : ''}{automaticAlignmentOffset.toFixed(1)}s
-              </span>
-              <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-400">
-                Manual adjustment
-                <input
-                  type="number"
-                  step="0.1"
-                  value={manualAlignmentOffset}
-                  onChange={(event) => setManualAlignmentOffset(event.target.value)}
-                  className="w-20 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-right font-mono text-slate-100"
-                  aria-label="Manual secondary timeline adjustment in seconds"
-                />
-                sec
-              </label>
-              <button
-                type="button"
-                onClick={() => setManualAlignmentOffset('0')}
-                className="text-[10px] uppercase tracking-wide text-slate-400 hover:text-white"
-              >
-                Reset
-              </button>
+            <div className="mt-3 space-y-2 rounded border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[11px] text-cyan-200">
+                  Secondary shift: {effectiveAlignmentOffset >= 0 ? '+' : ''}{effectiveAlignmentOffset.toFixed(1)}s
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  Auto {automaticAlignmentOffset >= 0 ? '+' : ''}{automaticAlignmentOffset.toFixed(1)}s
+                </span>
+                <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-400">
+                  Manual
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={manualAlignmentOffset}
+                    onChange={(event) => setManualAlignmentOffset(event.target.value)}
+                    className="w-20 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-right font-mono text-slate-100"
+                    aria-label="Manual secondary timeline adjustment in seconds"
+                  />
+                  sec
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setUseAutoAlign((prev) => !prev)}
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
+                    useAutoAlign
+                      ? 'border-cyan-400/70 text-cyan-200'
+                      : 'border-amber-400/70 text-amber-200'
+                  }`}
+                >
+                  {useAutoAlign ? 'Auto align on' : 'Auto align off'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseAutoAlign(false);
+                    setManualAlignmentOffset('0');
+                  }}
+                  className="text-[10px] uppercase tracking-wide text-slate-400 hover:text-white"
+                >
+                  Align starts
+                </button>
+              </div>
+              {overlayCoverage && (
+                <div className={`text-[11px] ${
+                  overlayCoverage.matchedChannels.length === 0 || overlayCoverage.overlapSec <= 0
+                    ? 'text-amber-300'
+                    : 'text-slate-400'
+                }`}>
+                  {overlayCoverage.matchedChannels.length === 0
+                    ? 'Secondary has no matching channels in this layout — traces will look like a single file.'
+                    : overlayCoverage.overlapSec <= 0
+                      ? 'Secondary does not overlap this time window at the current shift. Use Align starts or change the offset.'
+                      : `Secondary contributing ${overlayCoverage.matchedChannels.length}/${selectedChannels.length} channels · overlap ${formatChartTick(overlayCoverage.overlapSec)}`}
+                  {overlayCoverage.missingChannels.length > 0 && overlayCoverage.matchedChannels.length > 0 && (
+                    <span className="ml-2 text-slate-500">
+                      missing {overlayCoverage.missingChannels.slice(0, 4).join(', ')}
+                      {overlayCoverage.missingChannels.length > 4 ? '…' : ''}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {showColorControls && colorControlEntries.length > 0 && (

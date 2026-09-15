@@ -50,9 +50,24 @@ export function getTime(row) {
   return Number.isFinite(value) ? value : null;
 }
 
+const CHANNEL_ALIASES = {
+  rpm: ['rpm', 'RPM'],
+  RPM: ['rpm', 'RPM']
+};
+
+export function resolveChannelKey(row, channel) {
+  if (!row || channel == null) return null;
+  if (Object.prototype.hasOwnProperty.call(row, channel)) return channel;
+  const aliases = CHANNEL_ALIASES[channel] || [channel];
+  const keys = Object.keys(row);
+  const wanted = new Set(aliases.map((item) => String(item).toLowerCase()));
+  return keys.find((key) => wanted.has(key.toLowerCase())) || null;
+}
+
 export function getNumeric(row, key) {
   if (!row || key == null) return null;
-  const value = row[key];
+  const resolved = resolveChannelKey(row, key) || key;
+  const value = row[resolved];
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (value === null || value === undefined || value === '') return null;
   const parsed = parseFloat(value);
@@ -365,6 +380,44 @@ export function buildAlignedOverlayGrid({
     }
     return point;
   });
+}
+
+export function summarizeOverlayCoverage({
+  primaryRows = [],
+  secondaryRows = [],
+  offsetSec = 0,
+  channels = [],
+  startTime,
+  endTime
+} = {}) {
+  const secondaryShifted = shiftRows(secondaryRows, offsetSec);
+  const primaryWindow = sliceTimeWindow(primaryRows, startTime, endTime);
+  const secondaryWindow = sliceTimeWindow(secondaryShifted, startTime, endTime);
+  const primaryDomain = getTimeDomain(primaryWindow);
+  const secondaryDomain = getTimeDomain(secondaryWindow);
+  const matched = [];
+  const missing = [];
+  for (const channel of channels) {
+    if (buildTimeSamples(secondaryWindow, channel).length > 0) matched.push(channel);
+    else missing.push(channel);
+  }
+
+  let overlapSec = 0;
+  if (primaryDomain && secondaryDomain) {
+    const start = Math.max(primaryDomain[0], secondaryDomain[0]);
+    const end = Math.min(primaryDomain[1], secondaryDomain[1]);
+    overlapSec = Math.max(0, end - start);
+  }
+
+  return {
+    matchedChannels: matched,
+    missingChannels: missing,
+    primaryDomain,
+    secondaryDomain,
+    overlapSec,
+    primaryCount: primaryWindow.length,
+    secondaryCount: secondaryWindow.length
+  };
 }
 
 export function clampDomain(domain, fullDomain, minSpan = MIN_ZOOM_SPAN_SEC) {

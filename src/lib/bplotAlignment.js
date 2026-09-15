@@ -95,7 +95,7 @@ export function estimateTimelineAlignment(primaryRows, secondaryRows, options = 
     return { offsetSec: 0, confidence: 0, method: 'insufficient_data', channels: [] };
   }
 
-  const maxOffsetSec = options.maxOffsetSec ?? 60;
+  const maxOffsetSec = options.maxOffsetSec ?? 180;
   const offsetStepSec = options.offsetStepSec ?? 0.5;
   const candidates = options.channels || DEFAULT_CHANNELS;
   const results = [];
