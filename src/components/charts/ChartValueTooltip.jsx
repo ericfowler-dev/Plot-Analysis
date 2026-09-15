@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, getDecimalPlaces } from '../../lib/bplotThresholds';
 import { formatDuration } from '../../lib/bplotProcessData';
 import { findNearestSample, formatChartTick } from '../../lib/chartResample';
@@ -16,16 +18,67 @@ const safeToFixed = (value, decimals, fallback = '—') => {
   return value.toFixed(decimals);
 };
 
+const OFFSET_X = 36;
+const OFFSET_Y = -48;
+const VIEW_PAD = 12;
+
+const positionTooltip = (coordinate, container, boxSize) => {
+  const rect = container?.getBoundingClientRect();
+  const pointX = (rect?.left || 0) + (Number(coordinate?.x) || 0);
+  const pointY = (rect?.top || 0) + (Number(coordinate?.y) || 0);
+  const width = boxSize?.width || 320;
+  const height = boxSize?.height || 220;
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+
+  let left = pointX + OFFSET_X;
+  let top = pointY + OFFSET_Y;
+
+  if (left + width > viewW - VIEW_PAD) left = pointX - width - OFFSET_X;
+  if (left < VIEW_PAD) left = VIEW_PAD;
+
+  const cursorInLowerHalf = rect ? (Number(coordinate?.y) || 0) > rect.height * 0.42 : false;
+  if (cursorInLowerHalf || top + height > viewH - 160) {
+    top = Math.max(VIEW_PAD, (rect?.top || 0) + 10);
+  }
+  if (top + height > viewH - VIEW_PAD) top = Math.max(VIEW_PAD, viewH - height - VIEW_PAD);
+  if (top < VIEW_PAD) top = VIEW_PAD;
+
+  return { left, top };
+};
+
 export default function ChartValueTooltip({
   active,
   label,
   payload = [],
+  coordinate = null,
   chartSeries = [],
   seriesValueLookup = {},
   shouldShowFileBoundaries = false,
-  cursorTime = null
+  cursorTime = null,
+  containerRef = null
 }) {
-  if (!active && !Number.isFinite(cursorTime)) return null;
+  const boxRef = useRef(null);
+  const [boxSize, setBoxSize] = useState({ width: 320, height: 220 });
+
+  const visible = active || Number.isFinite(cursorTime);
+
+  useLayoutEffect(() => {
+    if (!visible || !boxRef.current) return undefined;
+    const node = boxRef.current;
+    const update = () => {
+      const next = { width: node.offsetWidth, height: node.offsetHeight };
+      setBoxSize((prev) => (
+        prev.width === next.width && prev.height === next.height ? prev : next
+      ));
+    };
+    update();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(node);
+    return () => observer?.disconnect();
+  }, [visible, chartSeries.length, label, cursorTime]);
+
+  if (!visible) return null;
 
   const numericTime = Number.isFinite(cursorTime)
     ? cursorTime
@@ -71,10 +124,12 @@ export default function ChartValueTooltip({
   const MAX_TOOLTIP_ROWS = 20;
   const visibleRows = rows.slice(0, MAX_TOOLTIP_ROWS);
   const hiddenCount = rows.length - visibleRows.length;
+  const { left, top } = positionTooltip(coordinate, containerRef?.current, boxSize);
 
-  return (
+  const body = (
     <div
-      className="max-w-[480px] max-h-[50vh] overflow-y-auto rounded-md border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs shadow-xl"
+      ref={boxRef}
+      className="max-w-[360px] max-h-[42vh] overflow-y-auto rounded-md border border-slate-600 bg-slate-950/95 px-3 py-2 text-xs shadow-2xl"
       style={{ pointerEvents: 'none' }}
     >
       <div className="mb-1.5 text-sm font-semibold text-white">
@@ -96,5 +151,14 @@ export default function ChartValueTooltip({
         )}
       </div>
     </div>
+  );
+
+  if (typeof document === 'undefined') return body;
+
+  return createPortal(
+    <div className="fixed z-[80]" style={{ left, top, pointerEvents: 'none' }}>
+      {body}
+    </div>,
+    document.body
   );
 }
