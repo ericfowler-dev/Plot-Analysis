@@ -8,7 +8,8 @@ import {
   isDiscreteChannel,
   zoomDomainAround,
   clampDomain,
-  resolveLayoutChannels
+  resolveLayoutChannels,
+  CHART_LAYOUTS
 } from '../src/lib/chartResample.js';
 import { getChartThresholdLines } from '../src/lib/bplotThresholds.js';
 
@@ -112,6 +113,17 @@ test('layout presets only keep channels that exist on the plot', () => {
   assert.deepEqual(resolved, ['OILP_press', 'ECT']);
 });
 
+test('EDIS quick-filter layouts cover MAP/TIP, TPS/Load, Fuel Trim, Temp, Electrical, MFG', () => {
+  const byId = Object.fromEntries(CHART_LAYOUTS.map((layout) => [layout.id, layout]));
+  assert.deepEqual(Object.keys(byId).sort(), ['electrical', 'fuel', 'mapTip', 'mfg', 'temp', 'tpsLoad']);
+  assert.equal(byId.fuel.label, 'Fuel Trim');
+  assert.deepEqual(byId.mapTip.channels, ['rpm', 'MAP', 'TIP', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']);
+  assert.deepEqual(byId.tpsLoad.channels, ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'A_BM1', 'CL_BM1', 'MILout_mirror']);
+  assert.deepEqual(byId.fuel.channels, ['rpm', 'MAP', 'A_BM1', 'CL_BM1', 'fuel_ctl_mode', 'MILout_mirror', 'EGO1_volts', 'EGO2_volts', 'Phi_UEGO']);
+  assert.deepEqual(byId.temp.channels, ['rpm', 'ECT', 'IAT', 'MAT', 'MAP', 'MILout_mirror', 'OILT']);
+  assert.deepEqual(byId.electrical.channels, ['rpm', 'Vbat', 'Vsw', 'AUX_DIG1_volt', 'AUX_PU1_raw', 'AUX_PU2_raw', 'AUX_PU3_raw']);
+  assert.deepEqual(byId.mfg.channels, ['rpm', 'MAP', 'Phi_UEGO', 'MILout_mirror', 'BP', 'MFG_TPS_act_pct', 'MFG_USPress', 'MFG_DPPress', 'MFG_DSPress']);
+});
 test('chart threshold guides expose oil and battery floors', () => {
   const oil = getChartThresholdLines('OILP_press');
   assert.ok(oil.some((line) => line.level === 'critical' && line.y === 6));

@@ -6,24 +6,34 @@ export const MIN_ZOOM_SPAN_SEC = 0.2;
 
 export const CHART_LAYOUTS = [
   {
-    id: 'fuel',
-    label: 'Fuel',
-    channels: ['rpm', 'TPS_pct', 'CL_BM1', 'A_BM1', 'Phi_UEGO', 'MAP', 'eng_load']
+    id: 'mapTip',
+    label: 'MAP / TIP',
+    channels: ['rpm', 'MAP', 'TIP', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']
   },
   {
-    id: 'oilCoolant',
-    label: 'Oil / Coolant',
-    channels: ['rpm', 'OILP_press', 'ECT', 'OILT', 'OILP_state']
+    id: 'tpsLoad',
+    label: 'TPS / Load',
+    channels: ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'A_BM1', 'CL_BM1', 'MILout_mirror']
+  },
+  {
+    id: 'fuel',
+    label: 'Fuel Trim',
+    channels: ['rpm', 'MAP', 'A_BM1', 'CL_BM1', 'fuel_ctl_mode', 'MILout_mirror', 'EGO1_volts', 'EGO2_volts', 'Phi_UEGO']
+  },
+  {
+    id: 'temp',
+    label: 'Temp',
+    channels: ['rpm', 'ECT', 'IAT', 'MAT', 'MAP', 'MILout_mirror', 'OILT']
   },
   {
     id: 'electrical',
     label: 'Electrical',
-    channels: ['rpm', 'Vbat', 'Vsw', 'MILout_mirror']
+    channels: ['rpm', 'Vbat', 'Vsw', 'AUX_DIG1_volt', 'AUX_PU1_raw', 'AUX_PU2_raw', 'AUX_PU3_raw']
   },
   {
     id: 'mfg',
     label: 'MFG',
-    channels: ['rpm', 'MFG_DPPress', 'MFG_USPress', 'MFG_DSPress', 'MFG_TPS_act_pct', 'MFG_TPS_cmd_pct']
+    channels: ['rpm', 'MAP', 'Phi_UEGO', 'MILout_mirror', 'BP', 'MFG_TPS_act_pct', 'MFG_USPress', 'MFG_DPPress', 'MFG_DSPress']
   }
 ];
 
