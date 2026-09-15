@@ -44,11 +44,17 @@ test('Temp layout traces are all unique', () => {
   assert.equal(unique.size, 7);
 });
 
-test('overlay secondary keeps the family hue but is not identical', () => {
+test('overlay secondary uses the same family color so dash pattern tells files apart', () => {
   const primary = assignChartColors(['MAP', 'ECT']);
   const secondary = assignChartColors(['MAP', 'ECT'], { role: 'secondary' });
-  assert.notEqual(secondary.MAP, primary.MAP);
-  assert.notEqual(secondary.ECT, primary.ECT);
-  assert.ok(hueDistance(primary.MAP, secondary.MAP) < 25);
-  assert.equal(shiftColorForSecondary(primary.ECT).length, 7);
+  assert.equal(secondary.MAP, primary.MAP);
+  assert.equal(secondary.ECT, primary.ECT);
+  assert.equal(shiftColorForSecondary(primary.ECT), primary.ECT);
+});
+
+test('MFG upstream is not another blue next to MAP', () => {
+  const colors = assignChartColors(['MAP', 'MFG_USPress', 'MFG_DSPress', 'MFG_DPPress']);
+  assert.ok(hueDistance(colors.MAP, colors.MFG_USPress) > 70, `MAP vs US hue ${hueDistance(colors.MAP, colors.MFG_USPress)}`);
+  const unique = new Set(Object.values(colors));
+  assert.equal(unique.size, 4);
 });
