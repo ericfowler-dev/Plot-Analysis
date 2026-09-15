@@ -11,6 +11,7 @@ import {
   resolveLayoutChannels,
   CHART_LAYOUTS
 } from '../src/lib/chartResample.js';
+import { readSeriesTooltipValue } from '../src/lib/chartTooltip.js';
 import { getChartThresholdLines } from '../src/lib/bplotThresholds.js';
 
 test('resample preserves a non-RPM spike that row-decimation would drop', () => {
@@ -48,6 +49,27 @@ test('zooming into a short window returns every raw sample', () => {
   assert.equal(windowed[windowed.length - 1].Time, 91);
 });
 
+test('overlay grid keeps primary and secondary MAP independent', () => {
+  const primary = [];
+  const secondary = [];
+  for (let i = 0; i <= 10; i += 1) {
+    primary.push({ Time: i, MAP: 10 });
+    secondary.push({ Time: i, MAP: 30 });
+  }
+
+  const grid = buildAlignedOverlayGrid({
+    primaryRows: primary,
+    secondaryRows: secondary,
+    offsetSec: 0,
+    channels: ['MAP']
+  });
+
+  const mid = grid.find((row) => row.Time === 5);
+  assert.ok(mid);
+  assert.equal(mid.MAP__primary, 10);
+  assert.equal(mid.MAP__secondary, 30);
+});
+
 test('overlay grid shares timestamps so primary and secondary exist on the same hover', () => {
   const primary = [
     { Time: 0, rpm: 1000, MAP: 10 },
@@ -80,6 +102,22 @@ test('overlay grid shares timestamps so primary and secondary exist on the same 
   assert.ok(atSecondaryStamp);
   assert.equal(atSecondaryStamp.rpm__secondary, 1010);
   assert.ok(Math.abs(atSecondaryStamp.rpm__primary - 1010) < 0.01);
+});
+
+test('overlay tooltip reads each file instead of a copied payload value', () => {
+  const lookup = {
+    MAP__primary: [{ time: 0, value: 10 }, { time: 10, value: 10 }],
+    MAP__secondary: [{ time: 0, value: 30 }, { time: 10, value: 30 }]
+  };
+  const payload = [{
+    dataKey: 'MAP__primary',
+    value: 10,
+    payload: { Time: 5, MAP__primary: 10, MAP__secondary: 10 }
+  }];
+  const primary = readSeriesTooltipValue({ key: 'MAP__primary', channel: 'MAP' }, payload, lookup, 5);
+  const secondary = readSeriesTooltipValue({ key: 'MAP__secondary', channel: 'MAP' }, payload, lookup, 5);
+  assert.equal(primary, 10);
+  assert.equal(secondary, 30);
 });
 
 test('discrete channels hold the previous state instead of blending', () => {

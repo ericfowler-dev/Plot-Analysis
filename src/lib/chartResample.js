@@ -294,8 +294,15 @@ function shiftWindow(rows, offsetSec, startTime, endTime) {
     Number.isFinite(endTime) ? endTime - offset : endTime
   );
   if (!offset) return windowed;
+  return shiftRows(windowed, offset);
+}
+
+export function shiftRows(rows, offsetSec) {
+  const offset = Number.isFinite(offsetSec) ? offsetSec : 0;
+  if (!Array.isArray(rows) || rows.length === 0) return rows || [];
+  if (!offset) return rows;
   const shifted = [];
-  for (const row of windowed) {
+  for (const row of rows) {
     const time = getTime(row);
     if (time === null) continue;
     shifted.push({ ...row, Time: time + offset });

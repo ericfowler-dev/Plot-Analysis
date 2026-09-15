@@ -3,7 +3,7 @@ import { getNumeric } from './chartResample.js';
 export const DERIVED_CHANNELS = [
   {
     id: 'TIP_MAP_delta',
-    name: 'TIP − MAP',
+    name: 'TIP-MAP DELTA',
     unit: 'psia',
     unitType: 'pressure',
     description: 'Throttle inlet pressure minus manifold pressure',
