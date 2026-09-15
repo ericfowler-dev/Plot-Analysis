@@ -1,8 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line, ReferenceLine, ReferenceArea
-} from 'recharts';
 import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import {
   BPLOT_PARAMETERS,
@@ -13,12 +9,10 @@ import {
   getYAxisId,
   getChartThresholdLines
 } from '../../lib/bplotThresholds';
-import { formatDuration } from '../../lib/bplotProcessData';
 import {
   MAX_CHART_CHANNELS,
   TARGET_CHART_POINTS,
   CHART_LAYOUTS,
-  isDiscreteChannel,
   getTimeDomain,
   resampleForViewport,
   buildAlignedOverlayGrid,
@@ -29,9 +23,23 @@ import {
   resolveLayoutChannels,
   formatChartTick
 } from '../../lib/chartResample';
-import ChartErrorBoundary from './ChartErrorBoundary';
-import ChartValueTooltip from './ChartValueTooltip';
 import { assignChartColors, getDefaultChannelColor } from '../../lib/chartColors';
+import {
+  availableDerivedChannels,
+  decorateRowsWithDerived,
+  getDerivedChannel
+} from '../../lib/chartDerived';
+import { groupChannelsIntoPanes } from '../../lib/chartPanes';
+import {
+  parseChartTime,
+  isClickNotDrag,
+  hitTestCursor,
+  snapTimeToRows,
+  nudgeTime
+} from '../../lib/chartCursors';
+import ChartPane from './ChartPane';
+import ChartCursorTable from './ChartCursorTable';
+import ChartTimeNavigator from './ChartTimeNavigator';
 const AXIS_LABELS = {
   yRPM: 'RPM',
   yVolt: 'Voltage (V)',
@@ -50,24 +58,9 @@ const normalizeColor = (value, fallback = '#3b82f6') => (
 );
 const getSeriesColorKey = (channel, role = null) => (role ? `${channel}__${role}` : channel);
 
-const getSeverityLabel = (severity, category) => {
-  if (category === 'signal_quality') return 'Sensor';
-  if (severity === 'critical') return 'Critical';
-  if (severity === 'info') return 'Info';
-  return 'Warning';
-};
-
-const getAlertDisplayName = (alert) => {
-  const fallback = alert?.channel || 'Anomaly';
-  if (!alert?.name) return fallback;
-  const cleaned = alert.name.replace(/^\s*(critical|warning|info)\s*[:-]?\s*/i, '').trim();
-  return cleaned || fallback;
-};
-
-const safeToFixed = (value, decimals, fallback = '') => {
-  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
-  return value.toFixed(decimals);
-};
+const channelDisplayName = (channel) => (
+  getDerivedChannel(channel)?.name || BPLOT_PARAMETERS[channel]?.name || channel
+);
 
 export default function BpltChartWorkspace({
   normalizedData = [],
@@ -85,7 +78,7 @@ export default function BpltChartWorkspace({
   shouldShowFileBoundaries = false
 }) {
   const [channelSearch, setChannelSearch] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState({ engine: true, speed_control: true });
+  const [expandedCategories, setExpandedCategories] = useState({ engine: true, speed_control: true, derived: true });
   const [showColorControls, setShowColorControls] = useState(false);
   const [showAxisControls, setShowAxisControls] = useState(false);
   const [channelColorOverrides, setChannelColorOverrides] = useState({});
@@ -97,6 +90,9 @@ export default function BpltChartWorkspace({
   const [zoomedDomain, setZoomedDomain] = useState(null);
   const [manualAlignmentOffset, setManualAlignmentOffset] = useState('0');
   const [cursorTime, setCursorTime] = useState(null);
+  const [cursorA, setCursorA] = useState(null);
+  const [cursorB, setCursorB] = useState(null);
+  const [activeCursor, setActiveCursor] = useState('a');
   const [plotWidth, setPlotWidth] = useState(900);
   const [isPanning, setIsPanning] = useState(false);
 
@@ -104,8 +100,12 @@ export default function BpltChartWorkspace({
   const pendingZoomX = useRef(null);
   const plotRef = useRef(null);
   const panRef = useRef(null);
+  const pointerRef = useRef(null);
   const cursorTimeRef = useRef(null);
   const domainRef = useRef({ zoomed: null, full: null });
+  const cursorARef = useRef(null);
+  const cursorBRef = useRef(null);
+  const activeCursorRef = useRef('a');
 
   const parsedManualOffset = parseFloat(manualAlignmentOffset);
   const effectiveAlignmentOffset = automaticAlignmentOffset + (
@@ -115,14 +115,35 @@ export default function BpltChartWorkspace({
     ? effectiveAlignmentOffset
     : 0;
 
+  const derivedSourceSet = useMemo(() => {
+    const set = new Set();
+    Object.values(channelsByCategory || {}).forEach((channels) => {
+      (channels || []).forEach((channel) => set.add(channel));
+    });
+    return set;
+  }, [channelsByCategory]);
+
+  const decoratedNormalized = useMemo(
+    () => decorateRowsWithDerived(normalizedData, derivedSourceSet),
+    [normalizedData, derivedSourceSet]
+  );
+  const decoratedPrimary = useMemo(
+    () => decorateRowsWithDerived(primaryNormalized, derivedSourceSet),
+    [primaryNormalized, derivedSourceSet]
+  );
+  const decoratedSecondary = useMemo(
+    () => decorateRowsWithDerived(secondaryNormalized, derivedSourceSet),
+    [secondaryNormalized, derivedSourceSet]
+  );
+
   const sourceCount = overlayEnabled
-    ? (primaryNormalized.length + secondaryNormalized.length)
-    : normalizedData.length;
+    ? (decoratedPrimary.length + decoratedSecondary.length)
+    : decoratedNormalized.length;
 
   const fullDomain = useMemo(() => {
     if (overlayEnabled) {
-      const primaryDomain = getTimeDomain(primaryNormalized);
-      const secondaryDomain = getTimeDomain(secondaryNormalized);
+      const primaryDomain = getTimeDomain(decoratedPrimary);
+      const secondaryDomain = getTimeDomain(decoratedSecondary);
       if (!primaryDomain && !secondaryDomain) return null;
       const secondaryShifted = secondaryDomain
         ? [secondaryDomain[0] + effectiveAlignmentOffset, secondaryDomain[1] + effectiveAlignmentOffset]
@@ -138,8 +159,8 @@ export default function BpltChartWorkspace({
       if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
       return [start, end];
     }
-    return getTimeDomain(normalizedData);
-  }, [overlayEnabled, primaryNormalized, secondaryNormalized, normalizedData, effectiveAlignmentOffset]);
+    return getTimeDomain(decoratedNormalized);
+  }, [overlayEnabled, decoratedPrimary, decoratedSecondary, decoratedNormalized, effectiveAlignmentOffset]);
 
   const targetPoints = Math.max(400, Math.min(TARGET_CHART_POINTS, Math.round(plotWidth || 900)));
   const windowDomain = zoomedDomain || fullDomain;
@@ -149,8 +170,8 @@ export default function BpltChartWorkspace({
   const chartRenderData = useMemo(() => {
     if (overlayEnabled) {
       return buildAlignedOverlayGrid({
-        primaryRows: primaryNormalized,
-        secondaryRows: secondaryNormalized,
+        primaryRows: decoratedPrimary,
+        secondaryRows: decoratedSecondary,
         offsetSec: effectiveAlignmentOffset,
         channels: selectedChannels,
         startTime: windowStart,
@@ -158,7 +179,7 @@ export default function BpltChartWorkspace({
         targetPoints
       });
     }
-    return resampleForViewport(normalizedData, {
+    return resampleForViewport(decoratedNormalized, {
       startTime: windowStart,
       endTime: windowEnd,
       targetPoints,
@@ -166,11 +187,11 @@ export default function BpltChartWorkspace({
     });
   }, [
     overlayEnabled,
-    primaryNormalized,
-    secondaryNormalized,
+    decoratedPrimary,
+    decoratedSecondary,
     effectiveAlignmentOffset,
     selectedChannels,
-    normalizedData,
+    decoratedNormalized,
     windowStart,
     windowEnd,
     targetPoints
@@ -236,7 +257,7 @@ export default function BpltChartWorkspace({
   const chartSeries = useMemo(() => {
     if (overlayEnabled) {
       return selectedChannels.flatMap((channel) => {
-        const channelLabel = BPLOT_PARAMETERS[channel]?.name || channel;
+        const channelLabel = channelDisplayName(channel);
         return [
           {
             key: `${channel}__primary`,
@@ -262,7 +283,7 @@ export default function BpltChartWorkspace({
       key: channel,
       channel,
       role: null,
-      name: BPLOT_PARAMETERS[channel]?.name || channel,
+      name: channelDisplayName(channel),
       color: resolveSeriesColor(channel),
       strokeDasharray: undefined
     }));
@@ -271,7 +292,7 @@ export default function BpltChartWorkspace({
   const colorControlEntries = useMemo(() => {
     if (overlayEnabled) {
       return selectedChannels.flatMap((channel) => {
-        const label = BPLOT_PARAMETERS[channel]?.name || channel;
+        const label = channelDisplayName(channel);
         return [
           {
             key: getSeriesColorKey(channel, 'primary'),
@@ -289,7 +310,7 @@ export default function BpltChartWorkspace({
 
     return selectedChannels.map((channel) => ({
       key: getSeriesColorKey(channel),
-      label: BPLOT_PARAMETERS[channel]?.name || channel,
+      label: channelDisplayName(channel),
       fallback: getDefaultSeriesColor(channel)
     }));
   }, [selectedChannels, overlayEnabled, defaultPrimaryColors, defaultSecondaryColors]);
@@ -324,8 +345,15 @@ export default function BpltChartWorkspace({
     for (const [category, channels] of Object.entries(channelsByCategory)) {
       if (!result[category] && channels.length > 0) result[category] = channels;
     }
+    const derived = availableDerivedChannels(derivedSourceSet).map((item) => item.id);
+    if (derived.length) result.derived = derived;
     return result;
-  }, [channelsByCategory]);
+  }, [channelsByCategory, derivedSourceSet]);
+
+  const chartPanes = useMemo(
+    () => groupChannelsIntoPanes(selectedChannels, axisAssignments),
+    [selectedChannels, axisAssignments]
+  );
 
   const availableChannelSet = useMemo(() => {
     const set = new Set();
@@ -341,7 +369,7 @@ export default function BpltChartWorkspace({
     const result = {};
     Object.entries(orderedCategories).forEach(([category, channels]) => {
       const matched = channels.filter((channel) => {
-        const name = (BPLOT_PARAMETERS[channel]?.name || channel).toLowerCase();
+        const name = channelDisplayName(channel).toLowerCase();
         return channel.toLowerCase().includes(searchNeedle) || name.includes(searchNeedle);
       });
       if (matched.length) result[category] = matched;
@@ -352,6 +380,12 @@ export default function BpltChartWorkspace({
   useEffect(() => {
     cursorTimeRef.current = cursorTime;
   }, [cursorTime]);
+
+  useEffect(() => {
+    cursorARef.current = cursorA;
+    cursorBRef.current = cursorB;
+    activeCursorRef.current = activeCursor;
+  }, [cursorA, cursorB, activeCursor]);
 
   useEffect(() => {
     domainRef.current = { zoomed: zoomedDomain, full: fullDomain };
@@ -397,14 +431,51 @@ export default function BpltChartWorkspace({
     });
   };
 
+  const plantCursor = useCallback((which, time) => {
+    const snapped = snapTimeToRows(chartRenderData, time);
+    if (!Number.isFinite(snapped)) return;
+    if (which === 'b') {
+      setCursorB(snapped);
+      setActiveCursor('b');
+    } else {
+      setCursorA(snapped);
+      setActiveCursor('a');
+    }
+  }, [chartRenderData]);
+
+  const clearCursors = useCallback(() => {
+    setCursorA(null);
+    setCursorB(null);
+  }, []);
+
   const handleZoomMouseDown = (event) => {
-    if (event?.nativeEvent?.shiftKey || event?.nativeEvent?.button === 1) {
-      const domain = zoomedDomain || fullDomain;
+    const native = event?.nativeEvent;
+    const time = parseChartTime(event?.activeLabel);
+    const domain = zoomedDomain || fullDomain;
+
+    if (Number.isFinite(time) && domain) {
+      if (hitTestCursor(time, cursorA, domain, plotWidth)) {
+        pointerRef.current = { draggingCursor: 'a' };
+        return;
+      }
+      if (hitTestCursor(time, cursorB, domain, plotWidth)) {
+        pointerRef.current = { draggingCursor: 'b' };
+        return;
+      }
+    }
+
+    if (native?.shiftKey || native?.button === 1) {
       if (!domain) return;
       panRef.current = { x: event.chartX || 0, domain };
       setIsPanning(true);
       return;
     }
+
+    pointerRef.current = {
+      start: time,
+      altKey: Boolean(native?.altKey || native?.ctrlKey || native?.metaKey),
+      button: native?.button ?? 0
+    };
     if (event && event.activeLabel !== undefined) {
       setRefAreaLeft(event.activeLabel);
       setRefAreaRight(null);
@@ -412,11 +483,14 @@ export default function BpltChartWorkspace({
   };
 
   const handleZoomMouseMove = useCallback((event) => {
-    if (event?.activeLabel !== undefined) {
-      const nextTime = typeof event.activeLabel === 'number'
-        ? event.activeLabel
-        : parseFloat(event.activeLabel);
-      if (Number.isFinite(nextTime)) setCursorTime(nextTime);
+    const nextTime = parseChartTime(event?.activeLabel);
+    if (Number.isFinite(nextTime)) setCursorTime(nextTime);
+
+    if (pointerRef.current?.draggingCursor && Number.isFinite(nextTime)) {
+      const snapped = snapTimeToRows(chartRenderData, nextTime);
+      if (pointerRef.current.draggingCursor === 'b') setCursorB(snapped);
+      else setCursorA(snapped);
+      return;
     }
 
     if (panRef.current && fullDomain) {
@@ -441,31 +515,86 @@ export default function BpltChartWorkspace({
         zoomRafId.current = null;
       });
     }
-  }, [fullDomain, plotWidth, refAreaLeft]);
+  }, [fullDomain, plotWidth, refAreaLeft, chartRenderData]);
 
-  const handleZoomMouseUp = () => {
+  const finishPointer = useCallback((plant) => {
+    if (pointerRef.current?.draggingCursor) {
+      pointerRef.current = null;
+      return;
+    }
     if (panRef.current) {
       panRef.current = null;
       setIsPanning(false);
+      pointerRef.current = null;
       return;
     }
-    if (refAreaLeft !== null && refAreaRight !== null) {
-      const left = Math.min(refAreaLeft, refAreaRight);
-      const right = Math.max(refAreaLeft, refAreaRight);
-      if (right - left > 0.01 && fullDomain) {
-        setZoomedDomain(clampDomain([left, right], fullDomain));
-      }
+
+    const start = parseChartTime(refAreaLeft);
+    const end = parseChartTime(refAreaRight ?? refAreaLeft);
+    if (plant && isClickNotDrag(start, end)) {
+      const which = (pointerRef.current?.altKey || pointerRef.current?.button === 2) ? 'b' : 'a';
+      plantCursor(which, start);
+    } else if (Number.isFinite(start) && Number.isFinite(end) && Math.abs(end - start) > 0.01 && fullDomain) {
+      setZoomedDomain(clampDomain([Math.min(start, end), Math.max(start, end)], fullDomain));
     }
+
     if (zoomRafId.current) {
       cancelAnimationFrame(zoomRafId.current);
       zoomRafId.current = null;
     }
     pendingZoomX.current = null;
+    pointerRef.current = null;
     setRefAreaLeft(null);
     setRefAreaRight(null);
-  };
+  }, [refAreaLeft, refAreaRight, fullDomain, plantCursor]);
+
+  const handleZoomMouseUp = () => finishPointer(true);
+  const handlePointerLeave = () => finishPointer(false);
 
   const handleResetZoom = () => setZoomedDomain(null);
+
+  useEffect(() => {
+    const node = plotRef.current;
+    if (!node) return undefined;
+    const onContextMenu = (event) => event.preventDefault();
+    node.addEventListener('contextmenu', onContextMenu);
+    return () => node.removeEventListener('contextmenu', onContextMenu);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
+      if (event.key === 'Escape') {
+        clearCursors();
+        return;
+      }
+      if (event.key === '1' && Number.isFinite(cursorTimeRef.current)) {
+        plantCursor('a', cursorTimeRef.current);
+      }
+      if (event.key === '2' && Number.isFinite(cursorTimeRef.current)) {
+        plantCursor('b', cursorTimeRef.current);
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const which = activeCursorRef.current;
+        const current = which === 'b' ? cursorBRef.current : cursorARef.current;
+        if (!Number.isFinite(current)) return;
+        const next = nudgeTime(chartRenderData, current, event.key === 'ArrowLeft' ? -1 : 1);
+        if (which === 'b') setCursorB(next);
+        else setCursorA(next);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [chartRenderData, plantCursor, clearCursors]);
+
+  useEffect(() => {
+    if (!selectedAlert) return;
+    const start = Number(selectedAlert.startTime) + selectedAlertTimeOffset;
+    const end = Number(selectedAlert.endTime) + selectedAlertTimeOffset;
+    if (Number.isFinite(start)) setCursorA(start);
+    if (Number.isFinite(end)) setCursorB(end);
+  }, [selectedAlert, selectedAlertTimeOffset]);
 
   const toggleChannel = (channel) => {
     if (!onSelectedChannelsChange) return;
@@ -586,7 +715,7 @@ export default function BpltChartWorkspace({
                           className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-green-500 focus:ring-green-500 focus:ring-offset-slate-900"
                         />
                         <span className={selectedChannels.includes(channel) ? 'text-white' : ''}>
-                          {BPLOT_PARAMETERS[channel]?.name || channel}
+                          {channelDisplayName(channel)}
                         </span>
                       </label>
                     ))}
@@ -664,7 +793,7 @@ export default function BpltChartWorkspace({
             </div>
           </div>
           <div className="mt-2 text-[10px] text-slate-500">
-            Drag to zoom · Shift-drag to pan · Scroll to zoom · Double-click to reset
+            Drag to zoom · Click plant C1 · Alt-click plant C2 · Keys 1 / 2 / arrows / Esc · Shift-drag pan · Scroll zoom
           </div>
           {overlayEnabled && (
             <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
@@ -738,8 +867,8 @@ export default function BpltChartWorkspace({
                   const selectedAxis = axisAssignments[channel] || automaticAxis;
                   return (
                     <label key={`axis-${channel}`} className="flex items-center justify-between gap-2 rounded border border-slate-700/60 bg-slate-800/30 px-2.5 py-1.5">
-                      <span className="text-[11px] text-slate-200 truncate" title={BPLOT_PARAMETERS[channel]?.name || channel}>
-                        {BPLOT_PARAMETERS[channel]?.name || channel}
+                      <span className="text-[11px] text-slate-200 truncate" title={channelDisplayName(channel)}>
+                        {channelDisplayName(channel)}
                       </span>
                       <select
                         value={selectedAxis}
@@ -800,186 +929,77 @@ export default function BpltChartWorkspace({
           )}
         </div>
 
-        <div
-          ref={plotRef}
-          className={`flex-1 h-[300px] lg:h-auto ${isPanning ? 'cursor-grabbing' : 'cursor-crosshair'}`}
-          onDoubleClick={handleResetZoom}
-        >
-          {selectedChannels.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-slate-500">
-              Select a channel or a layout preset to plot.
+        <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div
+              ref={plotRef}
+              className={`flex-1 min-h-[300px] flex flex-col gap-1 ${isPanning ? 'cursor-grabbing' : 'cursor-crosshair'}`}
+              onDoubleClick={handleResetZoom}
+              onMouseLeave={handlePointerLeave}
+            >
+              {selectedChannels.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-slate-500">
+                  Select a channel or a layout preset to plot.
+                </div>
+              ) : (
+                chartPanes.map((pane, paneIndex) => {
+                  const axisId = pane.id === 'digital'
+                    ? (chartAxes.channelToAxis[pane.channels[0]] || 'yDefault')
+                    : pane.id;
+                  const axis = chartAxes.axes.find((item) => item.id === axisId) || {
+                    id: axisId,
+                    domain: ['auto', 'auto'],
+                    decimals: getDecimalPlaces(pane.channels[0])
+                  };
+                  const paneSeries = chartSeries.filter((item) => pane.channels.includes(item.channel));
+                  return (
+                    <ChartPane
+                      key={pane.id}
+                      pane={{ ...pane, label: pane.label }}
+                      data={chartRenderData}
+                      series={paneSeries}
+                      axis={{ ...axis, id: axisId }}
+                      xDomain={xDomain}
+                      zoomedDomain={zoomedDomain}
+                      showXAxis={paneIndex === chartPanes.length - 1}
+                      cursorTime={cursorTime}
+                      cursorA={cursorA}
+                      cursorB={cursorB}
+                      refAreaLeft={refAreaLeft}
+                      refAreaRight={refAreaRight}
+                      thresholdLines={thresholdLines}
+                      fileBoundaries={fileBoundaries}
+                      shouldShowFileBoundaries={shouldShowFileBoundaries}
+                      selectedAlert={selectedAlert}
+                      selectedAlertTimeOffset={selectedAlertTimeOffset}
+                      highlightedChannel={highlightedChannel}
+                      seriesValueLookup={seriesValueLookup}
+                      onMouseDown={handleZoomMouseDown}
+                      onMouseMove={handleZoomMouseMove}
+                      onMouseUp={handleZoomMouseUp}
+                    />
+                  );
+                })
+              )}
             </div>
-          ) : (
-            <ChartErrorBoundary fallbackHeight="100%">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <LineChart
-                  data={chartRenderData}
-                  onMouseDown={handleZoomMouseDown}
-                  onMouseMove={handleZoomMouseMove}
-                  onMouseUp={handleZoomMouseUp}
-                  onMouseLeave={() => {
-                    setCursorTime(null);
-                    handleZoomMouseUp();
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis
-                    dataKey="Time"
-                    stroke="#64748b"
-                    fontSize={12}
-                    type="number"
-                    domain={xDomain}
-                    allowDataOverflow={!!zoomedDomain}
-                    tickFormatter={formatChartTick}
-                  />
-                  {chartAxes.axes.map((axis, index) => (
-                    <YAxis
-                      key={axis.id}
-                      yAxisId={axis.id}
-                      orientation={axis.orientation}
-                      stroke={index === 0 ? '#64748b' : '#94a3b8'}
-                      fontSize={12}
-                      domain={axis.domain}
-                      tickFormatter={(value) => safeToFixed(value, axis.decimals, '')}
-                      label={{
-                        value: axis.label,
-                        angle: axis.orientation === 'left' ? -90 : 90,
-                        position: axis.orientation === 'left' ? 'insideLeft' : 'insideRight',
-                        style: { textAnchor: 'middle', fill: '#64748b', fontSize: 10 }
-                      }}
-                    />
-                  ))}
-                  <Tooltip
-                    cursor={false}
-                    content={(props) => (
-                      <ChartValueTooltip
-                        {...props}
-                        chartSeries={chartSeries}
-                        seriesValueLookup={seriesValueLookup}
-                        shouldShowFileBoundaries={shouldShowFileBoundaries}
-                        cursorTime={cursorTime}
-                      />
-                    )}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={60}
-                    wrapperStyle={{ fontSize: 11, lineHeight: 1.2, paddingTop: '10px' }}
-                  />
-                  {chartSeries.map((series) => (
-                    <Line
-                      key={series.key}
-                      yAxisId={chartAxes.channelToAxis[series.channel]}
-                      type={isDiscreteChannel(series.channel) ? 'stepAfter' : 'linear'}
-                      dataKey={series.key}
-                      stroke={series.color}
-                      dot={false}
-                      strokeDasharray={series.strokeDasharray}
-                      strokeWidth={highlightedChannel === series.channel ? 4 : 2}
-                      name={series.name}
-                      isAnimationActive={false}
-                      connectNulls={false}
-                      style={highlightedChannel === series.channel ? { filter: 'drop-shadow(0 0 4px currentColor)' } : undefined}
-                    />
-                  ))}
-                  {Number.isFinite(cursorTime) && chartAxes.axes[0] && (
-                    <ReferenceLine
-                      x={cursorTime}
-                      yAxisId={chartAxes.axes[0].id}
-                      stroke="#e2e8f0"
-                      strokeOpacity={0.45}
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                  {thresholdLines.map((line) => (
-                    <ReferenceLine
-                      key={line.id}
-                      y={line.y}
-                      yAxisId={line.yAxisId || chartAxes.axes[0]?.id}
-                      stroke={line.level === 'critical' ? '#ef4444' : '#f59e0b'}
-                      strokeDasharray={line.level === 'critical' ? '4 2' : '6 4'}
-                      strokeOpacity={0.7}
-                      ifOverflow="hidden"
-                      label={{
-                        value: `${BPLOT_PARAMETERS[line.channel]?.name || line.channel} ${line.label}`,
-                        fill: line.level === 'critical' ? '#fca5a5' : '#fcd34d',
-                        fontSize: 10,
-                        position: 'insideTopRight'
-                      }}
-                    />
-                  ))}
-                  {shouldShowFileBoundaries && fileBoundaries.map((boundary, idx) => (
-                    idx > 0 && (
-                      <ReferenceLine
-                        key={`file-boundary-${boundary.fileId}`}
-                        x={boundary.startTime}
-                        yAxisId={chartAxes.axes[0]?.id}
-                        stroke="#22c55e"
-                        strokeDasharray="5 5"
-                        strokeWidth={2}
-                        label={{
-                          value: boundary.fileName.replace(/\.[^.]+$/, ''),
-                          position: 'top',
-                          fill: '#22c55e',
-                          fontSize: 10
-                        }}
-                      />
-                    )
-                  ))}
-                  {selectedAlert && selectedAlert.startTime !== undefined && selectedAlert.endTime !== undefined && (
-                    <ReferenceArea
-                      x1={selectedAlert.startTime - (selectedAlert.minDuration || 0) + selectedAlertTimeOffset}
-                      x2={selectedAlert.endTime + selectedAlertTimeOffset}
-                      yAxisId={chartAxes.channelToAxis[selectedAlert.channel] || chartAxes.axes[0]?.id}
-                      stroke={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
-                      fill={selectedAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'}
-                      fillOpacity={0.08}
-                      ifOverflow="extendDomain"
-                      label={{
-                        value: `${getSeverityLabel(selectedAlert.severity, selectedAlert.category)}: ${getAlertDisplayName(selectedAlert)}` +
-                          ((selectedAlert.minDuration || 0) > 0 ? ` (delay ${formatDuration(selectedAlert.minDuration)})` : ''),
-                        position: 'insideTopLeft',
-                        fill: '#ffffff',
-                        fontSize: 11
-                      }}
-                    />
-                  )}
-                  {refAreaLeft !== null && refAreaRight !== null && (
-                    <ReferenceArea
-                      x1={refAreaLeft}
-                      x2={refAreaRight}
-                      yAxisId={chartAxes.axes[0]?.id}
-                      strokeOpacity={0.3}
-                      fill="#22c55e"
-                      fillOpacity={0.15}
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartErrorBoundary>
+            <ChartTimeNavigator
+              rows={overlayEnabled ? decoratedPrimary : decoratedNormalized}
+              channels={selectedChannels}
+              fullDomain={fullDomain}
+              windowDomain={windowDomain}
+              onWindowChange={(next) => setZoomedDomain(clampDomain(next, fullDomain))}
+            />
+          </div>
+          {selectedChannels.length > 0 && (
+            <ChartCursorTable
+              chartSeries={chartSeries}
+              seriesValueLookup={seriesValueLookup}
+              cursorA={cursorA}
+              cursorB={cursorB}
+              onClear={clearCursors}
+            />
           )}
         </div>
-        {Number.isFinite(cursorTime) && (
-          <div className="mt-2 text-[11px] font-mono text-slate-400">
-            Cursor {formatChartTick(cursorTime)}
-            {chartSeries.slice(0, 6).map((series) => {
-              const samples = seriesValueLookup[series.key] || [];
-              const nearest = samples.length
-                ? samples.reduce((best, sample) => (
-                  !best || Math.abs(sample.time - cursorTime) < Math.abs(best.time - cursorTime)
-                    ? sample
-                    : best
-                ), null)
-                : null;
-              if (!nearest) return null;
-              return (
-                <span key={series.key} className="ml-3" style={{ color: series.color }}>
-                  {series.name} {isDiscreteChannel(series.channel) ? nearest.value : nearest.value.toFixed(getDecimalPlaces(series.channel))}
-                </span>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -842,6 +842,25 @@ export const BPLOT_PARAMETERS = {
     unit: 'V',
     description: 'Auxiliary digital input 3 voltage',
     category: 'auxiliary'
+  },
+
+  TIP_MAP_delta: {
+    name: 'TIP − MAP',
+    unit: 'psia',
+    description: 'Throttle inlet pressure minus manifold pressure',
+    category: 'pressure'
+  },
+  LoadLim_TPS_delta: {
+    name: 'Load Limit − TPS',
+    unit: '%',
+    description: 'Load-limit maximum TPS minus actual TPS',
+    category: 'system'
+  },
+  MFG_US_BP_delta: {
+    name: 'MFG US − Baro',
+    unit: 'psi',
+    description: 'MFG upstream pressure minus barometric pressure',
+    category: 'pressure'
   }
 };
 
@@ -858,7 +877,8 @@ export const CATEGORY_ORDER = [
   'pressure',
   'ignition_electrical',
   'system',
-  'auxiliary'
+  'auxiliary',
+  'derived'
 ];
 
 export const CATEGORY_LABELS = {
@@ -871,7 +891,8 @@ export const CATEGORY_LABELS = {
   pressure: 'Pressure',
   temperature: 'Temperature',
   system: 'System',
-  auxiliary: 'Auxiliary'
+  auxiliary: 'Auxiliary',
+  derived: 'Derived'
 };
 
 /**
@@ -1029,6 +1050,9 @@ export const CHANNEL_UNIT_TYPES = {
   CL_BM1: 'percentage',
   MFG_TPS_act_pct: 'percentage',
   MFG_TPS_cmd_pct: 'percentage',
+  TIP_MAP_delta: 'pressure',
+  LoadLim_TPS_delta: 'percentage',
+  MFG_US_BP_delta: 'pressure',
 
   // Computed MFG fuel pressure - pressure formatting (2 decimal)
   MFG_FuelPressure_inWC: 'pressure',
@@ -1134,5 +1158,6 @@ export const CATEGORY_COLORS = {
   temperature: '#ef4444',
   system: '#6b7280',
   auxiliary: '#84cc16',
+  derived: '#38bdf8',
   other: '#9ca3af'
 };
