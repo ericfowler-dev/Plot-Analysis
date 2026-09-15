@@ -31,18 +31,7 @@ import {
 } from '../../lib/chartResample';
 import ChartErrorBoundary from './ChartErrorBoundary';
 import ChartValueTooltip from './ChartValueTooltip';
-
-const DEFAULT_CHART_PALETTE = [
-  '#38bdf8', '#22c55e', '#a78bfa', '#14b8a6', '#60a5fa',
-  '#2dd4bf', '#818cf8', '#84cc16', '#06b6d4', '#34d399',
-  '#7dd3fc', '#4ade80', '#67e8f9', '#86efac', '#c4b5fd'
-];
-const DEFAULT_SECONDARY_CHART_PALETTE = [
-  '#f97316', '#ef4444', '#f43f5e', '#eab308', '#ec4899',
-  '#f59e0b', '#fb7185', '#f472b6', '#fbbf24', '#fb923c',
-  '#fda4af', '#facc15', '#e879f9', '#fca5a1', '#d946ef'
-];
-
+import { assignChartColors, getDefaultChannelColor } from '../../lib/chartColors';
 const AXIS_LABELS = {
   yRPM: 'RPM',
   yVolt: 'Voltage (V)',
@@ -56,7 +45,7 @@ const AXIS_LABELS = {
 };
 
 const isValidHexColor = (value) => /^#[0-9a-fA-F]{6}$/.test(value || '');
-const normalizeColor = (value, fallback = '#38bdf8') => (
+const normalizeColor = (value, fallback = '#3b82f6') => (
   isValidHexColor(value) ? value.toLowerCase() : fallback
 );
 const getSeriesColorKey = (channel, role = null) => (role ? `${channel}__${role}` : channel);
@@ -221,23 +210,32 @@ export default function BpltChartWorkspace({
     };
   }, [selectedChannels, axisAssignments, axisBounds]);
 
-  const getDefaultSeriesColor = (channelIndex, role = null) => {
+  const defaultPrimaryColors = useMemo(
+    () => assignChartColors(selectedChannels),
+    [selectedChannels]
+  );
+  const defaultSecondaryColors = useMemo(
+    () => assignChartColors(selectedChannels, { role: 'secondary' }),
+    [selectedChannels]
+  );
+
+  const getDefaultSeriesColor = (channel, role = null) => {
     if (role === 'secondary') {
-      return DEFAULT_SECONDARY_CHART_PALETTE[channelIndex % DEFAULT_SECONDARY_CHART_PALETTE.length];
+      return defaultSecondaryColors[channel] || getDefaultChannelColor(channel, 'secondary', selectedChannels);
     }
-    return DEFAULT_CHART_PALETTE[channelIndex % DEFAULT_CHART_PALETTE.length];
+    return defaultPrimaryColors[channel] || getDefaultChannelColor(channel, null, selectedChannels);
   };
 
-  const resolveSeriesColor = (channel, channelIndex, role = null) => {
+  const resolveSeriesColor = (channel, role = null) => {
     const effectiveRole = overlayEnabled ? role : null;
     const colorKey = getSeriesColorKey(channel, effectiveRole);
-    const fallback = getDefaultSeriesColor(channelIndex, effectiveRole);
+    const fallback = getDefaultSeriesColor(channel, effectiveRole);
     return normalizeColor(channelColorOverrides[colorKey] || fallback, fallback);
   };
 
   const chartSeries = useMemo(() => {
     if (overlayEnabled) {
-      return selectedChannels.flatMap((channel, channelIndex) => {
+      return selectedChannels.flatMap((channel) => {
         const channelLabel = BPLOT_PARAMETERS[channel]?.name || channel;
         return [
           {
@@ -245,7 +243,7 @@ export default function BpltChartWorkspace({
             channel,
             role: 'primary',
             name: `${channelLabel} (Primary)`,
-            color: resolveSeriesColor(channel, channelIndex, 'primary'),
+            color: resolveSeriesColor(channel, 'primary'),
             strokeDasharray: undefined
           },
           {
@@ -253,49 +251,48 @@ export default function BpltChartWorkspace({
             channel,
             role: 'secondary',
             name: `${channelLabel} (Secondary)`,
-            color: resolveSeriesColor(channel, channelIndex, 'secondary'),
+            color: resolveSeriesColor(channel, 'secondary'),
             strokeDasharray: '7 3'
           }
         ];
       });
     }
 
-    return selectedChannels.map((channel, channelIndex) => ({
+    return selectedChannels.map((channel) => ({
       key: channel,
       channel,
       role: null,
       name: BPLOT_PARAMETERS[channel]?.name || channel,
-      color: resolveSeriesColor(channel, channelIndex),
+      color: resolveSeriesColor(channel),
       strokeDasharray: undefined
     }));
-  }, [selectedChannels, overlayEnabled, channelColorOverrides]);
+  }, [selectedChannels, overlayEnabled, channelColorOverrides, defaultPrimaryColors, defaultSecondaryColors]);
 
   const colorControlEntries = useMemo(() => {
     if (overlayEnabled) {
-      return selectedChannels.flatMap((channel, channelIndex) => {
+      return selectedChannels.flatMap((channel) => {
         const label = BPLOT_PARAMETERS[channel]?.name || channel;
         return [
           {
             key: getSeriesColorKey(channel, 'primary'),
             label: `${label} (Primary)`,
-            fallback: getDefaultSeriesColor(channelIndex, 'primary')
+            fallback: getDefaultSeriesColor(channel, 'primary')
           },
           {
             key: getSeriesColorKey(channel, 'secondary'),
             label: `${label} (Secondary)`,
-            fallback: getDefaultSeriesColor(channelIndex, 'secondary')
+            fallback: getDefaultSeriesColor(channel, 'secondary')
           }
         ];
       });
     }
 
-    return selectedChannels.map((channel, channelIndex) => ({
+    return selectedChannels.map((channel) => ({
       key: getSeriesColorKey(channel),
       label: BPLOT_PARAMETERS[channel]?.name || channel,
-      fallback: getDefaultSeriesColor(channelIndex)
+      fallback: getDefaultSeriesColor(channel)
     }));
-  }, [selectedChannels, overlayEnabled]);
-
+  }, [selectedChannels, overlayEnabled, defaultPrimaryColors, defaultSecondaryColors]);
   const seriesValueLookup = useMemo(() => {
     const lookup = {};
     chartSeries.forEach((series) => {
