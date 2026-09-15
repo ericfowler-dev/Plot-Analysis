@@ -1,3 +1,4 @@
+import React, { useRef } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, ReferenceLine, ReferenceArea
@@ -53,6 +54,7 @@ export default function ChartPane({
   const paneChannels = pane?.channels || series.map((item) => item.channel);
   const paneThresholds = thresholdLines.filter((line) => paneChannels.includes(line.channel));
   const paneAlert = selectedAlert && paneChannels.includes(selectedAlert.channel) ? selectedAlert : selectedAlert;
+  const chartWrapRef = useRef(null);
 
   return (
     <div className="min-h-0 h-full flex flex-col" style={{ flex: pane?.flex || 1 }}>
@@ -72,7 +74,7 @@ export default function ChartPane({
           ))}
         </div>
       )}
-      <div className="flex-1 min-h-[240px]">
+      <div ref={chartWrapRef} className="flex-1 min-h-[240px]">
         <ChartErrorBoundary fallbackHeight="100%">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart
@@ -113,6 +115,10 @@ export default function ChartPane({
               ))}
               <Tooltip
                 cursor={false}
+                isAnimationActive={false}
+                offset={36}
+                allowEscapeViewBox={{ x: true, y: true }}
+                wrapperStyle={{ zIndex: 80, pointerEvents: 'none', visibility: 'hidden' }}
                 content={(props) => (
                   <ChartValueTooltip
                     {...props}
@@ -120,6 +126,7 @@ export default function ChartPane({
                     seriesValueLookup={seriesValueLookup}
                     shouldShowFileBoundaries={shouldShowFileBoundaries}
                     cursorTime={cursorTime}
+                    containerRef={chartWrapRef}
                   />
                 )}
               />
