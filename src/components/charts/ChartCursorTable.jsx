@@ -56,9 +56,9 @@ export default function ChartCursorTable({
   const spanEnd = hasA && hasB ? Math.max(cursorA, cursorB) : null;
 
   return (
-    <div className="relative mt-2">
+    <div className="mt-2">
       {expanded && (
-        <div className="absolute left-0 right-0 bottom-full mb-2 z-20 rounded-lg border border-slate-600 bg-slate-950/95 shadow-2xl shadow-black/50 overflow-hidden">
+        <div className="mb-2 rounded-lg border border-slate-600 bg-slate-950/95 overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
@@ -76,7 +76,7 @@ export default function ChartCursorTable({
               Close
             </button>
           </div>
-          <div className="max-h-[min(360px,46vh)] overflow-auto text-[11px] font-mono">
+          <div className="max-h-52 overflow-auto text-[11px] font-mono">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 bg-slate-950">
                 <tr className="text-[10px] uppercase tracking-wide text-slate-500">

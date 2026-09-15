@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { decorateRowsWithDerived, availableDerivedChannels } from '../src/lib/chartDerived.js';
+import { decorateRowsWithDerived, availableDerivedChannels, getDerivedChannel } from '../src/lib/chartDerived.js';
 import { groupChannelsIntoPanes } from '../src/lib/chartPanes.js';
 import { isLayoutActive, CHART_LAYOUTS } from '../src/lib/chartResample.js';
 import {
@@ -17,6 +17,7 @@ test('TIP-MAP and load-limit derived traces are the source minus the source', ()
   assert.equal(rows[0].TIP_MAP_delta, 6);
   assert.equal(rows[0].LoadLim_TPS_delta, 12);
   assert.ok(Math.abs(rows[0].MFG_US_BP_delta - 1.3) < 1e-9);
+  assert.equal(getDerivedChannel('TIP_MAP_delta').name, 'TIP-MAP DELTA');
 });
 
 test('derived channels only appear when both sources exist', () => {

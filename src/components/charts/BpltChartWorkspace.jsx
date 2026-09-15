@@ -17,6 +17,7 @@ import {
   resampleForViewport,
   buildAlignedOverlayGrid,
   buildTimeSamples,
+  shiftRows,
   clampDomain,
   zoomDomainAround,
   panDomain,
@@ -136,10 +137,6 @@ export default function BpltChartWorkspace({
     () => decorateRowsWithDerived(secondaryNormalized, derivedSourceSet),
     [secondaryNormalized, derivedSourceSet]
   );
-
-  const sourceCount = overlayEnabled
-    ? (decoratedPrimary.length + decoratedSecondary.length)
-    : decoratedNormalized.length;
 
   const fullDomain = useMemo(() => {
     if (overlayEnabled) {
@@ -317,11 +314,27 @@ export default function BpltChartWorkspace({
   }, [selectedChannels, overlayEnabled, defaultPrimaryColors, defaultSecondaryColors]);
   const seriesValueLookup = useMemo(() => {
     const lookup = {};
+    if (overlayEnabled) {
+      const secondaryShifted = shiftRows(decoratedSecondary, effectiveAlignmentOffset);
+      selectedChannels.forEach((channel) => {
+        lookup[`${channel}__primary`] = buildTimeSamples(decoratedPrimary, channel);
+        lookup[`${channel}__secondary`] = buildTimeSamples(secondaryShifted, channel);
+      });
+      return lookup;
+    }
     chartSeries.forEach((series) => {
       lookup[series.key] = buildTimeSamples(chartRenderData, series.key);
     });
     return lookup;
-  }, [chartSeries, chartRenderData]);
+  }, [
+    overlayEnabled,
+    decoratedPrimary,
+    decoratedSecondary,
+    effectiveAlignmentOffset,
+    selectedChannels,
+    chartSeries,
+    chartRenderData
+  ]);
 
   const thresholdLines = useMemo(() => {
     const lines = [];
@@ -554,7 +567,10 @@ export default function BpltChartWorkspace({
   }, [refAreaLeft, refAreaRight, fullDomain, plantCursor]);
 
   const handleZoomMouseUp = () => finishPointer(true);
-  const handlePointerLeave = () => finishPointer(false);
+  const handlePointerLeave = () => {
+    setCursorTime(null);
+    finishPointer(false);
+  };
 
   const handleResetZoom = () => setZoomedDomain(null);
 
@@ -737,20 +753,7 @@ export default function BpltChartWorkspace({
 
       <div className="flex-1 min-h-[300px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-6 flex flex-col">
         <div className="mb-3 rounded-lg border border-slate-700/70 bg-slate-900/60 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-xs text-slate-400">
-              <span className="uppercase tracking-wider">Chart Appearance</span>
-              <span
-                className="ml-3 font-mono text-slate-500"
-                title="Zoomed-out views draw a min/max envelope so spikes survive. Zoom in far enough and every raw sample is drawn."
-              >
-                {chartRenderData.length >= sourceCount
-                  ? `All ${sourceCount.toLocaleString()} samples`
-                  : `Envelope ${chartRenderData.length.toLocaleString()} of ${sourceCount.toLocaleString()} samples`}
-                {zoomedDomain ? ` · window ${formatChartTick(zoomedDomain[1] - zoomedDomain[0])}` : ''}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 onClick={() => setShowCursorInfo((prev) => !prev)}
                 className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide border transition-colors ${
@@ -814,7 +817,6 @@ export default function BpltChartWorkspace({
                   Reset Axes
                 </button>
               )}
-            </div>
           </div>
           <div className="mt-2 text-[10px] text-slate-500">
             Drag to zoom · Click C1, then click C2 · Or press C1/C2 then click · Shift-drag pan · Scroll zoom

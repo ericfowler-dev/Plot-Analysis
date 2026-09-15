@@ -845,7 +845,7 @@ export const BPLOT_PARAMETERS = {
   },
 
   TIP_MAP_delta: {
-    name: 'TIP − MAP',
+    name: 'TIP-MAP DELTA',
     unit: 'psia',
     description: 'Throttle inlet pressure minus manifold pressure',
     category: 'pressure'

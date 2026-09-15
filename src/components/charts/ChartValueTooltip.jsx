@@ -2,16 +2,8 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BPLOT_PARAMETERS, VALUE_MAPPINGS, getDisplayValue, getDecimalPlaces } from '../../lib/bplotThresholds';
 import { formatDuration } from '../../lib/bplotProcessData';
-import { findNearestSample, formatChartTick } from '../../lib/chartResample';
-
-const parseTooltipNumber = (value) => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = parseFloat(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-};
+import { formatChartTick } from '../../lib/chartResample';
+import { readSeriesTooltipValue } from '../../lib/chartTooltip';
 
 const safeToFixed = (value, decimals, fallback = '—') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
@@ -61,10 +53,8 @@ export default function ChartValueTooltip({
   const boxRef = useRef(null);
   const [boxSize, setBoxSize] = useState({ width: 320, height: 220 });
 
-  const visible = active || Number.isFinite(cursorTime);
-
   useLayoutEffect(() => {
-    if (!visible || !boxRef.current) return undefined;
+    if (!active || !boxRef.current) return undefined;
     const node = boxRef.current;
     const update = () => {
       const next = { width: node.offsetWidth, height: node.offsetHeight };
@@ -76,26 +66,17 @@ export default function ChartValueTooltip({
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
     observer?.observe(node);
     return () => observer?.disconnect();
-  }, [visible, chartSeries.length, label, cursorTime]);
+  }, [active, chartSeries.length, label]);
 
-  if (!visible) return null;
+  if (!active) return null;
 
-  const numericTime = Number.isFinite(cursorTime)
-    ? cursorTime
-    : (typeof label === 'number' ? label : parseFloat(label));
-  const hasNumericTime = Number.isFinite(numericTime);
-  const payloadByKey = new Map(payload.map((entry) => [String(entry?.dataKey || ''), entry]));
+  const numericTime = typeof label === 'number' ? label : parseFloat(label);
+  const hoverTime = Number.isFinite(numericTime) ? numericTime : cursorTime;
+  const hasNumericTime = Number.isFinite(hoverTime);
   const sourceFile = payload.find((entry) => entry?.payload?._sourceFile)?.payload?._sourceFile;
 
   const rows = chartSeries.map((series) => {
-    const fromPayload = payloadByKey.get(series.key)?.value;
-    let numericValue = parseTooltipNumber(fromPayload);
-
-    if (numericValue === null && hasNumericTime) {
-      const nearestSample = findNearestSample(seriesValueLookup[series.key], numericTime);
-      if (nearestSample) numericValue = nearestSample.value;
-    }
-
+    const numericValue = readSeriesTooltipValue(series, payload, seriesValueLookup, hoverTime);
     const channelName = series.channel || series.key;
     const role = series.role || null;
     const param = BPLOT_PARAMETERS[channelName];
@@ -133,7 +114,7 @@ export default function ChartValueTooltip({
       style={{ pointerEvents: 'none' }}
     >
       <div className="mb-1.5 text-sm font-semibold text-white">
-        Time: {hasNumericTime ? `${formatChartTick(numericTime)} (${formatDuration(numericTime)})` : label}
+        Time: {hasNumericTime ? `${formatChartTick(hoverTime)} (${formatDuration(hoverTime)})` : label}
         {sourceFile && shouldShowFileBoundaries ? ` | File: ${sourceFile}` : ''}
       </div>
       <div className="space-y-px">

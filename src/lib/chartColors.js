@@ -182,7 +182,7 @@ export const SHORT_CHANNEL_NAMES = {
   MFG_USPress: 'MFG US',
   MFG_DSPress: 'MFG DS',
   MFG_DPPress: 'MFG ΔP',
-  TIP_MAP_delta: 'TIP−MAP',
+  TIP_MAP_delta: 'TIP-MAP DELTA',
   LoadLim_TPS_delta: 'Lim−TPS',
   MFG_US_BP_delta: 'US−Baro',
   AUX_DIG1_volt: 'AUX DIG1',
