@@ -8,12 +8,12 @@ export const CHART_LAYOUTS = [
   {
     id: 'mapTip',
     label: 'MAP / TIP',
-    channels: ['rpm', 'MAP', 'TIP', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']
+    channels: ['rpm', 'MAP', 'TIP', 'TIP_MAP_delta', 'LoadLim_max_TPS', 'TPS_pct', 'MILout_mirror', 'IAT', 'spk_adv']
   },
   {
     id: 'tpsLoad',
     label: 'TPS / Load',
-    channels: ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'A_BM1', 'CL_BM1', 'MILout_mirror']
+    channels: ['rpm', 'MAP', 'TIP', 'MAT', 'LoadLim_max_TPS', 'TPS_pct', 'LoadLim_TPS_delta', 'A_BM1', 'CL_BM1', 'MILout_mirror']
   },
   {
     id: 'fuel',
@@ -33,7 +33,7 @@ export const CHART_LAYOUTS = [
   {
     id: 'mfg',
     label: 'MFG',
-    channels: ['rpm', 'MAP', 'Phi_UEGO', 'MILout_mirror', 'BP', 'MFG_TPS_act_pct', 'MFG_USPress', 'MFG_DPPress', 'MFG_DSPress']
+    channels: ['rpm', 'MAP', 'Phi_UEGO', 'MILout_mirror', 'BP', 'MFG_TPS_act_pct', 'MFG_USPress', 'MFG_DPPress', 'MFG_DSPress', 'MFG_US_BP_delta']
   }
 ];
 

@@ -65,6 +65,9 @@ export const CHANNEL_COLOR_MAP = {
   MFG_DSPress: '#0ea5e9',
   MFG_DPPress: '#7c3aed',
   MFG_DPPress_final: '#6d28d9',
+  TIP_MAP_delta: '#818cf8',
+  LoadLim_TPS_delta: '#f472b6',
+  MFG_US_BP_delta: '#38bdf8',
 
   AUX_DIG1_volt: '#22d3ee',
   AUX_DIG2_volt: '#67e8f9',
@@ -159,7 +162,10 @@ export function getColorFamily(channel) {
   if (/^EGO\d/i.test(channel)) return 'ego';
   if (/^Phi_/i.test(channel)) return 'afr';
   if (/^(A_BM|CL_BM)/i.test(channel)) return 'trim';
-  if (/TPS/i.test(channel)) return 'throttle';
+  if (/_delta$/i.test(channel)) {
+    if (/TPS|LoadLim/i.test(channel)) return 'throttle';
+    return 'pressure';
+  }
   if (/^MFG_/i.test(channel)) return 'mfg';
   if (/spk|spark|knk/i.test(channel)) return 'spark';
   if (/MIL|fuel_ctl|run_mode|shutoff|sync_state/i.test(channel)) return 'status';
