@@ -5,6 +5,8 @@ import {
   buildAlignedOverlayGrid,
   interpolateSample,
   buildTimeSamples,
+  getNumeric,
+  summarizeOverlayCoverage,
   isDiscreteChannel,
   zoomDomainAround,
   clampDomain,
@@ -68,6 +70,36 @@ test('overlay grid keeps primary and secondary MAP independent', () => {
   assert.ok(mid);
   assert.equal(mid.MAP__primary, 10);
   assert.equal(mid.MAP__secondary, 30);
+});
+
+test('overlay still finds secondary RPM when the column is named RPM', () => {
+  const primary = [
+    { Time: 0, rpm: 1000, MAP: 10 },
+    { Time: 2, rpm: 1100, MAP: 12 }
+  ];
+  const secondary = [
+    { Time: 0, RPM: 1800, MAP: 20 },
+    { Time: 2, RPM: 1900, MAP: 22 }
+  ];
+  assert.equal(getNumeric(secondary[0], 'rpm'), 1800);
+
+  const grid = buildAlignedOverlayGrid({
+    primaryRows: primary,
+    secondaryRows: secondary,
+    channels: ['rpm', 'MAP']
+  });
+  const first = grid.find((row) => row.Time === 0);
+  assert.equal(first.rpm__primary, 1000);
+  assert.equal(first.rpm__secondary, 1800);
+
+  const coverage = summarizeOverlayCoverage({
+    primaryRows: primary,
+    secondaryRows: secondary,
+    channels: ['rpm', 'MAP']
+  });
+  assert.deepEqual(coverage.matchedChannels, ['rpm', 'MAP']);
+  assert.equal(coverage.missingChannels.length, 0);
+  assert.ok(coverage.overlapSec > 0);
 });
 
 test('overlay grid shares timestamps so primary and secondary exist on the same hover', () => {
