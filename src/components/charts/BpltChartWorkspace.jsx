@@ -941,7 +941,7 @@ export default function BpltChartWorkspace({
           )}
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col overflow-visible">
           <div
             ref={plotRef}
             className={`flex-1 min-h-[300px] ${isPanning ? 'cursor-grabbing' : 'cursor-crosshair'}`}
